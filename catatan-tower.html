@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catatan Tower - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:40px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Top Bar */
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;min-width:0;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* Cards */
+.card{
+  position:relative;z-index:2;
+  background:var(--bg-card);border-radius:18px;padding:16px;
+  margin:14px 20px 0;border:1px solid var(--border);
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;margin-bottom:12px;
+}
+.card-title::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+.card-title.teal::before{background:var(--teal);}
+.card-title.gold::before{background:var(--gold);}
+
+/* Tower info card */
+.tower-head{display:flex;align-items:center;gap:12px;}
+.tower-badge{
+  width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  background:var(--blue-glow);border:1px solid rgba(74,142,245,0.22);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--blue);font-weight:800;font-size:10px;line-height:1.2;text-align:center;
+}
+.tower-badge-num{font-size:14px;font-weight:900;}
+.tower-info{flex:1;min-width:0;}
+.tower-name{font-size:15px;font-weight:800;letter-spacing:-0.2px;margin-bottom:4px;}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border);}
+.status-baik{background:var(--green-bg);color:var(--green);}
+.status-perhatian{background:var(--amber-bg);color:var(--amber);}
+.status-rusak{background:var(--red-bg);color:var(--red);}
+
+/* Koordinat card */
+.koord-empty{text-align:center;padding:14px 6px;}
+.koord-empty svg{width:34px;height:34px;opacity:.35;margin-bottom:8px;}
+.koord-empty p{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-bottom:14px;}
+
+.koord-value-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.koord-coords{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--ink);letter-spacing:.2px;}
+.koord-akurasi{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.akurasi-baik{background:var(--green-bg);color:var(--green);}
+.akurasi-sedang{background:var(--amber-bg);color:var(--amber);}
+.akurasi-buruk{background:var(--red-bg);color:var(--red);}
+.koord-meta{font-size:11px;color:var(--ink-3);margin-bottom:12px;}
+
+#leafletMap{width:100%;height:170px;border-radius:14px;margin-bottom:12px;border:1px solid var(--border);}
+
+.btn-row{display:flex;gap:8px;}
+.btn{
+  flex:1;padding:12px;border-radius:12px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .12s, opacity .12s;
+}
+.btn:active{transform:scale(0.97);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg, var(--blue) 0%, #3A6FD8 100%);color:white;box-shadow:0 4px 14px rgba(74,142,245,0.3);}
+.btn-ghost{background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border);}
+.btn-gold{background:linear-gradient(135deg, var(--gold) 0%, #D6A422 100%);color:#1a1400;box-shadow:0 4px 14px rgba(244,197,66,0.25);}
+
+/* Form catatan */
+textarea, input[type="text"]{
+  width:100%;background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;color:var(--ink);font-family:inherit;font-size:13.5px;resize:vertical;min-height:80px;
+  outline:none;
+}
+textarea::placeholder{color:var(--ink-3);}
+input[type="file"]{width:100%;color:var(--ink-3);font-size:12px;margin-top:8px;}
+
+/* List catatan */
+.note-card{background:var(--bg-card2);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border);}
+.note-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.note-user{font-size:12.5px;font-weight:800;color:var(--blue);}
+.note-date{font-size:10.5px;color:var(--ink-3);}
+.note-text{font-size:13px;color:var(--ink-2);line-height:1.5;white-space:pre-wrap;}
+.note-photo{width:100%;border-radius:10px;margin-top:9px;display:block;}
+.note-actions{display:flex;gap:8px;margin-top:10px;}
+.note-actions button{
+  flex:1;padding:8px;border:none;border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;
+}
+.note-edit{background:rgba(74,142,245,0.15);color:var(--blue);}
+.note-del{background:var(--red-bg);color:var(--red);}
+
+.empty-sub{font-size:12px;color:var(--ink-3);text-align:center;padding:20px 10px;}
+.skeleton{height:60px;border-radius:14px;background:linear-gradient(90deg,var(--bg-card2) 25%,var(--bg-card) 50%,var(--bg-card2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;margin-bottom:10px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Modal pilih user kirim */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-overlay.active{display:flex;}
+.modal-sheet{
+  width:100%;max-width:460px;background:var(--bg-card);border-radius:22px 22px 0 0;
+  padding:18px 20px 26px;border:1px solid var(--border);border-bottom:none;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--bg-card2);border:1px solid var(--border);color:var(--ink);
+  padding:11px 18px;border-radius:30px;font-size:12.5px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:300;opacity:0;transition:opacity .25s, transform .25s;
+  pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="tower.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1 id="pageTitle">Catatan Tower</h1>
+      <p id="pageSub">Memuat...</p>
+    </div>
+  </div>
+
+  <!-- Info Tower -->
+  <div class="card">
+    <div class="card-title">Data Tower</div>
+    <div class="tower-head">
+      <div class="tower-badge">
+        <span style="font-size:8px;opacity:.6;font-weight:600;">TWR</span>
+        <span class="tower-badge-num" id="towerBadgeNum">—</span>
+      </div>
+      <div class="tower-info">
+        <div class="tower-name" id="towerName">—</div>
+        <div class="chip-row" id="towerChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Koordinat -->
+  <div class="card">
+    <div class="card-title teal">📍 Koordinat GPS Tower</div>
+    <div id="koordSection">
+      <div class="koord-empty">
+        <p>Memuat koordinat...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catatan -->
+  <div class="card">
+    <div class="card-title gold">Tambah Catatan</div>
+    <textarea id="catatanInput" placeholder="Tulis catatan kondisi tower di sini..."></textarea>
+    <input type="file" id="fotoInput" accept="image/*">
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="simpanCatatanTower()">💾 Simpan Catatan</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title">Riwayat Catatan</div>
+    <div id="listCatatan">
+      <div class="skeleton"></div>
+      <div class="skeleton" style="opacity:.6;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal kirim ke user -->
+<div class="modal-overlay" id="kirimModal" onclick="if(event.target===this) closeKirimModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">Kirim Koordinat ke Chat Tim</div>
+    <div class="modal-sub">Koordinat akan dikirim sebagai kartu lokasi ke Group Chat, terlihat oleh seluruh tim.</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeKirimModal()">Batal</button>
+      <button class="btn btn-primary" onclick="konfirmasiKirimChat()">📤 Kirim Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentUser, profile, jalurList, myJalur, canEdit;
+let towerId, towerData, catatanList = [];
+let leafletMap = null, leafletMarker = null;
+
+async function initPage(){
+  if(!getCurrentUser()){ location.href="index.html"; return; }
+
+  const params = new URLSearchParams(window.location.search);
+  towerId = params.get("tower");
+  if(!towerId){
+    alert("ID tower tidak ditemukan.");
+    location.href = "tower.html";
+    return;
+  }
+
+  currentUser = getCurrentUser();
+  canEdit = !isMonitor();
+
+  const [loggedIn, profileResult, jalurResult] = await Promise.all([
+    isLoggedIn(),
+    cachedGetFullProfile(currentUser),
+    cachedGetJalurMasterList()
+  ]);
+  if(!loggedIn){ location.href="index.html"; return; }
+  profile   = profileResult;
+  jalurList = jalurResult;
+  myJalur = jalurList.find(j => j.id === profile?.jalurId) || jalurList[0];
+
+  const towers = await cachedGetTowerMasterList();
+  towerData = towers.find(t => String(t.id) === String(towerId));
+  if(!towerData){
+    alert("Data tower tidak ditemukan.");
+    location.href = "tower.html";
+    return;
+  }
+  const towerJalur = jalurList.find(j => j.id === towerData.jalurId) || myJalur;
+
+  document.getElementById("pageTitle").textContent = "Tower " + String(towerData.nomor).padStart(3,"0");
+  document.getElementById("pageSub").textContent = towerJalur ? (towerJalur.code + " — " + towerJalur.label) : "";
+  document.getElementById("towerBadgeNum").textContent = String(towerData.nomor).padStart(3,"0");
+  document.getElementById("towerName").textContent = "Tower " + String(towerData.nomor).padStart(3,"0");
+
+  const code = towerJalur ? assetCodeTower(towerJalur.code, towerData.nomor) : "";
+  let chipsHtml = `<span class="chip">${code}</span>`;
+  if(towerData.jenis)    chipsHtml += `<span class="chip">${towerData.jenis}</span>`;
+  if(towerData.isolator) chipsHtml += `<span class="chip">${towerData.isolator} isolator</span>`;
+  if(towerData.renceng)  chipsHtml += `<span class="chip">${towerData.renceng} renceng</span>`;
+  if(towerData.status)   chipsHtml += `<span class="chip ${statusChipClass(towerData.status)}">${towerData.status}</span>`;
+  document.getElementById("towerChips").innerHTML = chipsHtml;
+
+  renderKoordinat();
+  await loadCatatanTower();
+}
+
+function statusChipClass(status){
+  const s = (status||"").toLowerCase();
+  if(s.includes("baik")) return "status-baik";
+  if(s.includes("perhatian")) return "status-perhatian";
+  if(s.includes("rusak")) return "status-rusak";
+  return "";
+}
+
+/* =========================================================
+   KOORDINAT GPS
+========================================================= */
+function akurasiClass(m){
+  if(m == null) return "";
+  if(m <= 10) return "akurasi-baik";
+  if(m <= 25) return "akurasi-sedang";
+  return "akurasi-buruk";
+}
+
+function renderKoordinat(){
+  const box = document.getElementById("koordSection");
+
+  if(towerData.latitude == null || towerData.longitude == null){
+    box.innerHTML = `
+      <div class="koord-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <p>Belum ada koordinat tersimpan untuk tower ini.</p>
+        ${canEdit ? `<button class="btn btn-primary" style="width:100%;" onclick="mulaiSimpanKoordinat()" id="btnSaveKoord">📍 Save Koordinat Tower</button>` : ""}
+      </div>`;
+    return;
+  }
+
+  const lat = towerData.latitude, lon = towerData.longitude;
+  const akurasi = towerData.akurasiMeter;
+  const tanggal = towerData.koordinatAt ? new Date(towerData.koordinatAt).toLocaleString("id-ID") : "-";
+
+  box.innerHTML = `
+    <div class="koord-value-row">
+      <div class="koord-coords">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>
+      ${akurasi != null ? `<div class="koord-akurasi ${akurasiClass(akurasi)}">±${Math.round(akurasi)}m</div>` : ""}
+    </div>
+    <div class="koord-meta">Disimpan oleh ${towerData.koordinatBy || "-"} · ${tanggal}</div>
+    <div id="leafletMap"></div>
+    <div class="btn-row">
+      ${canEdit ? `<button class="btn btn-ghost" onclick="mulaiSimpanKoordinat()">🔄 Update</button>` : ""}
+      <button class="btn btn-gold" onclick="openKirimModal()">📤 Kirim ke Chat</button>
+    </div>
+  `;
+
+  setTimeout(() => initLeafletMap(lat, lon), 30);
+}
+
+function initLeafletMap(lat, lon){
+  const el = document.getElementById("leafletMap");
+  if(!el || typeof L === "undefined") return;
+
+  if(leafletMap){ leafletMap.remove(); leafletMap = null; }
+
+  leafletMap = L.map(el, { zoomControl:false, attributionControl:false }).setView([lat, lon], 16);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19
+  }).addTo(leafletMap);
+  leafletMarker = L.marker([lat, lon]).addTo(leafletMap);
+}
+
+/* Kontrol akurasi GPS: kalau akurasi kasar (>25m), minta konfirmasi user
+   dulu sebelum disimpan supaya tidak menyimpan titik yang acak/meleset. */
+const AKURASI_THRESHOLD_M = 25;
+
+function mulaiSimpanKoordinat(){
+  if(!navigator.geolocation){
+    showToast("Perangkat/browser tidak mendukung GPS.");
+    return;
+  }
+  const btn = document.getElementById("btnSaveKoord");
+  if(btn){ btn.disabled = true; btn.textContent = "📡 Mengambil lokasi..."; }
+  showToast("Mengambil sinyal GPS...");
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => prosesKoordinatDidapat(pos),
+    (err) => {
+      if(btn){ btn.disabled = false; btn.textContent = "📍 Save Koordinat Tower"; }
+      let msg = "Gagal mengambil lokasi GPS.";
+      if(err.code === err.PERMISSION_DENIED) msg = "Izin lokasi ditolak. Aktifkan izin GPS untuk browser/aplikasi ini.";
+      else if(err.code === err.TIMEOUT) msg = "Waktu pengambilan GPS habis, coba lagi di area terbuka.";
+      showToast(msg);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+async function prosesKoordinatDidapat(pos){
+  const { latitude, longitude, accuracy } = pos.coords;
+
+  if(accuracy != null && accuracy > AKURASI_THRESHOLD_M){
+    const ok = confirm(
+      `Akurasi GPS saat ini agak rendah (±${Math.round(accuracy)}m), berpotensi meleset dari titik tower sebenarnya.\n\nTetap simpan koordinat ini?`
+    );
+    if(!ok){
+      const btn = document.getElementById("btnSaveKoord");
+      if(btn){ btn.disabled = false; btn.textContent = "📍 Save Koordinat Tower"; }
+      showToast("Dibatalkan. Coba lagi di area terbuka untuk akurasi lebih baik.");
+      return;
+    }
+  }
+
+  await saveTowerCoordinate(towerId, latitude, longitude, accuracy || null, currentUser);
+
+  towerData.latitude = latitude;
+  towerData.longitude = longitude;
+  towerData.akurasiMeter = accuracy || null;
+  towerData.koordinatBy = currentUser;
+  towerData.koordinatAt = new Date().toISOString();
+
+  localStorage.removeItem("srinai_cache_tower");
+  renderKoordinat();
+  showToast("Koordinat tower tersimpan ✅");
+}
+
+/* =========================================================
+   KIRIM KE CHAT TIM
+========================================================= */
+function openKirimModal(){
+  document.getElementById("kirimModal").classList.add("active");
+}
+function closeKirimModal(){
+  document.getElementById("kirimModal").classList.remove("active");
+}
+
+async function konfirmasiKirimChat(){
+  const towerJalur = jalurList.find(j => j.id === towerData.jalurId);
+  const code = towerJalur ? assetCodeTower(towerJalur.code, towerData.nomor) : ("Tower " + towerData.nomor);
+
+  await sendCoordinateToChat(currentUser, {
+    kind: "koordinat",
+    towerId: towerData.id,
+    towerLabel: code,
+    jalur: towerJalur ? (towerJalur.code + " — " + towerJalur.label) : "",
+    latitude: towerData.latitude,
+    longitude: towerData.longitude,
+    akurasiMeter: towerData.akurasiMeter
+  });
+
+  closeKirimModal();
+  showToast("Koordinat terkirim ke Chat Tim 📤");
+}
+
+/* =========================================================
+   CATATAN TOWER
+========================================================= */
+async function simpanCatatanTower(){
+  const isi = document.getElementById("catatanInput").value.trim();
+  if(isi === ""){
+    showToast("Catatan tidak boleh kosong.");
+    return;
+  }
+  const file = document.getElementById("fotoInput").files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = async function(e){ await simpanCatatanData(isi, e.target.result); };
+    reader.readAsDataURL(file);
+  } else {
+    await simpanCatatanData(isi, "");
+  }
+}
+
+async function simpanCatatanData(catatan, foto){
+  await addCatatanTower(towerId, currentUser, catatan, foto);
+  document.getElementById("catatanInput").value = "";
+  document.getElementById("fotoInput").value = "";
+  showToast("Catatan tersimpan ✅");
+  await loadCatatanTower();
+}
+
+async function loadCatatanTower(){
+  catatanList = await getCatatanByTower(towerId);
+  const container = document.getElementById("listCatatan");
+
+  if(catatanList.length === 0){
+    container.innerHTML = `<div class="empty-sub">Belum ada catatan untuk tower ini.</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  catatanList.forEach(item => {
+    const tanggal = new Date(item.createdAt).toLocaleString("id-ID");
+    const bisaEdit = item.username === currentUser || isAdmin();
+    const div = document.createElement("div");
+    div.className = "note-card";
+    div.innerHTML = `
+      <div class="note-head">
+        <div class="note-user">${item.username}</div>
+        <div class="note-date">${tanggal}</div>
+      </div>
+      <div class="note-text">${escapeHtmlTower(item.catatan)}</div>
+      ${item.foto ? `<img src="${item.foto}" class="note-photo">` : ""}
+      ${bisaEdit ? `
+        <div class="note-actions">
+          <button class="note-edit" onclick="editCatatanTowerUi(${item.id})">Edit</button>
+          <button class="note-del" onclick="hapusCatatanTowerUi(${item.id})">Hapus</button>
+        </div>` : ""}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function escapeHtmlTower(str){
+  const div = document.createElement("div");
+  div.textContent = str || "";
+  return div.innerHTML;
+}
+
+async function editCatatanTowerUi(id){
+  const item = catatanList.find(x => x.id === id);
+  if(!item) return;
+  const baru = prompt("Edit Catatan", item.catatan);
+  if(baru !== null && baru.trim() !== ""){
+    await editCatatanTower(id, baru);
+    await loadCatatanTower();
+  }
+}
+
+async function hapusCatatanTowerUi(id){
+  if(!confirm("Hapus catatan ini?")) return;
+  await deleteCatatanTower(id);
+  await loadCatatanTower();
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+initPage();
+</script>
+
+</body>
+</html>

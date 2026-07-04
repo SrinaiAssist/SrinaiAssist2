@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jadwal - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:#001F54;}
+.container{max-width:500px;margin:auto;min-height:100vh;background:#001F54;padding-bottom:90px;}
+.header{background:#4DA6FF;color:white;text-align:center;padding:20px;}
+.content{padding:15px;}
+.card{background:#FFD54F;border-radius:20px;padding:15px;margin-bottom:15px;}
+.card h2{text-align:center;margin-bottom:15px;}
+.form-group{margin-bottom:10px;}
+label{display:block;font-weight:bold;margin-bottom:5px;}
+input,select{width:100%;padding:10px;border:none;border-radius:10px;}
+.save-btn{width:100%;padding:12px;background:#1565C0;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
+.jadwal-card{background:white;padding:15px;border-radius:15px;margin-bottom:12px;}
+.jadwal-card h3{color:#1565C0;margin-bottom:8px;}
+.status{font-weight:bold;margin-top:8px;}
+.action{display:flex;gap:10px;margin-top:10px;}
+.edit-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#4DA6FF;color:white;cursor:pointer;}
+.delete-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#D32F2F;color:white;cursor:pointer;}
+.bottom-menu{position:fixed;bottom:0;left:0;right:0;background:#001F54;padding:12px;text-align:center;}
+.back-btn{background:#FFD54F;color:black;padding:14px 25px;border-radius:25px;text-decoration:none;font-weight:bold;display:inline-block;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <h1>JADWAL INSPEKSI</h1>
+  <p id="userInfo"></p>
+</div>
+
+<div class="content">
+
+  <div class="card" id="formJadwal" style="display:none;">
+    <h2>Tambah Jadwal</h2>
+
+    <div class="form-group">
+      <label>Tanggal</label>
+      <input type="date" id="tanggal">
+    </div>
+
+    <div class="form-group">
+      <label>Petugas</label>
+      <select id="petugas"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Jalur</label>
+      <select id="jalur">
+        <option>Lembursitu - Cianjur</option>
+        <option>Lembursitu - Semenjawa</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Tower Awal</label>
+      <input type="text" id="towerAwal" placeholder="T001">
+    </div>
+
+    <div class="form-group">
+      <label>Tower Akhir</label>
+      <input type="text" id="towerAkhir" placeholder="T026">
+    </div>
+
+    <div class="form-group">
+      <label>Kegiatan</label>
+      <input type="text" id="kegiatan" placeholder="Inspeksi Visual">
+    </div>
+
+    <div class="form-group">
+      <label>Status</label>
+      <select id="status">
+        <option>Belum Selesai</option>
+        <option>Sedang Berjalan</option>
+        <option>Selesai</option>
+        <option>Ditunda</option>
+      </select>
+    </div>
+
+    <button class="save-btn" onclick="simpanJadwal()">SIMPAN JADWAL</button>
+  </div>
+
+  <div id="jadwalList"></div>
+
+</div>
+
+</div>
+
+<div class="bottom-menu">
+  <a href="dashboard.html" class="back-btn">← Kembali ke Dashboard</a>
+</div>
+
+<script>
+if(!isLoggedIn()){
+  location.href="index.html";
+}
+
+const currentUser = getCurrentUser();
+document.getElementById("userInfo").innerHTML = currentUser;
+
+// Isi dropdown petugas otomatis dari seluruh akun terdaftar
+// (termasuk akun baru yang ditambahkan lewat Kelola Akun)
+const petugasSelect = document.getElementById("petugas");
+getAllUsernames().forEach(name=>{
+  if(name === "GI LEMBURSITU") return; // GI LEMBURSITU bukan petugas lapangan
+  const opt = document.createElement("option");
+  opt.value = name;
+  opt.textContent = name;
+  petugasSelect.appendChild(opt);
+});
+
+// Admin dan KLW bisa tambah jadwal
+if(isAdmin() || isKLW()){
+  document.getElementById("formJadwal").style.display="block";
+}
+
+let jadwalData = JSON.parse(localStorage.getItem("jadwalData")) || [];
+
+function simpanJadwal(){
+  const tanggal = document.getElementById("tanggal").value;
+  if(!tanggal){
+    alert("Isi tanggal terlebih dahulu.");
+    return;
+  }
+  const data = {
+    id: Date.now(),
+    tanggal: tanggal,
+    petugas: document.getElementById("petugas").value,
+    jalur: document.getElementById("jalur").value,
+    towerAwal: document.getElementById("towerAwal").value,
+    towerAkhir: document.getElementById("towerAkhir").value,
+    kegiatan: document.getElementById("kegiatan").value,
+    status: document.getElementById("status").value,
+    dibuat: currentUser
+  };
+  jadwalData.unshift(data);
+  localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
+  // Reset form
+  document.getElementById("tanggal").value="";
+  document.getElementById("kegiatan").value="";
+  loadJadwal();
+}
+
+function loadJadwal(){
+  const list = document.getElementById("jadwalList");
+  list.innerHTML="";
+
+  // LW hanya lihat jadwal sendiri
+  let tampilData = isLW()
+    ? jadwalData.filter(j=>j.petugas===currentUser)
+    : jadwalData;
+
+  tampilData.forEach(item=>{
+    let html = `
+      <div class="jadwal-card">
+        <h3>${item.tanggal}</h3>
+        <div><b>Petugas :</b> ${item.petugas}</div>
+        <div><b>Jalur :</b> ${item.jalur}</div>
+        <div><b>Tower :</b> ${item.towerAwal} - ${item.towerAkhir}</div>
+        <div><b>Kegiatan :</b> ${item.kegiatan}</div>
+        <div class="status">Status : ${item.status}</div>`;
+
+    if(isAdmin() || isKLW()){
+      html += `
+        <div class="action">
+          <button class="edit-btn" onclick="editJadwal(${item.id})">Edit Status</button>
+          <button class="delete-btn" onclick="hapusJadwal(${item.id})">Hapus</button>
+        </div>`;
+    }
+    html += `</div>`;
+    list.innerHTML += html;
+  });
+
+  if(tampilData.length===0){
+    list.innerHTML = `<div style="color:white;text-align:center;padding:20px;">Belum ada jadwal.</div>`;
+  }
+}
+
+function editJadwal(id){
+  const item = jadwalData.find(x=>x.id===id);
+  const status = prompt("Status Baru\n(Belum Selesai / Sedang Berjalan / Selesai / Ditunda)", item.status);
+  if(status!==null){
+    item.status = status;
+    localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
+    loadJadwal();
+  }
+}
+
+function hapusJadwal(id){
+  if(!confirm("Hapus jadwal ini?")) return;
+  jadwalData = jadwalData.filter(x=>x.id!==id);
+  localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
+  loadJadwal();
+}
+
+loadJadwal();
+</script>
+
+</body>
+</html>

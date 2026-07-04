@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+@font-face{
+  font-family: 'Bastliga One';
+  src: url('fonts/Bastliga_One.ttf') format('truetype');
+  font-display: swap;
+}
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+.content{position:relative;z-index:2;padding:18px 20px 0;}
+
+/* Profile list */
+.profile-list-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:18px;padding:4px 0;margin-bottom:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.profile-item{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.profile-item:last-child{border-bottom:none;}
+.profile-item:active{background:var(--bg-card2);}
+.profile-item-avatar{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:var(--blue-glow);border:1px solid rgba(74,142,245,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:var(--blue);
+  overflow:hidden;
+}
+.profile-item-avatar img{width:100%;height:100%;object-fit:cover;}
+.profile-item-name{font-size:13.5px;font-weight:700;color:var(--ink);}
+.profile-item-arrow{color:var(--ink-3);margin-left:auto;}
+
+/* Avatar hero */
+.avatar-section{
+  display:flex;flex-direction:column;align-items:center;
+  padding:20px 20px 0;position:relative;z-index:2;
+}
+.avatar-wrap{
+  position:relative;width:100px;height:100px;
+  border-radius:50%;margin-bottom:14px;
+}
+.avatar-wrap img,.avatar-initials{
+  width:100%;height:100%;border-radius:50%;object-fit:cover;
+}
+.avatar-initials{
+  background:linear-gradient(135deg,var(--blue) 0%,#2254C5 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;font-weight:800;color:white;
+}
+.avatar-ring{
+  position:absolute;inset:-3px;border-radius:50%;
+  border:2px solid var(--gold);pointer-events:none;
+}
+.avatar-edit-overlay{
+  position:absolute;bottom:0;right:0;
+  width:32px;height:32px;border-radius:50%;
+  background:var(--blue);border:2px solid var(--bg-deep);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.avatar-name{font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.avatar-role{
+  font-size:11px;font-weight:700;color:var(--teal);
+  background:rgba(56,191,160,0.12);border:1px solid rgba(56,191,160,0.2);
+  padding:3px 10px;border-radius:20px;margin-top:6px;
+}
+
+/* Info card */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:18px;padding:16px;margin-bottom:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;margin-bottom:14px;
+}
+.card-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--blue);display:block;
+}
+.card-title.gold::before{background:var(--gold);}
+.card-title.teal::before{background:var(--teal);}
+
+.info-row{
+  display:flex;align-items:flex-start;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.info-row:last-child{border-bottom:none;padding-bottom:0;}
+.info-key{font-size:11.5px;color:var(--ink-3);font-weight:600;width:120px;flex-shrink:0;padding-top:1px;}
+.info-val{font-size:13px;color:var(--ink);font-weight:600;flex:1;}
+
+.info-note{
+  font-size:11.5px;color:var(--ink-3);line-height:1.55;
+  background:var(--bg-card2);border-radius:11px;
+  padding:10px 12px;margin-bottom:12px;
+}
+
+.btn{
+  width:100%;padding:13px;border:none;border-radius:12px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:6px;
+}
+.btn-primary{background:var(--blue);color:white;}
+.btn-gold{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(244,197,66,0.25);}
+
+/* Signature */
+.sig-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.sig-tab{
+  flex:1;padding:9px;text-align:center;border-radius:12px;
+  background:var(--bg-card2);border:1px solid var(--border);
+  font-weight:700;font-size:12px;cursor:pointer;color:var(--ink-3);
+  font-family:inherit;
+}
+.sig-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+.sig-canvas-wrap{
+  position:relative;border:1px dashed rgba(255,255,255,0.15);
+  border-radius:12px;background:var(--bg-card2);margin-bottom:10px;
+}
+.sig-canvas-wrap canvas{width:100%;height:160px;display:block;touch-action:none;border-radius:12px;}
+.sig-placeholder{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  color:var(--ink-3);font-size:13px;pointer-events:none;
+}
+.sig-foto-box{display:none;margin-bottom:10px;}
+.sig-foto-box.show{display:block;}
+.sig-foto-box img{width:100%;max-height:160px;object-fit:contain;border-radius:12px;border:1px solid var(--border);background:var(--bg-card2);}
+.sig-auto-btn{
+  width:100%;padding:11px;border:none;border-radius:11px;font-weight:700;
+  cursor:pointer;font-size:13px;font-family:inherit;margin-bottom:10px;
+  background:var(--gold-dim);color:var(--gold);border:1px solid rgba(244,197,66,0.25);
+}
+.sig-actions{display:flex;gap:8px;}
+.sig-actions button{flex:1;padding:11px;border:none;border-radius:11px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;}
+.sig-clear-btn{background:var(--red-bg);color:var(--red);}
+.sig-save-btn{background:var(--blue);color:white;}
+.sig-status{
+  margin-bottom:12px;padding:10px 12px;border-radius:11px;
+  background:var(--green-bg);color:var(--green);
+  font-size:12px;display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(45,212,160,0.2);
+}
+.sig-status img{width:50px;height:30px;object-fit:contain;background:rgba(255,255,255,0.05);border-radius:6px;border:1px solid var(--border);}
+.sig-status.empty{background:var(--amber-bg);color:var(--amber);border-color:rgba(244,197,66,0.2);}
+
+.hidden{display:none;}
+.file-input-hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>👤 Profil</h1>
+      <p id="headerInfo">Memuat...</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Daftar Profil (Admin/KLW/Monitor) -->
+    <div id="listSection" class="hidden">
+      <div class="profile-list-card" id="profileList"></div>
+    </div>
+
+    <!-- Avatar + Info -->
+    <div id="profileSection" class="hidden">
+
+      <div class="avatar-section">
+        <div class="avatar-wrap">
+          <div id="avatarEl" class="avatar-initials">??</div>
+          <div class="avatar-ring"></div>
+          <label for="photoInput" class="avatar-edit-overlay" id="avatarEditLabel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </label>
+          <input type="file" id="photoInput" accept="image/*" class="file-input-hidden">
+        </div>
+        <div class="avatar-name" id="namaDisplay">—</div>
+        <div class="avatar-role" id="roleDisplay">—</div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <div class="card-title">📋 Data Akun</div>
+        <div id="infoRows"></div>
+        <div class="info-note">📌 Jabatan, jalur, range tower, wilayah, role &amp; status akun hanya dapat diubah Admin melalui Kelola Akun. Anda hanya dapat memperbarui foto profil.</div>
+        <button id="saveBtn" class="btn btn-primary" onclick="saveProfile()">💾 Simpan Foto Profil</button>
+        <a id="editAkunBtn" href="kelola-akun.html" class="btn btn-gold hidden" style="display:none;text-align:center;text-decoration:none;margin-top:8px;">✏️ Edit Data Akun di Kelola Akun</a>
+      </div>
+
+    </div>
+
+    <!-- Tanda Tangan -->
+    <div id="sigSection" class="card hidden">
+      <div class="card-title teal">✍️ Tanda Tangan Petugas</div>
+      <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px;line-height:1.55;">Tanda tangan ini otomatis dipakai saat membuat PDF Berita Acara (BA) di halaman Catatan Span.</p>
+
+      <div id="sigStatus" class="sig-status empty">Belum ada tanda tangan tersimpan.</div>
+
+      <div class="sig-tabs" style="margin-top:12px;">
+        <button class="sig-tab active" id="tabSigDigital" onclick="setSigMode('digital')">✍️ Digital</button>
+        <button class="sig-tab" id="tabSigFoto" onclick="setSigMode('foto')">📷 Upload Foto</button>
+      </div>
+
+      <div id="sigDigitalBox">
+        <div class="sig-canvas-wrap">
+          <canvas id="sigCanvas"></canvas>
+          <div class="sig-placeholder" id="sigPlaceholder">Tanda tangan di sini</div>
+        </div>
+        <button type="button" class="sig-auto-btn" onclick="generateAutoSig()">✒️ TTD Otomatis</button>
+      </div>
+
+      <div id="sigFotoBox" class="sig-foto-box">
+        <input type="file" id="sigFotoInput" accept="image/*" style="margin-bottom:8px;width:100%;color:var(--ink-3);font-family:inherit;font-size:12.5px;">
+        <img id="sigFotoPreview" style="display:none;">
+      </div>
+
+      <div class="sig-actions">
+        <button class="sig-clear-btn" onclick="clearSig()">🗑 Hapus</button>
+        <button class="sig-save-btn" onclick="saveSignature()">💾 Simpan</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+let currentRole = null;
+let selectedUser = null;
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+  currentUser = getCurrentUser();
+  currentRole = getCurrentRole();
+
+  const params = new URLSearchParams(window.location.search);
+  selectedUser = params.get("user");
+
+  document.getElementById("headerInfo").textContent = currentUser;
+
+  if(isAdmin() || isKLW() || isMonitor()){
+    document.getElementById("listSection").classList.remove("hidden");
+    await loadProfileList();
+  }
+
+  if(isLW()){
+    selectedUser = currentUser;
+    await showProfile();
+  }
+
+  if(selectedUser && !isLW()){
+    await showProfile();
+  }
+}
+
+async function loadProfileList(){
+  const accounts = await getAllAccountsFull();
+  const container = document.getElementById("profileList");
+  container.innerHTML = "";
+  accounts.map(a=>a.username).sort().forEach(name=>{
+    const initials = name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+    const div = document.createElement("div");
+    div.className = "profile-item";
+    div.onclick = () => openProfile(name);
+    div.innerHTML = `
+      <div class="profile-item-avatar">${initials}</div>
+      <div class="profile-item-name">${name}</div>
+      <div class="profile-item-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+      </div>`;
+    container.appendChild(div);
+  });
+  if(!container.children.length) container.innerHTML = `<div style="padding:16px;color:var(--ink-3);text-align:center;font-size:13px;">Belum ada akun.</div>`;
+}
+
+function openProfile(name){
+  location.href = "profile.html?user=" + encodeURIComponent(name);
+}
+
+async function showProfile(){
+  document.getElementById("profileSection").classList.remove("hidden");
+  const data = await getFullProfile(selectedUser);
+
+  if(!data){ alert("Akun tidak ditemukan."); location.href = (isLW() ? "dashboard.html" : "profile.html"); return; }
+
+  document.getElementById("headerInfo").textContent = selectedUser;
+  document.getElementById("namaDisplay").textContent = data.nama;
+  document.getElementById("roleDisplay").textContent = (data.role || "-").toUpperCase();
+
+  const initials = data.nama.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  const avatarEl = document.getElementById("avatarEl");
+  if(data.foto){
+    avatarEl.innerHTML = `<img src="${data.foto}" alt="Foto">`;
+    avatarEl.className = "";
+    avatarEl.style.borderRadius = "50%";
+    avatarEl.style.overflow = "hidden";
+    avatarEl.style.width = "100%";
+    avatarEl.style.height = "100%";
+  } else {
+    avatarEl.className = "avatar-initials";
+    avatarEl.textContent = initials;
+  }
+
+  const rows = [
+    ["Nama", data.nama],
+    ["Role", (data.role||"-").toUpperCase()],
+    ["Jabatan", data.jabatan],
+    ["Jalur", data.jalurLabel],
+    ["Range Tower", data.towerLabel],
+    ["Jumlah Tower", (data.jumlahTower||0)+" tower"],
+    ["Jumlah Span", (data.jumlahSpan||0)+" span"],
+    ["Wilayah", data.wilayah],
+    ["Status Akun", data.status],
+  ];
+  document.getElementById("infoRows").innerHTML = rows.map(([k,v])=>
+    `<div class="info-row"><div class="info-key">${k}</div><div class="info-val">${v||"—"}</div></div>`
+  ).join("");
+
+  if(isAdmin()) document.getElementById("editAkunBtn").style.display = "block";
+
+  if(selectedUser === currentUser && !isMonitor()){
+    document.getElementById("sigSection").classList.remove("hidden");
+    setTimeout(resizeSigCanvas, 50);
+    await loadSignature();
+  }
+
+  applyPermissions();
+}
+
+function applyPermissions(){
+  const photoInput = document.getElementById("photoInput");
+  const saveBtn = document.getElementById("saveBtn");
+  const editLabel = document.getElementById("avatarEditLabel");
+  if(isMonitor()){
+    photoInput.disabled = true;
+    saveBtn.style.display = "none";
+    editLabel.style.display = "none";
+    return;
+  }
+  photoInput.disabled = false;
+  saveBtn.style.display = "block";
+}
+
+document.getElementById("photoInput").addEventListener("change", function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const avatarEl = document.getElementById("avatarEl");
+    avatarEl.innerHTML = `<img src="${evt.target.result}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    avatarEl.className = "";
+  };
+  reader.readAsDataURL(file);
+});
+
+async function saveProfile(){
+  const avatarEl = document.getElementById("avatarEl");
+  const img = avatarEl.querySelector("img");
+  if(!img){ alert("Pilih foto terlebih dahulu."); return; }
+  const foto = img.src;
+
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Menyimpan...";
+
+  const result = await updateAccountProfile(selectedUser, { foto });
+  saveBtn.disabled = false;
+  saveBtn.textContent = "💾 Simpan Foto Profil";
+
+  if(result && result.success) alert("Foto profil berhasil disimpan.");
+  else alert("Gagal menyimpan foto profil. Periksa koneksi internet.");
+}
+
+/* ===== Tanda Tangan ===== */
+let sigMode = "digital";
+let sigFotoDataUrl = null;
+const sigCanvas = document.getElementById("sigCanvas");
+const sigCtx = sigCanvas.getContext("2d");
+let sigDrawing = false;
+let sigHasContent = false;
+
+/* Warna tinta TTD: HARUS gelap & kanvas HARUS berlatar putih solid
+   (bukan transparan). Sebelumnya tinta putih di atas kanvas transparan —
+   terlihat oke di kartu profil yang gelap, tapi begitu PNG-nya ditempel
+   ke halaman PDF BA yang putih, tanda tangan jadi tidak terlihat sama
+   sekali (putih di atas putih). */
+const SIG_INK_COLOR = "#111827";
+
+function resizeSigCanvas(){
+  const rect = sigCanvas.getBoundingClientRect();
+  const prevData = (sigCanvas.width > 0 && sigHasContent) ? sigCanvas.toDataURL() : null;
+  sigCanvas.width = rect.width;
+  sigCanvas.height = 160;
+  sigCtx.fillStyle = "#ffffff";
+  sigCtx.fillRect(0, 0, sigCanvas.width, sigCanvas.height);
+  sigCtx.lineWidth = 2.5;
+  sigCtx.lineCap = "round";
+  sigCtx.strokeStyle = SIG_INK_COLOR;
+  if(prevData){
+    const img = new Image();
+    img.onload = function(){ sigCtx.drawImage(img,0,0,sigCanvas.width,sigCanvas.height); };
+    img.src = prevData;
+  }
+}
+window.addEventListener("resize", resizeSigCanvas);
+
+function isSigCanvasBlank(){
+  return !sigHasContent;
+}
+
+function sigPos(e){
+  const rect = sigCanvas.getBoundingClientRect();
+  const evt = e.touches ? e.touches[0] : e;
+  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+}
+function sigStart(e){
+  e.preventDefault(); sigDrawing = true; sigHasContent = true;
+  document.getElementById("sigPlaceholder").style.display = "none";
+  const p = sigPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y);
+}
+function sigMove(e){
+  if(!sigDrawing) return; e.preventDefault();
+  const p = sigPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke();
+}
+function sigEnd(){ sigDrawing = false; }
+
+sigCanvas.addEventListener("mousedown", sigStart);
+sigCanvas.addEventListener("mousemove", sigMove);
+sigCanvas.addEventListener("mouseup", sigEnd);
+sigCanvas.addEventListener("mouseleave", sigEnd);
+sigCanvas.addEventListener("touchstart", sigStart);
+sigCanvas.addEventListener("touchmove", sigMove);
+sigCanvas.addEventListener("touchend", sigEnd);
+
+function setSigMode(mode){
+  sigMode = mode;
+  document.getElementById("tabSigDigital").classList.toggle("active", mode==="digital");
+  document.getElementById("tabSigFoto").classList.toggle("active", mode==="foto");
+  document.getElementById("sigDigitalBox").style.display = mode==="digital" ? "block" : "none";
+  document.getElementById("sigFotoBox").classList.toggle("show", mode==="foto");
+}
+
+async function generateAutoSig(){
+  const namaEl = document.getElementById("namaDisplay");
+  const nama = (namaEl && namaEl.textContent ? namaEl.textContent : "").trim();
+  if(!nama){
+    alert("Nama akun tidak ditemukan untuk membuat TTD otomatis.");
+    return;
+  }
+  setSigMode('digital');
+  resizeSigCanvas();
+
+  try{
+    await document.fonts.load("64px 'Bastliga One'");
+    await document.fonts.ready;
+  }catch(e){ /* lanjut pakai fallback font jika gagal load */ }
+
+  const w = sigCanvas.width, h = sigCanvas.height;
+  sigCtx.clearRect(0,0,w,h);
+  document.getElementById("sigPlaceholder").style.display = "none";
+
+  // seed dari nama agar gaya konsisten untuk nama yang sama
+  let seed = 0;
+  for(let i=0;i<nama.length;i++) seed = (seed*31 + nama.charCodeAt(i)) >>> 0;
+  function rnd(){ seed = (seed*1103515245 + 12345) >>> 0; return (seed % 10000)/10000; }
+
+  const fontFamily = "'Bastliga One', cursive";
+
+  // cari ukuran font terbesar agar tanda tangan memenuhi ~88% lebar canvas
+  let fontSize = h * 0.9;
+  sigCtx.font = `${fontSize}px ${fontFamily}`;
+  let textWidth = sigCtx.measureText(nama).width;
+  const targetWidth = w * 0.88;
+  if(textWidth > 0){
+    fontSize = fontSize * (targetWidth / textWidth);
+  }
+  fontSize = Math.max(20, Math.min(fontSize, h * 1.3));
+  sigCtx.font = `${fontSize}px ${fontFamily}`;
+  textWidth = sigCtx.measureText(nama).width;
+
+  const cx = w/2, cy = h/2 + fontSize*0.08;
+  const angle = (rnd()-0.5) * 0.05;
+
+  sigCtx.save();
+  sigCtx.translate(cx, cy);
+  sigCtx.rotate(angle);
+  sigCtx.textBaseline = "middle";
+  sigCtx.textAlign = "center";
+  sigCtx.fillStyle = SIG_INK_COLOR;
+
+  // sapuan pena ganda agar terlihat lebih tebal & alami (tidak seperti font tipis)
+  sigCtx.fillText(nama, 0, 0);
+  sigCtx.lineWidth = 0.8;
+  sigCtx.strokeStyle = SIG_INK_COLOR;
+  sigCtx.strokeText(nama, 0, 0);
+
+  // coretan flourish di bawah nama, khas tanda tangan
+  const flourishW = Math.min(w*0.7, textWidth*0.85);
+  const fx0 = -flourishW/2 + (rnd()-0.5)*8;
+  const fy0 = fontSize*0.32 + rnd()*3;
+  sigCtx.beginPath();
+  sigCtx.lineWidth = Math.max(1.4, fontSize*0.035);
+  sigCtx.lineCap = "round";
+  sigCtx.strokeStyle = SIG_INK_COLOR;
+  sigCtx.moveTo(fx0, fy0);
+  sigCtx.bezierCurveTo(
+    fx0 + flourishW*0.25, fy0 + 8 + rnd()*6,
+    fx0 + flourishW*0.75, fy0 - 8 - rnd()*6,
+    fx0 + flourishW, fy0 + (rnd()-0.5)*6
+  );
+  sigCtx.stroke();
+
+  sigCtx.restore();
+  sigHasContent = true;
+}
+
+document.getElementById("sigFotoInput").addEventListener("change", function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    sigFotoDataUrl = ev.target.result;
+    const preview = document.getElementById("sigFotoPreview");
+    preview.src = sigFotoDataUrl; preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+function clearSig(){
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigCtx.fillStyle = "#ffffff";
+  sigCtx.fillRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigHasContent = false;
+  document.getElementById("sigPlaceholder").style.display = "block";
+  sigFotoDataUrl = null;
+  document.getElementById("sigFotoInput").value = "";
+  document.getElementById("sigFotoPreview").style.display = "none";
+}
+
+async function loadSignature(){
+  const sig = await getProfileSignature(currentUser);
+  const statusBox = document.getElementById("sigStatus");
+  if(!sig || !sig.ttdData){
+    statusBox.className = "sig-status empty";
+    statusBox.innerHTML = "Belum ada tanda tangan tersimpan.";
+    return;
+  }
+  statusBox.className = "sig-status";
+  statusBox.innerHTML = `<img src="${sig.ttdData}"> Tersimpan ${sig.tanggal ? "· " + sig.tanggal : ""}`;
+  if(sig.ttdType === "foto"){
+    setSigMode("foto"); sigFotoDataUrl = sig.ttdData;
+    const preview = document.getElementById("sigFotoPreview");
+    preview.src = sig.ttdData; preview.style.display = "block";
+  } else {
+    setSigMode("digital");
+    const img = new Image();
+    img.onload = function(){ resizeSigCanvas(); sigCtx.drawImage(img,0,0,sigCanvas.width,sigCanvas.height); sigHasContent = true; document.getElementById("sigPlaceholder").style.display = "none"; };
+    img.src = sig.ttdData;
+  }
+}
+
+async function saveSignature(){
+  let ttdType = null, ttdData = null;
+  if(sigMode === "foto" && sigFotoDataUrl){ ttdType = "foto"; ttdData = sigFotoDataUrl; }
+  else if(sigMode === "digital" && !isSigCanvasBlank()){ ttdType = "digital"; ttdData = sigCanvas.toDataURL("image/png"); }
+  if(!ttdData){ alert("Buat tanda tangan digital atau upload foto TTD terlebih dahulu."); return; }
+  const result = await saveProfileSignature(currentUser, ttdType, ttdData);
+  if(result){ alert("Tanda tangan berhasil disimpan."); await loadSignature(); }
+  else alert("Gagal menyimpan tanda tangan. Periksa koneksi internet.");
+}
+
+initPage();
+</script>
+
+</body>
+</html>

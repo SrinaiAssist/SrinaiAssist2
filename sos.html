@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* Ambient glow */
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(242,107,107,0.15) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Top Bar */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* Search */
+.search-wrap{
+  position:relative;z-index:2;
+  padding:16px 20px 0;
+}
+.search-inner{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:0 14px;
+}
+.search-inner svg{flex-shrink:0;opacity:0.4;}
+.search-inner input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--ink);font-family:inherit;font-size:13.5px;
+  padding:12px 0;
+}
+.search-inner input::placeholder{color:var(--ink-3);}
+
+/* Upload section */
+.upload-wrap{
+  position:relative;z-index:2;
+  padding:16px 20px 0;
+}
+.upload-card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+}
+.upload-card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:12px;
+}
+.upload-card-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--red);display:block;
+}
+.field-group{margin-bottom:12px;}
+.field-label{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:6px;display:block;}
+.field-input{
+  width:100%;background:var(--bg-card2);
+  border:1px solid var(--border);
+  border-radius:11px;padding:11px 13px;
+  color:var(--ink);font-family:inherit;font-size:13.5px;
+  outline:none;
+}
+.field-input::placeholder{color:var(--ink-3);}
+.field-input:focus{border-color:rgba(74,142,245,0.4);}
+.field-select{appearance:none;cursor:pointer;}
+.field-file{
+  width:100%;background:var(--bg-card2);
+  border:1px dashed rgba(255,255,255,0.18);
+  border-radius:11px;padding:11px 13px;
+  color:var(--ink-3);font-family:inherit;font-size:12.5px;
+  cursor:pointer;
+}
+.field-file::file-selector-button{
+  background:var(--blue);color:white;border:none;
+  border-radius:8px;padding:6px 12px;
+  font-family:inherit;font-size:12px;font-weight:700;
+  cursor:pointer;margin-right:10px;
+}
+.upload-btn{
+  width:100%;padding:13px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--red) 0%,#C4484A 100%);
+  color:white;font-family:inherit;font-size:13.5px;font-weight:800;
+  cursor:pointer;letter-spacing:-0.1px;
+  box-shadow:0 4px 16px rgba(242,107,107,0.3);
+  margin-top:4px;
+}
+
+/* Section header */
+.section-head{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 0;
+}
+.section-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--red);display:block;
+}
+.section-count{
+  font-size:11px;font-weight:700;color:var(--red);
+  background:var(--red-bg);border:1px solid rgba(242,107,107,0.2);
+  padding:3px 9px;border-radius:20px;
+}
+
+/* BA List */
+.list-wrap{
+  position:relative;z-index:2;
+  padding:12px 20px 4px;
+}
+.ba-card{
+  background:var(--bg-card);
+  border-radius:18px;
+  padding:14px 15px;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.ba-card-top{display:flex;gap:12px;align-items:flex-start;}
+.ba-icon{
+  width:46px;height:46px;border-radius:13px;flex-shrink:0;
+  background:var(--red-bg);border:1px solid rgba(242,107,107,0.22);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.ba-info{flex:1;min-width:0;}
+.ba-title{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.2px;}
+.ba-meta{font-size:11px;color:var(--ink-3);margin-top:4px;line-height:1.5;}
+.ba-source{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:6px;
+}
+.src-ai{background:var(--green-bg);color:var(--green);}
+.src-manual{background:var(--blue-glow);color:var(--blue);}
+
+.ba-photo{width:100%;border-radius:12px;margin-top:10px;}
+
+.ba-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.ba-act-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:8px 13px;border-radius:10px;font-size:12px;font-weight:700;
+  text-decoration:none;border:none;cursor:pointer;font-family:inherit;
+}
+.ba-download{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(244,197,66,0.2);}
+.ba-delete{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
+.ba-edit{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);}
+.ba-view{background:rgba(52,199,89,0.12);color:#34c759;border:1px solid rgba(52,199,89,0.2);}
+
+/* Modal View BA */
+.view-modal-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);flex-direction:column;}
+.view-modal-overlay.active{display:flex;}
+.view-modal-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0D1830;flex-shrink:0;}
+.view-modal-title{color:#fff;font-size:14px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.view-modal-close{background:rgba(242,107,107,0.15);color:#f26b6b;border:1px solid rgba(242,107,107,0.25);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+.view-modal-frame{flex:1;width:100%;border:none;background:#111;}
+.view-modal-img{flex:1;width:100%;object-fit:contain;}
+
+.empty-msg{
+  text-align:center;color:var(--ink-3);
+  padding:50px 20px;font-size:13px;
+}
+
+/* Modal */
+.edit-modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:none;align-items:flex-end;justify-content:center;z-index:50;
+  backdrop-filter:blur(4px);
+}
+.edit-modal-overlay.active{display:flex;}
+.edit-modal-box{
+  background:var(--bg-card);
+  border-radius:24px 24px 0 0;
+  border-top:1px solid rgba(255,255,255,0.1);
+  padding:22px 18px 32px;
+  width:100%;max-width:460px;max-height:90vh;overflow-y:auto;
+}
+.modal-handle{
+  width:36px;height:4px;background:rgba(255,255,255,0.15);
+  border-radius:2px;margin:0 auto 18px;
+}
+.edit-modal-title{font-size:17px;font-weight:800;color:var(--ink);margin-bottom:4px;}
+.edit-modal-sub{font-size:12.5px;color:var(--ink-3);margin-bottom:18px;}
+
+.edit-tabs{
+  display:flex;gap:6px;margin-bottom:18px;
+}
+.edit-tab{
+  flex:1;padding:9px 4px;border:1px solid var(--border);
+  background:var(--bg-card2);color:var(--ink-3);
+  font-weight:700;font-size:11px;cursor:pointer;
+  border-radius:12px;font-family:inherit;line-height:1.4;
+  text-align:center;
+}
+.edit-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+
+.edit-field-label{
+  display:block;font-weight:700;font-size:12px;
+  color:var(--ink-2);margin-bottom:6px;
+}
+.edit-field-wrap{margin-bottom:14px;}
+.edit-field-wrap input[type="text"]{
+  width:100%;padding:11px 13px;
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:11px;font-size:13.5px;
+  color:var(--ink);font-family:inherit;outline:none;
+}
+.edit-field-wrap input[type="text"]:focus{border-color:rgba(74,142,245,0.4);}
+.edit-file-note{font-size:11px;color:var(--ink-3);margin-top:5px;}
+
+.edit-modal-actions{display:flex;gap:10px;margin-top:6px;}
+.edit-btn-cancel{
+  flex:1;padding:13px;border:1px solid var(--border);
+  border-radius:12px;background:var(--bg-card2);color:var(--ink-2);
+  font-weight:700;cursor:pointer;font-family:inherit;
+}
+.edit-btn-save{
+  flex:2;padding:13px;border:none;
+  border-radius:12px;background:var(--blue);color:white;
+  font-weight:700;cursor:pointer;font-family:inherit;
+}
+.edit-saving{opacity:.6;pointer-events:none;}
+
+.edit-btn-preview{
+  width:100%;padding:11px;border:1px solid var(--border);
+  border-radius:11px;background:var(--bg-card2);color:var(--ink-2);
+  font-weight:700;cursor:pointer;margin-bottom:10px;font-size:13px;
+  font-family:inherit;
+}
+.edit-preview-frame-wrap{
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:14px;background:#000;display:none;
+}
+.edit-preview-frame{width:100%;height:320px;border:none;display:block;}
+
+.edit-tabs-3{display:flex;gap:6px;margin-bottom:18px;}
+.m3-date-row{display:flex;gap:10px;align-items:center;margin-bottom:14px;}
+.m3-date-row input[type="date"]{
+  flex:1;padding:11px 13px;border:1px solid var(--border);
+  border-radius:11px;font-size:14px;background:var(--bg-card2);
+  color:var(--ink);font-family:inherit;outline:none;
+}
+.m3-scan-btn{
+  padding:11px 16px;border:none;border-radius:11px;
+  background:var(--blue);color:white;
+  font-weight:700;font-size:13px;cursor:pointer;
+  font-family:inherit;white-space:nowrap;
+}
+.m3-status{
+  font-size:12.5px;color:var(--ink-2);margin-bottom:12px;
+  padding:10px 12px;background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:11px;line-height:1.6;display:none;white-space:pre-line;
+}
+.m3-status.show{display:block;}
+.m3-status.err{background:var(--red-bg);color:var(--red);border-color:rgba(242,107,107,0.2);}
+.m3-status.ok{background:var(--green-bg);color:var(--green);border-color:rgba(45,212,160,0.2);}
+.m3-canvas-wrap{width:100%;border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;display:none;background:#111;}
+.m3-canvas-wrap.show{display:block;}
+.m3-canvas-wrap canvas{width:100%;height:auto;display:block;}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>📂 SOS</h1>
+      <p id="userInfo">Sistem Penyimpanan BA</p>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-inner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Cari nomor Span, pemilik, atau judul..." oninput="searchBA()">
+    </div>
+  </div>
+
+  <div class="upload-wrap" id="uploadSection"></div>
+
+  <div class="section-head">
+    <div class="section-title">Daftar BA</div>
+    <div class="section-count" id="baCount">0 BA</div>
+  </div>
+
+  <div class="list-wrap" id="baContainer">
+    <div class="empty-msg">Memuat data...</div>
+  </div>
+
+</div>
+
+<!-- Modal Edit BA -->
+<div class="edit-modal-overlay" id="modalEditBA">
+  <div class="edit-modal-box">
+    <div class="modal-handle"></div>
+    <div class="edit-modal-title">✏️ Edit BA</div>
+    <div class="edit-modal-sub" id="editBASpanInfo"></div>
+
+    <div class="edit-tabs">
+      <button class="edit-tab active" onclick="switchTab(1)">📝 Metadata</button>
+      <button class="edit-tab" onclick="switchTab(2)">📄 Ganti File</button>
+      <button class="edit-tab" onclick="switchTab(3)">🗓 Edit Tanggal</button>
+    </div>
+
+    <!-- MODE 1 -->
+    <div id="tabMode1">
+      <div class="edit-field-wrap">
+        <label class="edit-field-label">Judul BA</label>
+        <input type="text" id="editJudul" placeholder="Contoh: BA Sosialisasi — LCJ-S001">
+      </div>
+      <div class="edit-field-wrap">
+        <label class="edit-field-label">Nama Pemilik</label>
+        <input type="text" id="editPemilik" placeholder="Nama pemilik tegakan">
+      </div>
+      <div class="edit-field-wrap">
+        <label class="edit-field-label">Nama File (opsional)</label>
+        <input type="text" id="editFileName" placeholder="Contoh: BA_LCJ-S001_Asep.pdf">
+        <div class="edit-file-note">Kosongkan jika tidak perlu diubah</div>
+      </div>
+      <div class="edit-modal-actions">
+        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
+        <button class="edit-btn-save" id="editSaveBtn" onclick="saveEditBA()">💾 Simpan</button>
+      </div>
+    </div>
+
+    <!-- MODE 2 -->
+    <div id="tabMode2" style="display:none;">
+      <div class="edit-field-wrap">
+        <label class="edit-field-label">Ganti File PDF / Gambar</label>
+        <input type="file" id="editFilePdf" accept="application/pdf,image/*" class="field-file">
+        <div class="edit-file-note">Biarkan kosong untuk tetap memakai file yang sudah ada.</div>
+      </div>
+      <button class="edit-btn-preview" id="editPreviewBtn" onclick="toggleEditPreview()">👁 Preview PDF Saat Ini</button>
+      <div class="edit-preview-frame-wrap" id="editPreviewWrap">
+        <iframe class="edit-preview-frame" id="editPreviewFrame"></iframe>
+      </div>
+      <div class="edit-modal-actions">
+        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
+        <button class="edit-btn-save" id="editSaveBtn2" onclick="saveEditBA()">💾 Simpan</button>
+      </div>
+    </div>
+
+    <!-- MODE 3 -->
+    <div id="tabMode3" style="display:none;">
+      <p style="font-size:12.5px;color:var(--ink-3);margin-bottom:12px;line-height:1.6;">
+        SrinAI akan membaca tanggal yang tertera di foto BA, lalu menggantinya dengan tanggal yang kamu pilih.
+      </p>
+      <div class="m3-date-row">
+        <input type="date" id="m3Date">
+        <button class="m3-scan-btn" onclick="runMode3()">🔍 Scan & Edit</button>
+      </div>
+      <div class="m3-status" id="m3Status"></div>
+      <div class="m3-canvas-wrap" id="m3CanvasWrap"><canvas id="m3Canvas"></canvas></div>
+      <div class="edit-modal-actions">
+        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
+        <button class="edit-btn-save" id="m3SaveBtn" style="display:none;" onclick="saveMode3()">💾 Simpan Foto Baru</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentUser, baList = [];
+
+function switchTab(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('tabMode'+i).style.display = i===n ? 'block' : 'none';
+  });
+  document.querySelectorAll('.edit-tab').forEach((t,i) => t.classList.toggle('active', i+1===n));
+}
+
+const HARI_ID  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function parseDateStr(s) {
+  const d = new Date(s + 'T00:00:00');
+  return { hari:HARI_ID[d.getDay()], tgl:d.getDate(), bulan:BULAN_ID[d.getMonth()], tahun:d.getFullYear() };
+}
+
+function m3SetStatus(msg, type) {
+  const el = document.getElementById('m3Status');
+  el.textContent = msg;
+  el.className = 'm3-status show' + (type ? ' '+type : '');
+}
+
+let _m3Result = null;
+
+async function runMode3() {
+  const dateVal = document.getElementById('m3Date').value;
+  if(!dateVal) { alert('Pilih tanggal terlebih dahulu.'); return; }
+  if(!_editingBA || !_editingBA.foto || !_editingBA.foto.length) {
+    alert('BA ini tidak memiliki foto.'); return;
+  }
+
+  m3SetStatus('⏳ Mengirim ke SrinAI untuk dibaca...');
+  document.getElementById('m3CanvasWrap').classList.remove('show');
+  document.getElementById('m3SaveBtn').style.display = 'none';
+  _m3Result = null;
+
+  const fotoUrl = _editingBA.foto[0];
+  const newDate = parseDateStr(dateVal);
+
+  try {
+    const resp = await fetch('/api/ai/edit-tanggal-ba', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fotoUrl, newDate })
+    });
+    const result = await resp.json();
+
+    if(!result.success) {
+      m3SetStatus('❌ Gagal: ' + (result.message || 'Tidak diketahui'), 'err');
+      return;
+    }
+
+    m3SetStatus('✅ Berhasil diproses. Cek pratinjau di bawah.', 'ok');
+
+    const wrap = document.getElementById('m3CanvasWrap');
+    const canvas = document.getElementById('m3Canvas');
+    wrap.classList.add('show');
+
+    const img = new Image();
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      _m3Result = canvas.toDataURL('image/jpeg', 0.9);
+      document.getElementById('m3SaveBtn').style.display = 'block';
+    };
+    img.src = result.editedFoto;
+  } catch(err) {
+    m3SetStatus('❌ Gagal menghubungi server: ' + err.message, 'err');
+  }
+}
+
+async function saveMode3() {
+  if(!_m3Result || !_editingBA) return;
+  const btn = document.getElementById('m3SaveBtn');
+  btn.textContent = '⏳ Menyimpan...';
+  btn.classList.add('edit-saving');
+  try {
+    const result = await fetch('/api/ba', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: _editingBA.id, foto: [_m3Result] })
+    }).then(r => r.json());
+    if(!result.success) throw new Error(result.message || 'Gagal');
+    closeEditBA();
+    invalidateBACache();
+    await loadBA();
+    renderBA(document.getElementById('searchInput').value.toLowerCase().trim());
+    alert('✅ Foto BA berhasil diperbarui.');
+  } catch(err) {
+    alert('⚠️ Gagal menyimpan: ' + err.message);
+    btn.textContent = '💾 Simpan Foto Baru';
+    btn.classList.remove('edit-saving');
+  }
+}
+
+let _editingBA = null;
+
+function openEditBA(id){
+  const item = baList.find(b => b.id === id);
+  if(!item) return;
+  _editingBA = item;
+  document.getElementById("editBASpanInfo").textContent = "SPAN " + item.span + (item.judul ? " — " + item.judul : "");
+  document.getElementById("editJudul").value   = item.judul   || "";
+  document.getElementById("editPemilik").value = item.pemilik || "";
+  document.getElementById("editFileName").value = item.fileName || "";
+  document.getElementById("editFilePdf").value  = "";
+  const wrap = document.getElementById("editPreviewWrap");
+  wrap.style.display = "none";
+  document.getElementById("editPreviewFrame").src = "";
+  document.getElementById("editPreviewBtn").textContent = "👁 Preview PDF Saat Ini";
+  document.getElementById('m3Date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('m3Status').className = 'm3-status';
+  document.getElementById('m3CanvasWrap').classList.remove('show');
+  document.getElementById('m3SaveBtn').style.display = 'none';
+  _m3Result = null;
+  document.getElementById("editSaveBtn").classList.remove("edit-saving");
+  document.getElementById("editSaveBtn").textContent = "💾 Simpan";
+  switchTab(1);
+  document.getElementById("modalEditBA").classList.add("active");
+}
+
+function closeEditBA(){
+  document.getElementById("modalEditBA").classList.remove("active");
+  _editingBA = null;
+}
+
+function toggleEditPreview(){
+  if(!_editingBA || !_editingBA.pdf) { alert("Tidak ada PDF untuk dipratinjau."); return; }
+  const wrap = document.getElementById("editPreviewWrap");
+  const btn  = document.getElementById("editPreviewBtn");
+  const frame = document.getElementById("editPreviewFrame");
+  if(wrap.style.display === "none" || !wrap.style.display){
+    frame.src = _editingBA.pdf;
+    wrap.style.display = "block";
+    btn.textContent = "▲ Tutup Preview";
+  } else {
+    wrap.style.display = "none";
+    frame.src = "";
+    btn.textContent = "👁 Preview PDF Saat Ini";
+  }
+}
+
+async function saveEditBA(){
+  if(!_editingBA) return;
+  const saveBtn = document.getElementById("editSaveBtn");
+  saveBtn.classList.add("edit-saving");
+  saveBtn.textContent = "⏳ Menyimpan...";
+  const judul    = document.getElementById("editJudul").value.trim();
+  const pemilik  = document.getElementById("editPemilik").value.trim();
+  const fileName = document.getElementById("editFileName").value.trim();
+  const fileInput = document.getElementById("editFilePdf");
+
+  const doUpdate = async (newPdf) => {
+    const body = { id: _editingBA.id, judul, pemilik };
+    if(fileName) body.fileName = fileName;
+    if(newPdf)   body.pdf = newPdf;
+    try {
+      const result = await fetch("/api/ba", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then(r => r.json());
+      if(!result.success){ alert("⚠️ Gagal menyimpan: " + (result.message||"Tidak diketahui")); saveBtn.classList.remove("edit-saving"); saveBtn.textContent = "💾 Simpan"; return; }
+      closeEditBA();
+      invalidateBACache();
+      await loadBA();
+      renderBA(document.getElementById("searchInput").value.toLowerCase().trim());
+      alert("✅ BA berhasil diperbarui.");
+    } catch(err){ alert("⚠️ Gagal menghubungi server.\n" + err.message); saveBtn.classList.remove("edit-saving"); saveBtn.textContent = "💾 Simpan"; }
+  };
+
+  if(fileInput.files.length > 0){
+    const reader = new FileReader();
+    reader.onload = async (e) => { await doUpdate(e.target.result); };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {
+    await doUpdate(null);
+  }
+}
+
+async function deleteBA(id){
+  if(!isAdmin() && !isKLW()) return;
+  if(!confirm("Hapus BA ini?")) return;
+  await deleteBADocument(id);
+  invalidateBACache();
+  await loadBA();
+  renderBA();
+}
+
+function searchBA(){
+  const key = document.getElementById("searchInput").value.toLowerCase().trim();
+  renderBA(key);
+}
+
+function sourceBadge(item){
+  if(item.sumber === "ai") return `<span class="ba-source src-ai">🤖 Dibuat oleh SrinAI</span>`;
+  const who = item.uploader ? item.uploader : "-";
+  return `<span class="ba-source src-manual">👤 Upload manual — ${who}</span>`;
+}
+
+function renderBA(keyword=""){
+  const container = document.getElementById("baContainer");
+  container.innerHTML="";
+  let found = 0;
+
+  baList.forEach(item=>{
+    const haystack = (item.span + " " + (item.judul||"") + " " + (item.pemilik||"")).toLowerCase();
+    if(keyword && !haystack.includes(keyword)) return;
+    found++;
+
+    const metaParts = [];
+    if(item.pemilik && item.pemilik !== "-") metaParts.push("Pemilik: " + item.pemilik);
+    if(item.jumlahTegakan) metaParts.push(item.jumlahTegakan + " tegakan");
+    metaParts.push(item.tanggal);
+
+    let html = `
+      <div class="ba-card">
+        <div class="ba-card-top">
+          <div class="ba-icon">📄</div>
+          <div class="ba-info">
+            <div class="ba-title">SPAN ${item.span}${item.judul ? " — " + item.judul : ""}</div>
+            <div class="ba-meta">${metaParts.join(" · ")}</div>
+            ${sourceBadge(item)}
+          </div>
+        </div>`;
+
+    if(item.foto && item.foto.length){
+      item.foto.forEach((photo,i)=>{
+        html += `<img src="${photo}" class="ba-photo">`;
+      });
+    }
+
+    html += `<div class="ba-actions">`;
+    if(item.pdf){
+      html += `<button class="ba-act-btn ba-view" onclick="viewBA('${item.pdf}','BA ${item.span}','pdf')">👁 View</button>`;
+      html += `<a href="${item.pdf}" download="${item.fileName || ('BA-Span-'+item.span+'.pdf')}" class="ba-act-btn ba-download">📄 Download PDF</a>`;
+    }
+    if(item.foto && item.foto.length){
+      item.foto.forEach((photo,i)=>{
+        html += `<button class="ba-act-btn ba-view" onclick="viewBA('${photo}','Foto ${i+1} — Span ${item.span}','img')">👁 Lihat Foto ${i+1}</button>`;
+        html += `<a href="${photo}" download="BA-Span-${item.span}-${i+1}.jpg" class="ba-act-btn ba-download">🖼 Foto ${i+1}</a>`;
+      });
+    }
+    if(isAdmin() || isKLW()){
+      html += `<button class="ba-act-btn ba-edit" onclick="openEditBA(${item.id})">✏️ Edit</button>`;
+      html += `<button class="ba-act-btn ba-delete" onclick="deleteBA(${item.id})">🗑 Hapus</button>`;
+    }
+    html += `</div></div>`;
+    container.innerHTML += html;
+  });
+
+  document.getElementById("baCount").textContent = found + " BA";
+
+  if(found===0){
+    container.innerHTML = `<div class="empty-msg">📂 Belum ada BA${keyword ? " untuk pencarian tersebut" : ""}.</div>`;
+  }
+}
+
+async function loadBA(){
+  baList = await cachedGetAllBA();
+}
+
+async function initPage(){
+  if(!getCurrentUser()){ location.href="index.html"; return; }
+  currentUser = getCurrentUser();
+  document.getElementById("userInfo").textContent = currentUser + " · Sistem Penyimpanan BA";
+
+  const [loggedIn] = await Promise.all([isLoggedIn(), loadBA()]);
+  if(!loggedIn){ location.href="index.html"; return; }
+  renderBA();
+
+  if(isAdmin() || isKLW()){
+    document.getElementById("uploadSection").innerHTML = `
+      <div class="upload-card">
+        <div class="upload-card-title">Upload BA Baru</div>
+        <div class="field-group">
+          <label class="field-label">Nomor Span</label>
+          <input type="text" id="newSpan" class="field-input" placeholder="Contoh: LCJ-S001">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Judul BA (opsional)</label>
+          <input type="text" id="newJudul" class="field-input" placeholder="Contoh: BA Sosialisasi">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nama Pemilik (opsional)</label>
+          <input type="text" id="newPemilik" class="field-input" placeholder="Nama pemilik tegakan">
+        </div>
+        <div class="field-group">
+          <label class="field-label">File PDF / Gambar</label>
+          <input type="file" id="newFile" class="field-file" accept="application/pdf,image/*">
+        </div>
+        <button class="upload-btn" onclick="uploadBA()">⬆ Upload BA</button>
+      </div>`;
+  }
+}
+
+async function uploadBA(){
+  const spanId   = document.getElementById("newSpan").value.trim();
+  const judul    = document.getElementById("newJudul").value.trim();
+  const pemilik  = document.getElementById("newPemilik").value.trim();
+  const fileInput = document.getElementById("newFile");
+
+  if(!spanId){ alert("⚠️ Nomor Span wajib diisi."); return; }
+  if(!fileInput.files.length){ alert("⚠️ Pilih file PDF atau gambar dulu."); return; }
+
+  const file = fileInput.files[0];
+  const isPdf = file.type === "application/pdf";
+
+  const btn = document.querySelector(".upload-btn");
+  const btnOriginalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ Mengupload...";
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const dataUrl = e.target.result;
+    const body = {
+      spanId,
+      judul: judul || null,
+      pemilik: pemilik || null,
+      fileName: file.name,
+      uploader: currentUser,
+      sumber: "manual"
+    };
+    if(isPdf){ body.pdf = dataUrl; } else { body.foto = [dataUrl]; }
+
+    try {
+      const result = await saveBADocument(body);
+      if(!result.success){
+        alert("⚠️ Gagal upload: " + (result.message || "Tidak diketahui"));
+        return;
+      }
+      // Reset form
+      document.getElementById("newSpan").value = "";
+      document.getElementById("newJudul").value = "";
+      document.getElementById("newPemilik").value = "";
+      fileInput.value = "";
+
+      invalidateBACache();
+      await loadBA();
+      renderBA(document.getElementById("searchInput").value.toLowerCase().trim());
+      alert("✅ BA berhasil diupload." + (result.driveWarning ? "\n(Catatan: file disimpan sebagai cadangan lokal karena Drive belum siap: " + result.driveWarning + ")" : ""));
+    } catch(err){
+      alert("⚠️ Gagal menghubungi server.\n" + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = btnOriginalText;
+    }
+  };
+  reader.onerror = () => {
+    alert("⚠️ Gagal membaca file.");
+    btn.disabled = false;
+    btn.textContent = btnOriginalText;
+  };
+  reader.readAsDataURL(file);
+}
+
+initPage();
+</script>
+
+<!-- Modal View BA Full Layar -->
+<div class="view-modal-overlay" id="viewModal">
+  <div class="view-modal-bar">
+    <span class="view-modal-title" id="viewModalTitle">BA</span>
+    <button class="view-modal-close" onclick="closeViewModal()">✕ Tutup</button>
+  </div>
+  <div id="viewModalBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<script>
+function viewBA(url, title, type){
+  document.getElementById("viewModalTitle").textContent = title;
+  const body = document.getElementById("viewModalBody");
+
+  if(type === "pdf"){
+    // Gunakan Google Docs Viewer agar PDF tampil di mobile
+    const viewer = "https://docs.google.com/viewer?embedded=true&url=" + encodeURIComponent(url);
+    body.innerHTML = `
+      <iframe src="${viewer}"
+        style="flex:1;width:100%;border:none;background:#111;"
+        allowfullscreen>
+      </iframe>
+      <div style="padding:10px;text-align:center;background:#0D1830;">
+        <a href="${url}" target="_blank"
+          style="color:#34c759;font-size:13px;font-weight:700;text-decoration:none;">
+          ↗ Buka PDF langsung jika tidak tampil
+        </a>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;background:#000;">
+        <img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;" alt="Foto BA">
+      </div>`;
+  }
+
+  document.getElementById("viewModal").classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+function closeViewModal(){
+  document.getElementById("viewModal").classList.remove("active");
+  document.getElementById("viewModalBody").innerHTML = "";
+  document.body.style.overflow = "";
+}
+</script>
+
+</body>
+</html>

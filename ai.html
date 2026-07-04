@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Assist - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A5E;
+  --navy-deep:#071D42;
+  --blue:#2D6FE0;
+  --gold:#F4B400;
+  --teal:#00897B;
+  --teal-bg:#E1F2F0;
+  --surface:#FFFFFF;
+  --bg:#F4F6FB;
+  --ink:#1A1F2B;
+  --muted:#6B7488;
+  --line:#E8EAF0;
+  --red:#D33C3C;
+  --amber:#B6790B;
+  --amber-bg:#FCEFD6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg);color:var(--ink);}
+.container{max-width:460px;margin:auto;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;padding-bottom:92px;}
+
+/* ===== Header ===== */
+.header{
+  background:linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 100%);
+  padding:20px 18px;
+  display:flex;align-items:center;gap:12px;
+  flex-shrink:0;
+}
+.back-circle{
+  width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+}
+.ai-avatar{
+  width:42px;height:42px;border-radius:13px;
+  background:linear-gradient(135deg, var(--gold), var(--navy));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.header-text{flex:1;min-width:0;}
+.header-text h1{color:white;font-size:16px;font-weight:800;letter-spacing:-0.2px;}
+.header-text p{color:rgba(255,255,255,.6);font-size:11px;margin-top:1px;display:flex;align-items:center;gap:5px;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;display:inline-block;}
+
+/* ===== Tabs ===== */
+.tabs{display:flex;gap:8px;padding:14px 18px 0;flex-shrink:0;}
+.tab-btn{
+  flex:1;padding:10px;border:none;border-radius:12px;
+  background:var(--surface);color:var(--muted);font-weight:700;font-size:12.5px;
+  cursor:pointer;box-shadow:0 2px 8px rgba(7,29,66,0.05);
+}
+.tab-btn.active{background:var(--navy);color:white;}
+.hidden{display:none;}
+
+/* ===== Chat area ===== */
+.chat-wrap{flex:1;display:flex;flex-direction:column;padding:14px 18px 0;min-height:0;}
+.chat-area{
+  flex:1;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  padding-bottom:10px;
+}
+
+.bubble-row{display:flex;}
+.bubble-row.mine{justify-content:flex-end;}
+.bubble-row.theirs{justify-content:flex-start;}
+
+.bubble{
+  max-width:78%;
+  padding:11px 14px;
+  border-radius:16px;
+  font-size:13.5px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  box-shadow:0 2px 8px rgba(7,29,66,0.05);
+}
+.bubble.mine{
+  background:var(--navy);color:white;
+  border-radius:16px 16px 4px 16px;
+}
+.bubble.ai{
+  background:var(--surface);color:var(--ink);
+  border-radius:16px 16px 16px 4px;
+  border-left:3px solid var(--teal);
+}
+.bubble.admin{
+  background:var(--surface);color:var(--ink);
+  border-radius:16px 16px 16px 4px;
+  border-left:3px solid var(--red);
+}
+.bubble-sender{font-size:10.5px;font-weight:700;margin-bottom:4px;opacity:.65;}
+
+/* typing dots */
+.typing-dots{display:inline-flex;gap:4px;padding:4px 0;}
+.typing-dots span{
+  width:6px;height:6px;border-radius:50%;background:var(--teal);
+  animation:typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2){animation-delay:.15s;}
+.typing-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes typingBounce{
+  0%,60%,100%{transform:translateY(0);opacity:.5;}
+  30%{transform:translateY(-4px);opacity:1;}
+}
+
+/* system message (centered, link-style) */
+.sys-msg{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+.open-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 14px;background:var(--surface);color:var(--navy-deep);
+  text-decoration:none;border-radius:12px;font-weight:700;font-size:12.5px;
+  border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(7,29,66,0.05);
+}
+.ba-result-card{
+  background:var(--surface);border-radius:14px;padding:11px 13px;
+  box-shadow:0 2px 8px rgba(7,29,66,0.05);min-width:220px;
+}
+.ba-result-meta{font-size:10.5px;color:var(--muted);margin-bottom:4px;font-weight:600;}
+.ba-result-title{font-size:13px;font-weight:700;color:var(--navy-deep);}
+.ba-result-owner{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+/* ===== Input bar ===== */
+.input-bar{
+  flex-shrink:0;
+  background:var(--surface);
+  border-radius:20px;
+  padding:10px 10px 10px 16px;
+  display:flex;align-items:flex-end;gap:8px;
+  box-shadow:0 4px 16px rgba(7,29,66,0.08);
+  margin:12px 0 6px;
+}
+.input-bar textarea{
+  flex:1;border:none;outline:none;resize:none;
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  font-size:13.5px;line-height:1.4;max-height:90px;padding:8px 0;
+  background:transparent;
+}
+.send-circle{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:var(--navy);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.send-circle:disabled{opacity:.5;cursor:not-allowed;}
+.input-bar textarea::placeholder{color:#A9AFBD;}
+
+.clear-link{
+  text-align:center;font-size:11.5px;color:var(--muted);
+  padding:2px 0 4px;cursor:pointer;text-decoration:underline;flex-shrink:0;
+}
+
+/* ===== SOS tab ===== */
+.sos-card{
+  background:var(--surface);margin:14px 18px 0;border-radius:18px;padding:22px 18px;
+  text-align:center;box-shadow:0 4px 16px rgba(7,29,66,0.06);
+}
+.sos-icon{
+  width:56px;height:56px;border-radius:16px;background:var(--teal-bg);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+}
+.sos-card h3{font-size:15px;font-weight:800;color:var(--navy-deep);margin-bottom:6px;}
+.sos-card p{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:18px;}
+.sos-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--navy);color:white;text-decoration:none;
+  padding:12px 22px;border-radius:30px;font-weight:700;font-size:13px;
+}
+
+/* ===== Admin ticket panel ===== */
+.admin-panel-wrap{padding:0 18px;}
+.admin-ticket{
+  background:var(--amber-bg);border-radius:14px;padding:13px 14px;margin-bottom:10px;
+}
+.admin-ticket-from{font-size:12.5px;font-weight:700;color:var(--amber);margin-bottom:4px;}
+.admin-ticket-text{font-size:13px;color:var(--ink);margin-bottom:8px;}
+
+/* ===== Bottom Nav ===== */
+.bottomnav{
+  position:fixed;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;
+  background:white;display:flex;justify-content:space-around;align-items:center;
+  padding:10px 6px 14px;box-shadow:0 -4px 20px rgba(7,29,66,0.08);z-index:40;
+}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;color:var(--muted);flex:1;position:relative;}
+.nav-item svg{width:21px;height:21px;}
+.nav-label{font-size:10px;font-weight:600;}
+.nav-item.active{color:var(--blue);}
+.nav-item.center{margin-top:-26px;}
+.nav-item.center .nav-circle{
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg, var(--blue), var(--navy));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 16px rgba(45,111,224,0.4);margin-bottom:3px;
+}
+.nav-item.center .nav-circle svg{width:22px;height:22px;}
+.nav-item.center .nav-label{color:var(--navy-deep);}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <a href="dashboard.html" class="back-circle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="ai-avatar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="21" height="21"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+  </div>
+  <div class="header-text">
+    <h1 id="headerInfo">SrinAI</h1>
+    <p><span class="status-dot"></span> Aktif sekarang</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" id="btnChat" onclick="showTab('chat')">Chat AI</button>
+  <button class="tab-btn" id="btnSos" onclick="showTab('sos')">SOS</button>
+</div>
+
+<!-- CHAT AI -->
+<div id="chatTab" class="chat-wrap">
+  <div class="admin-panel-wrap" id="adminPanel"></div>
+  <div class="chat-area" id="chatArea"></div>
+
+  <div class="input-bar">
+    <textarea id="message" placeholder="Tulis pesan ke SrinAI..." rows="1"></textarea>
+    <button class="send-circle" id="sendBtn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    </button>
+  </div>
+  <div class="clear-link" onclick="deleteMyChat()">🗑 Hapus semua chat saya</div>
+</div>
+
+<!-- SOS -->
+<div id="sosTab" class="hidden">
+  <div class="sos-card">
+    <div class="sos-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00897B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+    </div>
+    <h3>SOS — Pusat BA</h3>
+    <p>Pusat penyimpanan Berita Acara Sosialisasi Tegakan. Cari, lihat, dan unduh BA tersimpan di sini.</p>
+    <a href="sos.html" class="sos-btn">
+      Buka SOS
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9 18l6-6-6-6"/></svg>
+    </a>
+  </div>
+</div>
+
+</div>
+
+<div class="bottomnav">
+  <a href="dashboard.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    <div class="nav-label">Beranda</div>
+  </a>
+  <a href="tower.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+    <div class="nav-label">Tower</div>
+  </a>
+  <a href="ai.html" class="nav-item center active">
+    <div class="nav-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+    </div>
+    <div class="nav-label">SrinAI</div>
+  </a>
+  <a href="span.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+    <div class="nav-label">Span</div>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+    <div class="nav-label">Akun</div>
+  </a>
+</div>
+
+<script>
+if(!isLoggedIn()){
+  location.href="index.html";
+}
+
+/* =========================================================
+   KONFIGURASI BACKEND AI (Gemini via proxy/backend sendiri)
+========================================================= */
+const AI_BACKEND_URL = "https://srin-assist.vercel.app/api/gemini";
+const AI_TIMEOUT_MS = 20000;
+const AI_HISTORY_LIMIT = 10;
+
+const currentUser = getCurrentUser();
+const role = getCurrentRole();
+
+const params = new URLSearchParams(window.location.search);
+const adminView = params.get("adminView");
+
+let chatOwner = currentUser;
+if(isAdmin() && adminView){
+  chatOwner = adminView;
+}
+
+const chatKey = "aiChat_" + chatOwner;
+
+let chatData = JSON.parse(localStorage.getItem(chatKey)) || [];
+let requests = JSON.parse(localStorage.getItem("aiRequests")) || [];
+
+if(isAdmin() && adminView){
+  document.getElementById("headerInfo").innerHTML = "Bantuan Admin";
+} else {
+  document.getElementById("headerInfo").innerHTML = "SrinAI";
+}
+
+function showTab(tab){
+  document.getElementById("chatTab").classList.add("hidden");
+  document.getElementById("sosTab").classList.add("hidden");
+  document.getElementById("btnChat").classList.remove("active");
+  document.getElementById("btnSos").classList.remove("active");
+  if(tab==="chat"){
+    document.getElementById("chatTab").classList.remove("hidden");
+    document.getElementById("btnChat").classList.add("active");
+  } else {
+    document.getElementById("sosTab").classList.remove("hidden");
+    document.getElementById("btnSos").classList.add("active");
+  }
+}
+
+function saveChat(){
+  localStorage.setItem(chatKey, JSON.stringify(chatData));
+}
+
+function deleteMyChat(){
+  if(isAdmin() && adminView){
+    alert("Admin tidak dapat menghapus chat pengguna.");
+    return;
+  }
+  if(!confirm("Hapus seluruh chat AI Anda?")) return;
+  localStorage.removeItem(chatKey);
+  chatData=[];
+  loadChat();
+  alert("Chat berhasil dihapus.");
+}
+
+function aiResponse(text){
+  chatData.push({ user:"SrinAI 🤖", text:text });
+}
+
+function buildHistory(){
+  return chatData
+    .filter(item => item.user==="SrinAI 🤖" || item.user===currentUser)
+    .slice(-AI_HISTORY_LIMIT)
+    .map(item => ({
+      role: item.user==="SrinAI 🤖" ? "model" : "user",
+      text: item.text
+    }));
+}
+
+function showTypingIndicator(){
+  const area = document.getElementById("chatArea");
+  const row = document.createElement("div");
+  row.className = "bubble-row theirs";
+  row.id = "typingIndicator";
+  row.innerHTML = `<div class="bubble ai"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(row);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeTypingIndicator(){
+  const el = document.getElementById("typingIndicator");
+  if(el) el.remove();
+}
+
+/* =========================================================
+   FETCH KONTEKS DATA APLIKASI (span & tegakan dari API)
+   Dipanggil setiap kali user mengirim pesan ke SrinAI,
+   supaya AI selalu punya data terkini dari server.
+========================================================= */
+async function fetchAppContext() {
+  try {
+    const profile = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const jalurId = profile.jalur_id || null;
+
+    // Fetch span (filter by jalur user jika ada)
+    const spanUrl = jalurId
+      ? `/api/span?jalurId=${encodeURIComponent(jalurId)}`
+      : `/api/span`;
+    const [spanRes, tegakanRes] = await Promise.all([
+      fetch(spanUrl),
+      fetch(`/api/tegakan`)
+    ]);
+
+    const spanData  = spanRes.ok  ? await spanRes.json()  : { span: [] };
+    const tegakanData = tegakanRes.ok ? await tegakanRes.json() : { tegakan: [] };
+
+    // Gabungkan tegakan ke span masing-masing agar mudah dibaca AI
+    const tegakanBySpan = {};
+    (tegakanData.tegakan || []).forEach(t => {
+      if (!tegakanBySpan[t.spanId]) tegakanBySpan[t.spanId] = [];
+      tegakanBySpan[t.spanId].push(t);
+    });
+
+    const enrichedSpan = (spanData.span || []).map(s => ({
+      ...s,
+      tegakan: tegakanBySpan[s.id] || []
+    }));
+
+    return {
+      profile,
+      spans: enrichedSpan,
+      totalSpan: enrichedSpan.length,
+      totalTegakan: (tegakanData.tegakan || []).length,
+      baData: JSON.parse(localStorage.getItem("baData") || "[]"),
+      jadwal: JSON.parse(localStorage.getItem("jadwalData") || "[]"),
+    };
+  } catch (e) {
+    console.warn("fetchAppContext gagal:", e);
+    return null;
+  }
+}
+
+async function callGeminiBackend(message){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), AI_TIMEOUT_MS);
+
+  try{
+    // Ambil data span & tegakan dari server sebelum kirim ke AI
+    const appContext = await fetchAppContext();
+
+    const res = await fetch(AI_BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: message,
+        history: buildHistory(),
+        context: appContext ? JSON.stringify(appContext, null, 2) : undefined
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if(!res.ok){
+      throw new Error("Server merespons dengan status " + res.status);
+    }
+
+    const data = await res.json();
+    if(!data || typeof data.reply !== "string" || !data.reply.trim()){
+      throw new Error("Format balasan dari server tidak sesuai.");
+    }
+    return data.reply;
+
+  } catch(err){
+    clearTimeout(timeoutId);
+    if(err.name === "AbortError"){
+      throw new Error("Waktu tunggu balasan AI habis. Coba lagi.");
+    }
+    throw err;
+  }
+}
+
+/* =========================================================
+   PENCARIAN BA NYATA DI SOS (baData)
+========================================================= */
+function extractSpanNumber(text){
+  const m = text.match(/span\D{0,5}(\d{1,3})/i) || text.match(/(\d{1,3})/);
+  if(!m) return null;
+  return m[1].padStart(3,"0");
+}
+
+function findBABySpan(spanNumber){
+  const baData = JSON.parse(localStorage.getItem("baData")) || [];
+  return baData.filter(item => item.span === spanNumber);
+}
+
+function handleCariBA(text){
+  const spanNumber = extractSpanNumber(text);
+  if(!spanNumber){
+    aiResponse("Span yang mana ya? Tulis nomornya, contoh: \"mana BA span 050?\"");
+    saveChat();
+    loadChat();
+    return true;
+  }
+
+  const hasil = findBABySpan(spanNumber);
+
+  if(hasil.length === 0){
+    aiResponse(`Belum ada BA tersimpan untuk Span ${spanNumber} di SOS. Mau saya bantu buatkan? Lengkapi dulu data tegakannya di Catatan Span ya.`);
+    chatData.push({ user:"SYSTEM", text:"NO_BA_LINK_"+spanNumber });
+    saveChat();
+    loadChat();
+    return true;
+  }
+
+  const plural = hasil.length > 1 ? `Ada ${hasil.length} BA nih buat Span ${spanNumber}.` : `Ketemu, BA Span ${spanNumber} ada.`;
+  aiResponse(plural);
+  chatData.push({ user:"SYSTEM", text:"BA_RESULTS_" + JSON.stringify(hasil.map(h=>({id:h.id, judul:h.judul, pemilik:h.pemilik, tanggal:h.tanggal, sumber:h.sumber}))) });
+  saveChat();
+  loadChat();
+  return true;
+}
+
+function isAskingForBA(text){
+  const t = text.toLowerCase();
+  const baKeywords = ["ba ", " ba", "berita acara", "ba span", "ba ditemukan"];
+  const mentionsBA = baKeywords.some(k=>t.includes(k)) || /\bba\b/.test(t);
+  return mentionsBA && t.match(/\d/);
+}
+
+async function sendMessage(){
+  const input = document.getElementById("message");
+  const sendBtn = document.getElementById("sendBtn");
+  const text = input.value.trim();
+  if(!text) return;
+
+  if(isAdmin() && adminView){
+    chatData.push({ user:"Admin ("+currentUser+")", text:text });
+    saveChat();
+    loadChat();
+    input.value="";
+    return;
+  }
+
+  chatData.push({ user:currentUser, text:text });
+  saveChat();
+  loadChat();
+  input.value="";
+
+  if(isAskingForBA(text)){
+    handleCariBA(text);
+    return;
+  }
+
+  if(["edit","ubah","perbaiki","revisi"].some(k=>text.toLowerCase().includes(k))){
+    const ticket = { id:Date.now(), from:currentUser, chatOwner:currentUser, request:text, status:"Menunggu" };
+    requests.push(ticket);
+    localStorage.setItem("aiRequests", JSON.stringify(requests));
+    aiResponse("Duh, ribet banget 😵\n\nBentar ya, saya panggil dulu @Admin.");
+    saveChat();
+    loadChat();
+    return;
+  }
+
+  sendBtn.disabled = true;
+  showTypingIndicator();
+
+  try{
+    const reply = await callGeminiBackend(text);
+    removeTypingIndicator();
+    aiResponse(reply);
+    saveChat();
+    loadChat();
+  } catch(err){
+    removeTypingIndicator();
+    chatData.push({ user:"SrinAI 🤖", text:"⚠️ Maaf, saya sedang tidak bisa terhubung ke server AI. " + err.message });
+    saveChat();
+    loadChat();
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+function loadChat(){
+  const area = document.getElementById("chatArea");
+  area.innerHTML="";
+  chatData.forEach(item=>{
+
+    if(item.user==="SYSTEM" && item.text.startsWith("NO_BA_LINK_")){
+      const span = item.text.replace("NO_BA_LINK_","");
+      area.innerHTML += `
+        <div class="bubble-row theirs">
+          <div class="sys-msg">
+            <a href="sos.html?span=${span}" class="open-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+              Buka SOS untuk Span ${span}
+            </a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if(item.user==="SYSTEM" && item.text.startsWith("BA_RESULTS_")){
+      let results = [];
+      try{ results = JSON.parse(item.text.replace("BA_RESULTS_","")); }catch(e){ results = []; }
+      let html = `<div class="bubble-row theirs"><div class="sys-msg">`;
+      results.forEach(r=>{
+        html += `
+          <div class="ba-result-card">
+            <div class="ba-result-meta">${r.sumber==="ai" ? "🤖 Dibuat SrinAI" : "👤 Manual"} · ${r.tanggal}</div>
+            <div class="ba-result-title">${r.judul || "BA Sosialisasi"}</div>
+            ${r.pemilik && r.pemilik!=="-" ? `<div class="ba-result-owner">Pemilik: ${r.pemilik}</div>` : ""}
+          </div>`;
+      });
+      html += `
+        <a href="sos.html" class="open-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Buka di SOS untuk lihat &amp; download
+        </a>`;
+      html += `</div></div>`;
+      area.innerHTML += html;
+      return;
+    }
+
+    const isMine = item.user===currentUser;
+    const isAI = item.user==="SrinAI 🤖";
+    const isAdminMsg = item.user && item.user.startsWith("Admin");
+
+    let bubbleClass = "ai";
+    if(isMine) bubbleClass = "mine";
+    else if(isAdminMsg) bubbleClass = "admin";
+
+    const rowSide = isMine ? "mine" : "theirs";
+    const senderLabel = (!isMine) ? `<div class="bubble-sender">${item.user}</div>` : "";
+
+    area.innerHTML += `
+      <div class="bubble-row ${rowSide}">
+        <div class="bubble ${bubbleClass}">${senderLabel}${item.text}</div>
+      </div>`;
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+function extractSpanNumberFromResultsContext(){ return ""; }
+
+if(isAdmin() && !adminView){
+  let html="";
+  requests.forEach(r=>{
+    html += `
+      <div class="admin-ticket">
+        <div class="admin-ticket-from">${r.from}</div>
+        <div class="admin-ticket-text">${r.request}</div>
+        <a href="ai.html?adminView=${encodeURIComponent(r.chatOwner)}" class="open-btn">Buka Percakapan</a>
+      </div>`;
+  });
+  document.getElementById("adminPanel").innerHTML = html;
+}
+
+document.getElementById("message").addEventListener("keydown", function(e){
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+const messageInput = document.getElementById("message");
+messageInput.addEventListener("input", function(){
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 90) + "px";
+});
+
+loadChat();
+</script>
+
+</body>
+</html>

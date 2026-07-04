@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelola Akun - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:40px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.13) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Topbar */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* Add card */
+.add-card{
+  position:relative;z-index:2;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:18px;padding:16px;margin:18px 20px 0;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;margin-bottom:14px;
+}
+.card-title::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+
+.form-row{margin-bottom:12px;}
+.form-label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+.form-input,.form-select{
+  width:100%;padding:11px 13px;border:1px solid var(--border);
+  border-radius:11px;font-size:13.5px;font-family:inherit;
+  background:var(--bg-card2);color:var(--ink);outline:none;
+}
+.form-input:focus,.form-select:focus{border-color:rgba(74,142,245,0.4);}
+.form-input::placeholder{color:var(--ink-3);}
+.form-select option{background:#1a2d4a;}
+
+.picker-box{
+  border:1px solid var(--border);border-radius:11px;
+  max-height:180px;overflow-y:auto;background:var(--bg-card2);
+}
+.picker-empty{padding:14px;text-align:center;color:var(--ink-3);font-size:12px;}
+.picker-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;
+}
+.picker-item:last-child{border-bottom:none;}
+.picker-item:active{background:rgba(255,255,255,0.04);}
+.picker-checkbox{
+  width:20px;height:20px;border-radius:6px;border:2px solid var(--ink-3);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;background:transparent;
+}
+.picker-checkbox.checked{background:var(--blue);border-color:var(--blue);}
+.picker-checkbox.checked::after{content:"";width:5px;height:9px;border:solid white;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px);}
+.picker-label{font-size:13px;font-weight:600;color:var(--ink-2);}
+.picker-count{
+  font-size:11px;font-weight:700;color:var(--blue);
+  background:var(--blue-glow);padding:5px 10px;border-radius:20px;
+  display:inline-block;margin-top:8px;border:1px solid rgba(74,142,245,0.2);
+}
+
+.btn-primary{
+  width:100%;padding:13px;background:var(--blue);color:white;border:none;
+  border-radius:12px;font-weight:700;font-size:13.5px;cursor:pointer;
+  font-family:inherit;margin-top:4px;
+}
+
+/* Section label */
+.section-label{
+  position:relative;z-index:2;
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;
+  margin:22px 20px 10px;
+}
+.section-label::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+
+/* Account card */
+.list-wrap{padding:0 20px;}
+.account-card{
+  position:relative;z-index:2;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:18px;padding:14px 15px;margin-bottom:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.account-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.account-avatar{
+  width:44px;height:44px;border-radius:13px;flex-shrink:0;
+  background:var(--blue-glow);border:1px solid rgba(74,142,245,0.22);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;color:var(--blue);overflow:hidden;
+}
+.account-avatar img{width:100%;height:100%;object-fit:cover;border-radius:13px;}
+.account-info{flex:1;min-width:0;}
+.account-name{font-size:14px;font-weight:800;color:var(--ink);}
+.account-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;}
+.badge{font-size:9.5px;font-weight:700;padding:2.5px 8px;border-radius:20px;white-space:nowrap;}
+.badge-role{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);}
+.badge-aktif{background:var(--green-bg);color:var(--green);}
+.badge-nonaktif{background:var(--red-bg);color:var(--red);}
+
+.account-detail{
+  background:var(--bg-card2);border-radius:11px;padding:10px 12px;
+  font-size:12px;color:var(--ink-3);line-height:1.7;margin-bottom:10px;
+  border:1px solid var(--border);
+}
+.account-detail b{color:var(--ink-2);}
+.detail-warn{color:var(--amber);font-size:11px;}
+
+.account-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.act-btn{
+  padding:9px;border-radius:10px;border:none;font-size:11.5px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:inherit;
+}
+.act-toggle{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(244,197,66,0.25);}
+.act-edit{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);}
+.act-reset{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,212,160,0.2);}
+.act-del{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
+
+/* Edit box */
+.edit-box{
+  display:none;background:var(--bg-card2);border:1px solid rgba(74,142,245,0.2);
+  border-radius:14px;padding:14px;margin-top:12px;
+}
+.edit-box.active{display:block;}
+.btn-secondary{
+  width:100%;padding:12px;background:var(--bg-glass);color:var(--ink-2);
+  border:1px solid var(--border);border-radius:11px;font-weight:700;
+  font-size:13px;cursor:pointer;margin-top:8px;font-family:inherit;
+}
+
+.empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="pengaturan.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>👥 Kelola Akun</h1>
+      <p id="adminInfo">Memuat...</p>
+    </div>
+  </div>
+
+  <div class="add-card">
+    <div class="card-title">Tambah Akun Baru</div>
+
+    <div class="form-row">
+      <label class="form-label">Nama Akun</label>
+      <input type="text" id="newName" class="form-input" placeholder="Nama lengkap">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Password Awal</label>
+      <input type="password" id="newPassword" class="form-input" placeholder="Password">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Role</label>
+      <select id="newRole" class="form-select" onchange="onNewRoleChange()">
+        <option value="lw">LW</option>
+        <option value="klw">KLW</option>
+        <option value="monitor">Monitor</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Jabatan</label>
+      <input type="text" id="newJabatan" class="form-input" placeholder="Contoh: LW, Koordinator Lapangan">
+    </div>
+    <div class="form-row" id="newJalurWrap">
+      <label class="form-label">Jalur</label>
+      <select id="newJalur" class="form-select" onchange="renderNewPickers()"></select>
+    </div>
+    <div class="form-row" id="newTowerPickerWrap">
+      <label class="form-label">Pilih Tower</label>
+      <div class="picker-box" id="newTowerPicker"></div>
+      <div class="picker-count" id="newTowerCount">0 tower dipilih</div>
+    </div>
+    <div class="form-row" id="newSpanPickerWrap">
+      <label class="form-label">Pilih Span</label>
+      <div class="picker-box" id="newSpanPicker"></div>
+      <div class="picker-count" id="newSpanCount">0 span dipilih</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Wilayah (opsional)</label>
+      <input type="text" id="newWilayah" class="form-input" placeholder="Contoh: Sektor A">
+    </div>
+    <button class="btn-primary" onclick="addNewAccount()">➕ Tambah Akun</button>
+  </div>
+
+  <div class="section-label">Daftar Akun</div>
+  <div class="list-wrap" id="accountList"></div>
+
+</div>
+
+<script>
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+  if(!isAdmin()){ alert("Akses ditolak."); location.href="dashboard.html"; return; }
+  document.getElementById("adminInfo").textContent = getCurrentUser() + " · Admin";
+  await populateJalurSelect(document.getElementById("newJalur"), null);
+  await renderNewPickers();
+  onNewRoleChange();
+  await loadAccountsList();
+}
+
+/* ── Helpers ── */
+async function getJalurList(){ return (await getJalurMasterList()).filter(j=>j.aktif); }
+async function getTowerByJalur(jalurId){ return (await getTowerMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
+async function getSpanByJalur(jalurId){ return (await getSpanMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
+
+async function populateJalurSelect(selectEl, selectedId){
+  const jalurList = await getJalurList();
+  selectEl.innerHTML = "";
+  if(!selectedId){
+    const ph = document.createElement("option");
+    ph.value=""; ph.textContent="— Pilih jalur —";
+    selectEl.appendChild(ph);
+  }
+  let matched = false;
+  jalurList.forEach(j=>{
+    const opt = document.createElement("option");
+    opt.value=j.id; opt.textContent=j.code+" — "+j.label;
+    if(j.id===selectedId){ opt.selected=true; matched=true; }
+    selectEl.appendChild(opt);
+  });
+  return matched;
+}
+
+function renderPicker(containerEl, items, selectedIds, codeFn, onToggle){
+  containerEl.innerHTML="";
+  if(!items.length){ containerEl.innerHTML=`<div class="picker-empty">Belum ada data. Tambahkan lewat Master Data.</div>`; return; }
+  items.forEach(item=>{
+    const checked = selectedIds.includes(item.id);
+    const row = document.createElement("div");
+    row.className="picker-item";
+    row.innerHTML=`<div class="picker-checkbox ${checked?'checked':''}"></div><div class="picker-label">${codeFn(item)}</div>`;
+    row.onclick=()=>onToggle(item.id);
+    containerEl.appendChild(row);
+  });
+}
+
+function onNewRoleChange(){
+  const role = document.getElementById("newRole").value;
+  const show = (role==="lw");
+  document.getElementById("newTowerPickerWrap").style.display = show?"block":"none";
+  document.getElementById("newSpanPickerWrap").style.display  = show?"block":"none";
+}
+
+/* ── Pickers tambah akun baru ── */
+let newSelectedTowerIds=[], newSelectedSpanIds=[];
+
+async function renderNewPickers(){
+  const jalurId = document.getElementById("newJalur").value;
+  if(!jalurId) return;
+  const jalurList = await getJalurList();
+  const jalur = jalurList.find(j=>j.id===jalurId);
+  if(!jalur) return;
+  const towers = await getTowerByJalur(jalurId);
+  const spans  = await getSpanByJalur(jalurId);
+  renderPicker(document.getElementById("newTowerPicker"), towers, newSelectedTowerIds, t=>assetCodeTower(jalur.code,t.nomor), id=>{
+    const i=newSelectedTowerIds.indexOf(id); if(i>-1) newSelectedTowerIds.splice(i,1); else newSelectedTowerIds.push(id);
+    renderNewPickers();
+  });
+  document.getElementById("newTowerCount").textContent=newSelectedTowerIds.length+" tower dipilih";
+  renderPicker(document.getElementById("newSpanPicker"), spans, newSelectedSpanIds, s=>assetCodeSpan(jalur.code,s.nomor), id=>{
+    const i=newSelectedSpanIds.indexOf(id); if(i>-1) newSelectedSpanIds.splice(i,1); else newSelectedSpanIds.push(id);
+    renderNewPickers();
+  });
+  document.getElementById("newSpanCount").textContent=newSelectedSpanIds.length+" span dipilih";
+}
+
+async function addNewAccount(){
+  const name=document.getElementById("newName").value.trim();
+  const password=document.getElementById("newPassword").value.trim();
+  const role=document.getElementById("newRole").value;
+  const jabatan=document.getElementById("newJabatan").value.trim();
+  const jalurId=document.getElementById("newJalur").value;
+  const wilayah=document.getElementById("newWilayah").value.trim();
+  if(!name||!password){ alert("Lengkapi nama dan password akun."); return; }
+  if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
+  const jalurList=await getJalurList();
+  const jalur=jalurList.find(j=>j.id===jalurId);
+  const result=await addAccount(name, password, role, {
+    jabatan: jabatan||role.toUpperCase(),
+    jalur: jalur?jalur.label:"",
+    jalurId,
+    towerIds: role==="lw"?[...newSelectedTowerIds]:[],
+    spanIds:  role==="lw"?[...newSelectedSpanIds]:[],
+    wilayah
+  });
+  if(!result.success){ alert(result.message); return; }
+  alert("Akun berhasil dibuat.");
+  document.getElementById("newName").value="";
+  document.getElementById("newPassword").value="";
+  document.getElementById("newJabatan").value="";
+  document.getElementById("newWilayah").value="";
+  newSelectedTowerIds=[]; newSelectedSpanIds=[];
+  await renderNewPickers();
+  await loadAccountsList();
+}
+
+/* ── buildProfileFromAccountRow ── */
+async function buildProfileFromAccountRow(acc, jalurList, towerList, spanList){
+  const towerAwal  = acc.tower_awal  != null ? acc.tower_awal  : 1;
+  const towerAkhir = acc.tower_akhir != null ? acc.tower_akhir : 1;
+  const towerIds   = acc.tower_ids || [];
+  const spanIds    = acc.span_ids  || [];
+  const hasNew     = towerIds.length>0 || spanIds.length>0;
+
+  let jumlahTower, jumlahSpan, towerLabel, warn=false;
+
+  if(acc.role==="admin"){
+    // Admin: tampilkan seluruh data jalur miliknya
+    const myTowers = towerList.filter(t=>t.jalurId===acc.jalur_id);
+    const mySpans  = spanList.filter(s=>s.jalurId===acc.jalur_id);
+    jumlahTower = myTowers.length;
+    jumlahSpan  = mySpans.length;
+    if(myTowers.length>0){
+      const nums = myTowers.map(t=>t.nomor);
+      towerLabel = "T"+String(Math.min(...nums)).padStart(3,"0")+" – T"+String(Math.max(...nums)).padStart(3,"0");
+    } else {
+      towerLabel = "Belum ada data";
+    }
+  } else if(hasNew){
+    const jalurMatch = jalurList.find(j=>j.id===acc.jalur_id);
+    const allTowers  = towerList.filter(t=>towerIds.includes(t.id));
+    jumlahTower = allTowers.length;
+    jumlahSpan  = spanIds.length;
+    if(allTowers.length>0 && jalurMatch){
+      const nums = allTowers.map(t=>t.nomor).sort((a,b)=>a-b);
+      towerLabel = assetCodeTower(jalurMatch.code, nums[0])+(nums.length>1?" + "+(nums.length-1)+" lainnya":"");
+    } else {
+      towerLabel = "Belum ada tower";
+    }
+  } else {
+    jumlahTower = 0;
+    jumlahSpan  = 0;
+    towerLabel  = "Belum di-assign";
+    warn = (acc.role==="lw");
+  }
+
+  return { jabatan:acc.jabatan||(acc.role?acc.role.toUpperCase():""), jalurLabel:jalurLabel(acc.jalur),
+           towerLabel, towerIds, spanIds, jumlahTower, jumlahSpan, hasNew, warn, wilayah:acc.wilayah||"" };
+}
+
+function cssId(name){ return name.replace(/[^a-zA-Z0-9]/g,"_"); }
+
+let accountsCache=[];
+
+async function loadAccountsList(){
+  const accounts = await getAllAccountsFull();
+  accountsCache  = accounts;
+  const wrap     = document.getElementById("accountList");
+  wrap.innerHTML = "";
+  if(!accounts.length){ wrap.innerHTML=`<div class="empty-msg">Belum ada akun.</div>`; return; }
+
+  const jalurList = await getJalurMasterList();
+  const towerList = await getTowerMasterList();
+  const spanList  = await getSpanMasterList();
+
+  const sorted = [...accounts].sort((a,b)=>a.username.localeCompare(b.username));
+
+  for(const acc of sorted){
+    const name    = acc.username;
+    const profile = await buildProfileFromAccountRow(acc, jalurList, towerList, spanList);
+    const initials= name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+
+    const card = document.createElement("div");
+    card.className="account-card";
+    card.innerHTML=`
+      <div class="account-top">
+        <div class="account-avatar" id="av-${cssId(name)}">${initials}</div>
+        <div class="account-info">
+          <div class="account-name">${name}</div>
+          <div class="account-badges">
+            <span class="badge badge-role">${(acc.role||"-").toUpperCase()}</span>
+            <span class="badge ${acc.status==="Aktif"?"badge-aktif":"badge-nonaktif"}">${acc.status}</span>
+          </div>
+        </div>
+      </div>
+      <div class="account-detail">
+        <b>Jabatan:</b> ${profile.jabatan}<br>
+        <b>Jalur:</b> ${profile.jalurLabel}<br>
+        <b>Tower:</b> ${profile.towerLabel}
+        <span class="badge badge-role" style="margin-left:4px;">${profile.jumlahTower} tower</span><br>
+        <b>Span:</b>
+        <span class="badge badge-role" style="margin-left:4px;">${profile.jumlahSpan} span</span>
+        ${profile.warn ? '<br><span class="detail-warn">⚠ Belum di-assign dari Master Data</span>' : ''}
+        ${profile.wilayah ? '<br><b>Wilayah:</b> '+profile.wilayah : ''}
+      </div>
+      <div class="account-actions">
+        <button class="act-btn act-toggle" onclick="toggleStatus('${name}')">Aktif/Nonaktif</button>
+        <button class="act-btn act-edit"   onclick="toggleEdit('${name}')">✏️ Edit Data</button>
+        <button class="act-btn act-reset"  onclick="resetPasswordAccount('${name}')">🔑 Reset Password</button>
+        <button class="act-btn act-del"    onclick="deleteAccountLocal('${name}')">🗑 Hapus</button>
+      </div>
+      <div class="edit-box" id="editBox-${cssId(name)}"></div>
+    `;
+    wrap.appendChild(card);
+
+    // Load avatar foto jika ada
+    if(acc.foto){
+      const av=document.getElementById("av-"+cssId(name));
+      if(av) av.innerHTML=`<img src="${acc.foto}" alt="${name}">`;
+    }
+  }
+}
+
+/* ── Edit akun ── */
+let editSelectedTowerIds={}, editSelectedSpanIds={};
+
+function toggleEdit(name){
+  const box=document.getElementById("editBox-"+cssId(name));
+  const willOpen=!box.classList.contains("active");
+  box.classList.toggle("active");
+  if(willOpen) renderEditBox(name, box);
+  else box.innerHTML="";
+}
+
+async function renderEditBox(name, box){
+  const acc=accountsCache.find(a=>a.username===name);
+  if(!acc) return;
+  const jalurList  = await getJalurMasterList();
+  const towerList  = await getTowerMasterList();
+  const spanList   = await getSpanMasterList();
+  const profile    = await buildProfileFromAccountRow(acc, jalurList, towerList, spanList);
+  const id=cssId(name);
+
+  editSelectedTowerIds[name]=[...(profile.towerIds||[])];
+  editSelectedSpanIds[name] =[...(profile.spanIds||[])];
+
+  box.innerHTML=`
+    <div class="form-row">
+      <label class="form-label">Nama Akun</label>
+      <input type="text" id="editNama-${id}" class="form-input" placeholder="Nama/username akun">
+      <div class="picker-count">⚠ Ini juga jadi username login. Mengubahnya berarti akun harus login pakai nama baru.</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Role</label>
+      <select id="editRole-${id}" class="form-select">
+        <option value="lw">LW</option>
+        <option value="klw">KLW</option>
+        <option value="monitor">Monitor</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Jabatan</label>
+      <input type="text" id="editJabatan-${id}" class="form-input">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Jalur</label>
+      <select id="editJalur-${id}" class="form-select" onchange="renderEditPickers('${name}')"></select>
+    </div>
+    <div class="form-row" id="editTowerWrap-${id}">
+      <label class="form-label">Pilih Tower</label>
+      <div class="picker-box" id="editTowerPicker-${id}"></div>
+      <div class="picker-count" id="editTowerCount-${id}">0 tower dipilih</div>
+    </div>
+    <div class="form-row" id="editSpanWrap-${id}">
+      <label class="form-label">Pilih Span</label>
+      <div class="picker-box" id="editSpanPicker-${id}"></div>
+      <div class="picker-count" id="editSpanCount-${id}">0 span dipilih</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Wilayah</label>
+      <input type="text" id="editWilayah-${id}" class="form-input">
+    </div>
+    <button class="btn-primary" onclick="saveEdit('${name}')">💾 Simpan Perubahan</button>
+    <button class="btn-secondary" onclick="toggleEdit('${name}')">Tutup</button>
+  `;
+
+  document.getElementById("editNama-"+id).value    = name;
+  document.getElementById("editRole-"+id).value    = acc.role;
+  document.getElementById("editJabatan-"+id).value = profile.jabatan;
+  document.getElementById("editWilayah-"+id).value = profile.wilayah;
+
+  const jalurMatched = await populateJalurSelect(document.getElementById("editJalur-"+id), profile.jalurId||acc.jalur_id);
+
+  document.getElementById("editRole-"+id).addEventListener("change", ()=>{
+    const r=document.getElementById("editRole-"+id).value;
+    const show=(r==="lw");
+    document.getElementById("editTowerWrap-"+id).style.display=show?"block":"none";
+    document.getElementById("editSpanWrap-"+id).style.display =show?"block":"none";
+  });
+
+  const isLWRole=(acc.role==="lw");
+  document.getElementById("editTowerWrap-"+id).style.display=isLWRole?"block":"none";
+  document.getElementById("editSpanWrap-"+id).style.display =isLWRole?"block":"none";
+
+  if(jalurMatched) await renderEditPickers(name);
+  else {
+    document.getElementById("editTowerPicker-"+id).innerHTML=`<div class="picker-empty">Pilih jalur dulu.</div>`;
+    document.getElementById("editSpanPicker-"+id).innerHTML =`<div class="picker-empty">Pilih jalur dulu.</div>`;
+  }
+}
+
+async function renderEditPickers(name){
+  const id=cssId(name);
+  const jalurId=document.getElementById("editJalur-"+id).value;
+  if(!jalurId) return;
+  const jalurList=await getJalurList();
+  const jalur=jalurList.find(j=>j.id===jalurId);
+  if(!jalur) return;
+  const towers=await getTowerByJalur(jalurId);
+  const spans =await getSpanByJalur(jalurId);
+  renderPicker(document.getElementById("editTowerPicker-"+id), towers, editSelectedTowerIds[name], t=>assetCodeTower(jalur.code,t.nomor), towerId=>{
+    const i=editSelectedTowerIds[name].indexOf(towerId); if(i>-1) editSelectedTowerIds[name].splice(i,1); else editSelectedTowerIds[name].push(towerId);
+    renderEditPickers(name);
+  });
+  document.getElementById("editTowerCount-"+id).textContent=editSelectedTowerIds[name].length+" tower dipilih";
+  renderPicker(document.getElementById("editSpanPicker-"+id), spans, editSelectedSpanIds[name], s=>assetCodeSpan(jalur.code,s.nomor), spanId=>{
+    const i=editSelectedSpanIds[name].indexOf(spanId); if(i>-1) editSelectedSpanIds[name].splice(i,1); else editSelectedSpanIds[name].push(spanId);
+    renderEditPickers(name);
+  });
+  document.getElementById("editSpanCount-"+id).textContent=editSelectedSpanIds[name].length+" span dipilih";
+}
+
+async function saveEdit(name){
+  const id=cssId(name);
+  const namaBaru=document.getElementById("editNama-"+id).value.trim();
+  const role   =document.getElementById("editRole-"+id).value;
+  const jabatan=document.getElementById("editJabatan-"+id).value.trim();
+  const jalurId=document.getElementById("editJalur-"+id).value;
+  const wilayah=document.getElementById("editWilayah-"+id).value.trim();
+  if(!namaBaru){ alert("Nama akun tidak boleh kosong."); return; }
+  if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
+  const jalurList=await getJalurList();
+  const jalur=jalurList.find(j=>j.id===jalurId);
+
+  const fields={
+    role, jabatan:jabatan||role.toUpperCase(),
+    jalur:jalur?jalur.label:"", jalurId,
+    towerIds: role==="lw"?[...editSelectedTowerIds[name]]:[],
+    spanIds:  role==="lw"?[...editSelectedSpanIds[name]]:[],
+    wilayah
+  };
+  if(namaBaru!==name) fields.newUsername=namaBaru;
+
+  const result=await updateAccountProfile(name, fields);
+  if(!result || !result.success){
+    alert(result && result.message ? result.message : "Gagal menyimpan data akun.");
+    return;
+  }
+
+  if(fields.newUsername && getCurrentUser()===name){
+    localStorage.setItem("srinaiUser", result.username||namaBaru);
+    localStorage.setItem("lastLoginUser", result.username||namaBaru);
+  }
+
+  alert("Data akun "+(result.username||namaBaru)+" berhasil disimpan.");
+  toggleEdit(name);
+  await loadAccountsList();
+}
+
+async function toggleStatus(name){
+  const acc=accountsCache.find(a=>a.username===name);
+  if(!acc) return;
+  await updateAccountProfile(name,{status:acc.status==="Aktif"?"Belum Aktif":"Aktif"});
+  await loadAccountsList();
+}
+
+async function resetPasswordAccount(name){
+  if(!confirm("Reset password "+name+" ke default (123456)?")) return;
+  const ok=await resetPassword(name);
+  alert(ok?"Password berhasil di-reset ke 123456.":"Gagal me-reset password.");
+}
+
+async function deleteAccountLocal(name){
+  if(name===getCurrentUser()){ alert("Tidak bisa menghapus akun yang sedang aktif."); return; }
+  if(!confirm("Hapus akun "+name+"?")) return;
+  await deleteAccount(name);
+  await loadAccountsList();
+}
+
+initPage();
+</script>
+</body>
+</html>

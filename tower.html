@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Tower - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Top Bar */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+  transition:background .15s;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* Stat Row */
+.stat-row{
+  position:relative;z-index:2;
+  display:flex;gap:10px;
+  margin:18px 20px 0;
+}
+.stat-card{
+  flex:1;
+  background:var(--bg-card);
+  border-radius:16px;
+  padding:14px;
+  border:1px solid var(--border);
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+}
+.stat-label{font-size:9.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.stat-value{font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.5px;}
+.stat-sub{font-size:10.5px;color:var(--ink-3);margin-top:2px;}
+.stat-card.accent{
+  background:linear-gradient(135deg, rgba(74,142,245,0.18) 0%, rgba(74,142,245,0.06) 100%);
+  border-color:rgba(74,142,245,0.25);
+}
+.stat-card.accent .stat-value{color:var(--blue);}
+
+/* Filter Bar */
+.filter-bar{
+  position:relative;z-index:2;
+  margin:16px 20px 0;
+  display:none;
+  flex-direction:column;gap:8px;
+}
+.search-box{
+  position:relative;display:flex;align-items:center;gap:8px;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+  padding:0 12px;
+}
+.search-box svg{color:var(--ink-3);flex-shrink:0;}
+.search-box input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);
+  font-family:inherit;font-size:13px;padding:11px 0;min-width:0;
+}
+.search-box input::placeholder{color:var(--ink-3);}
+.filter-row{display:flex;gap:8px;}
+.filter-select{
+  flex:1;min-width:0;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  color:var(--ink-2);font-family:inherit;font-size:11.5px;font-weight:700;
+  padding:9px 10px;outline:none;-webkit-appearance:none;appearance:none;
+}
+
+/* Section head */
+.section-head{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 0;
+}
+.section-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--blue);display:block;
+}
+.section-count{
+  font-size:11px;font-weight:700;
+  color:var(--blue);
+  background:var(--blue-glow);
+  border:1px solid rgba(74,142,245,0.2);
+  padding:3px 9px;border-radius:20px;
+}
+
+/* Tower List */
+.list-wrap{
+  position:relative;z-index:2;
+  padding:12px 20px 4px;
+}
+.tower-card{
+  background:var(--bg-card);
+  border-radius:18px;
+  padding:14px 15px;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+  display:flex;align-items:center;gap:13px;
+  transition:border-color .15s, background .15s;
+}
+.tower-card:active{background:var(--bg-card2);border-color:rgba(74,142,245,0.25);}
+
+.tower-badge{
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  background:var(--blue-glow);
+  border:1px solid rgba(74,142,245,0.22);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--blue);font-weight:800;font-size:10px;line-height:1.2;text-align:center;
+}
+.tower-badge-num{font-size:13px;font-weight:900;}
+
+.tower-info{flex:1;min-width:0;}
+.tower-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.tower-name{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.2px;}
+
+.status-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.status-baik{background:var(--green-bg);color:var(--green);}
+.status-perhatian{background:var(--amber-bg);color:var(--amber);}
+.status-rusak{background:var(--red-bg);color:var(--red);}
+.status-kosong{background:var(--bg-glass);color:var(--ink-3);border:1px solid var(--border);}
+
+.tower-code{
+  font-size:10px;font-weight:700;color:var(--blue);
+  background:rgba(74,142,245,0.08);
+  border:1px solid rgba(74,142,245,0.18);
+  padding:1.5px 7px;border-radius:20px;
+}
+.koordinat-chip{
+  font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:20px;
+  white-space:nowrap;
+}
+.koordinat-chip.ada{background:rgba(56,191,160,0.12);color:var(--teal);border:1px solid rgba(56,191,160,0.22);}
+.koordinat-chip.belum{background:rgba(242,107,107,0.1);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
+.tower-detail{font-size:11px;color:var(--ink-3);line-height:1.45;margin-top:2px;}
+.petugas-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;color:var(--gold);
+  background:var(--gold-dim);border:1px solid rgba(244,197,66,0.2);
+  padding:2px 8px;border-radius:20px;margin-top:4px;
+}
+
+.tower-actions{display:flex;gap:6px;flex-shrink:0;}
+.act-btn{
+  width:36px;height:36px;border-radius:11px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s, opacity .12s;
+}
+.act-btn:active{transform:scale(0.88);opacity:.8;}
+.act-lihat{background:rgba(74,142,245,0.15);border:1px solid rgba(74,142,245,0.25);}
+.act-edit{background:rgba(244,197,66,0.15);border:1px solid rgba(244,197,66,0.25);}
+
+/* Empty state */
+.empty-state{
+  text-align:center;padding:60px 30px;
+  position:relative;z-index:2;
+}
+.empty-icon{
+  width:60px;height:60px;border-radius:18px;
+  background:var(--bg-card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;
+}
+.empty-icon svg{width:26px;height:26px;opacity:.4;}
+.empty-title{font-size:14px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+.empty-sub{font-size:12px;color:var(--ink-3);line-height:1.55;}
+
+/* Skeleton */
+.skeleton{
+  height:76px;border-radius:18px;
+  background:linear-gradient(90deg,var(--bg-card) 25%,var(--bg-card2) 50%,var(--bg-card) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+  margin-bottom:10px;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Bottom Nav */
+.bottomnav{
+  position:fixed;left:0;right:0;bottom:0;
+  max-width:460px;margin:0 auto;
+  background:rgba(8,15,30,0.92);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 6px 18px;
+  box-shadow:0 -8px 30px rgba(0,0,0,0.4);
+  z-index:40;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-decoration:none;color:var(--ink-3);flex:1;position:relative;
+}
+.nav-item svg{width:21px;height:21px;}
+.nav-label{font-size:10px;font-weight:600;}
+.nav-item.active{color:var(--blue);}
+.nav-item.center{margin-top:-26px;}
+.nav-item.center .nav-circle{
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg, var(--blue), #2254C5);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(74,142,245,0.4);margin-bottom:3px;
+}
+.nav-item.center .nav-circle svg{width:22px;height:22px;}
+.nav-item.center .nav-label{color:var(--ink-2);}
+
+/* Modal Edit Tower */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+.modal-overlay.active{display:flex;}
+.modal-sheet{
+  width:100%;max-width:460px;background:var(--bg-card);border-radius:22px 22px 0 0;
+  padding:18px 20px 26px;border:1px solid var(--border);border-bottom:none;
+  max-height:88vh;overflow-y:auto;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;display:block;}
+.form-select, .form-input{
+  width:100%;background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;color:var(--ink);font-family:inherit;font-size:13.5px;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.form-select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2399A5C9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;
+}
+.form-select option{background:var(--bg-card2);color:var(--ink);}
+.form-input::placeholder{color:var(--ink-3);}
+.btn-row{display:flex;gap:8px;margin-top:6px;}
+.btn{
+  flex:1;padding:12px;border-radius:12px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .12s, opacity .12s;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg, var(--blue) 0%, #3A6FD8 100%);color:white;box-shadow:0 4px 14px rgba(74,142,245,0.3);}
+.btn-ghost{background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Data Tower</h1>
+      <p id="userInfo">Memuat...</p>
+    </div>
+  </div>
+
+  <!-- Stat Row -->
+  <div class="stat-row">
+    <div class="stat-card accent">
+      <div class="stat-label">Akses Tower</div>
+      <div class="stat-value" id="rangeInfo">—</div>
+      <div class="stat-sub" id="jalurName">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Tower</div>
+      <div class="stat-value" id="towerCountVal">—</div>
+      <div class="stat-sub">tower terdaftar</div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar" id="filterBar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Cari nomor tower..." oninput="applyFilters()">
+    </div>
+    <div class="filter-row">
+      <select class="filter-select" id="koordinatFilter" onchange="applyFilters()">
+        <option value="all">Semua Koordinat</option>
+        <option value="ada">📍 Ada Koordinat</option>
+        <option value="belum">📍 Belum Ada Koordinat</option>
+      </select>
+      <select class="filter-select" id="petugasFilter" onchange="applyFilters()" style="display:none;">
+        <option value="all">Semua Petugas</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- List Header -->
+  <div class="section-head">
+    <div class="section-title">Daftar Tower</div>
+    <div class="section-count" id="rangeCount">0 tower</div>
+  </div>
+
+  <!-- Tower List -->
+  <div class="list-wrap" id="towerList">
+    <div class="skeleton"></div>
+    <div class="skeleton" style="opacity:.7"></div>
+    <div class="skeleton" style="opacity:.4"></div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottomnav">
+  <a href="dashboard.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    <div class="nav-label">Beranda</div>
+  </a>
+  <a href="tower.html" class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+    <div class="nav-label">Tower</div>
+  </a>
+  <a href="ai.html" class="nav-item center">
+    <div class="nav-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+    </div>
+    <div class="nav-label">SrinAI</div>
+  </a>
+  <a href="span.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+    <div class="nav-label">Span</div>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+    <div class="nav-label">Akun</div>
+  </a>
+</div>
+
+<!-- Modal Edit Tower -->
+<div class="modal-overlay" id="editTowerModal" onclick="if(event.target===this) closeEditTowerModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">Edit Data Tower</div>
+    <div class="modal-sub">Perbarui jenis tower dan jumlah isolator.</div>
+
+    <div class="form-group">
+      <label class="form-label">Jenis Tower</label>
+      <select class="form-select" id="editJenisTower">
+        <option value="Tension">Tension</option>
+        <option value="Subtension">Subtension</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Jumlah Piringan Isolator</label>
+      <input type="number" inputmode="numeric" min="0" class="form-input" id="editIsolator" placeholder="Contoh: 8">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Jumlah Renceng Isolator</label>
+      <input type="number" inputmode="numeric" min="0" class="form-input" id="editRenceng" placeholder="Contoh: 2">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="editStatus">
+        <option value="Baik">Baik</option>
+        <option value="Perlu Perhatian">Perlu Perhatian</option>
+        <option value="Rusak">Rusak</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeEditTowerModal()">Batal</button>
+      <button class="btn btn-primary" onclick="submitEditTower()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser, profile, jalurList, myJalur, canEdit, isFullAccess;
+let allowedTowerIds = null;
+let range = null;
+let towerListCache = [];
+let petugasTowerMap = {};
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+
+  currentUser = getCurrentUser();
+
+  const [profileResult, jalurResult] = await Promise.all([
+    cachedGetFullProfile(currentUser),
+    cachedGetJalurMasterList()
+  ]);
+
+  profile   = profileResult;
+  jalurList = jalurResult;
+
+  if(!profile){ alert("Akun tidak dikenali."); location.href="dashboard.html"; return; }
+
+  myJalur = jalurList.find(j => j.id === profile.jalurId)
+    || jalurList.find(j => j.aktif)
+    || jalurList[0];
+
+  canEdit      = !isMonitor();
+  isFullAccess = isAdmin() || isKLW() || isMonitor();
+
+  document.getElementById("userInfo").innerHTML = currentUser + (myJalur ? " · " + myJalur.code : "");
+
+  // Bangun map towerId → nama petugas (hanya untuk admin/klw/monitor)
+  if(isFullAccess){
+    const allAccounts = await getAllAccountsFull();
+    allAccounts.forEach(acc => {
+      if(acc.role === "lw" && acc.tower_ids && acc.tower_ids.length){
+        acc.tower_ids.forEach(tid => { petugasTowerMap[tid] = acc.username; });
+      }
+    });
+  }
+
+  if(!isFullAccess){
+    if(profile.hasNewAssignment) allowedTowerIds = profile.towerIds;
+    else range = [profile.towerAwal, profile.towerAkhir];
+  }
+
+  let rangeText;
+  if(isFullAccess) rangeText = "Semua";
+  else if(allowedTowerIds) rangeText = allowedTowerIds.length + " tower";
+  else if(range) rangeText = "T"+String(range[0]).padStart(3,"0")+"–T"+String(range[1]).padStart(3,"0");
+
+  document.getElementById("rangeInfo").innerHTML  = rangeText || "—";
+  document.getElementById("jalurName").innerHTML  = myJalur ? (myJalur.code + " — " + myJalur.label) : "Jalur belum dikonfigurasi";
+
+  await loadTable();
+}
+
+function statusChipClass(status){
+  if(!status) return "status-kosong";
+  const s = status.toLowerCase();
+  if(s.includes("baik")) return "status-baik";
+  if(s.includes("perhatian")) return "status-perhatian";
+  if(s.includes("rusak")) return "status-rusak";
+  return "status-kosong";
+}
+
+function bukaCatatan(towerId){
+  window.location.href = "catatan-tower.html?tower=" + towerId;
+}
+
+async function loadTable(){
+  const wrap = document.getElementById("towerList");
+  wrap.innerHTML = "";
+
+  if(!myJalur){
+    document.getElementById("filterBar").style.display = "none";
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
+        </div>
+        <div class="empty-title">Jalur belum dikonfigurasi</div>
+        <div class="empty-sub">Hubungi Admin untuk mengatur Master Data Jalur.</div>
+      </div>`;
+    document.getElementById("rangeCount").innerHTML = "0 tower";
+    document.getElementById("towerCountVal").innerHTML = "0";
+    return;
+  }
+
+  let towers = await cachedGetTowerMasterList(myJalur.id);
+
+  if(allowedTowerIds) towers = towers.filter(t => allowedTowerIds.includes(t.id));
+  else if(range) towers = towers.filter(t => t.nomor >= range[0] && t.nomor <= range[1]);
+
+  towers.sort((a,b) => a.nomor - b.nomor);
+  towerListCache = towers;
+
+  document.getElementById("towerCountVal").innerHTML = towers.length;
+
+  if(towers.length === 0){
+    document.getElementById("filterBar").style.display = "none";
+    document.getElementById("rangeCount").innerHTML = "0 tower";
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
+        </div>
+        <div class="empty-title">Belum ada tower</div>
+        <div class="empty-sub">Tower ditambahkan oleh Admin/KLW lewat Master Data.</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById("filterBar").style.display = "flex";
+  populatePetugasFilter();
+  applyFilters();
+}
+
+function populatePetugasFilter(){
+  const sel = document.getElementById("petugasFilter");
+  if(!isFullAccess){
+    sel.style.display = "none";
+    return;
+  }
+  const names = [...new Set(towerListCache.map(t => petugasTowerMap[t.id]).filter(Boolean))].sort();
+  if(!names.length){
+    sel.style.display = "none";
+    return;
+  }
+  sel.style.display = "block";
+  sel.innerHTML = `<option value="all">Semua Petugas</option>` +
+    names.map(n => `<option value="${n}">👤 ${n}</option>`).join("");
+}
+
+function applyFilters(){
+  const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+  const koordinatVal = document.getElementById("koordinatFilter").value;
+  const petugasVal = isFullAccess ? document.getElementById("petugasFilter").value : "all";
+
+  const filtered = towerListCache.filter(t => {
+    if(q){
+      const nomorPadded = String(t.nomor).padStart(3,"0").toLowerCase();
+      const code = assetCodeTower(myJalur.code, t.nomor).toLowerCase();
+      if(!nomorPadded.includes(q) && !String(t.nomor).includes(q) && !code.includes(q)) return false;
+    }
+    const adaKoordinat = t.latitude != null && t.longitude != null;
+    if(koordinatVal === "ada" && !adaKoordinat) return false;
+    if(koordinatVal === "belum" && adaKoordinat) return false;
+    if(petugasVal !== "all" && (petugasTowerMap[t.id] || "") !== petugasVal) return false;
+    return true;
+  });
+
+  document.getElementById("rangeCount").innerHTML = filtered.length + " tower";
+  renderTowerList(filtered);
+}
+
+function renderTowerList(towers){
+  const wrap = document.getElementById("towerList");
+
+  if(towers.length === 0){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </div>
+        <div class="empty-title">Tidak ada hasil</div>
+        <div class="empty-sub">Coba ubah kata kunci pencarian atau filter yang dipakai.</div>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = towers.map(t => {
+    const code       = assetCodeTower(myJalur.code, t.nomor);
+    const statusText = t.status || "Belum diisi";
+    const detailParts = [];
+    if(t.jenis)    detailParts.push(t.jenis);
+    if(t.isolator) detailParts.push(t.isolator + " isolator");
+    if(t.renceng)  detailParts.push(t.renceng + " renceng");
+    const detailText = detailParts.length ? detailParts.join(" · ") : "Belum ada data jenis/isolator/renceng";
+
+    return `
+      <div class="tower-card">
+        <div class="tower-badge">
+          <span style="font-size:8px;opacity:.6;font-weight:600;">TWR</span>
+          <span class="tower-badge-num">${String(t.nomor).padStart(3,"0")}</span>
+        </div>
+        <div class="tower-info">
+          <div class="tower-row1">
+            <div class="tower-name">Tower ${String(t.nomor).padStart(3,"0")}</div>
+            <div class="status-chip ${statusChipClass(t.status)}">${statusText}</div>
+          </div>
+          <div style="margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="tower-code">${code}</span>
+            ${(t.latitude != null && t.longitude != null)
+              ? `<span class="koordinat-chip ada">📍 Ada Koordinat</span>`
+              : `<span class="koordinat-chip belum">📍 Belum Ada Koordinat</span>`}
+          </div>
+          <div class="tower-detail">${detailText}</div>
+          ${isFullAccess && petugasTowerMap[t.id] ? `<div class="petugas-chip">👤 ${petugasTowerMap[t.id]}</div>` : ""}
+        </div>
+        <div class="tower-actions">
+          <button class="act-btn act-lihat" onclick="bukaCatatan('${t.id}')" title="Lihat catatan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          ${canEdit ? `
+          <button class="act-btn act-edit" onclick="editTower('${t.id}')" title="Edit data">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+let editTowerId = null;
+
+function editTower(towerId){
+  const t = towerListCache.find(x => x.id === towerId);
+  if(!t) return;
+
+  editTowerId = towerId;
+
+  const jenisSel = document.getElementById("editJenisTower");
+  const jenisMatch = t.jenis && [...jenisSel.options].some(o => o.value.toLowerCase() === String(t.jenis).toLowerCase());
+  jenisSel.value = jenisMatch ? [...jenisSel.options].find(o => o.value.toLowerCase() === String(t.jenis).toLowerCase()).value : "Tension";
+
+  document.getElementById("editIsolator").value = t.isolator ?? "";
+  document.getElementById("editRenceng").value  = t.renceng ?? "";
+
+  const statusSel = document.getElementById("editStatus");
+  const statusMatch = t.status && [...statusSel.options].some(o => o.value.toLowerCase() === String(t.status).toLowerCase());
+  statusSel.value = statusMatch ? [...statusSel.options].find(o => o.value.toLowerCase() === String(t.status).toLowerCase()).value : "Baik";
+
+  document.getElementById("editTowerModal").classList.add("active");
+}
+
+function closeEditTowerModal(){
+  document.getElementById("editTowerModal").classList.remove("active");
+  editTowerId = null;
+}
+
+async function submitEditTower(){
+  if(!editTowerId) return;
+
+  const jenis    = document.getElementById("editJenisTower").value;
+  const isolator = document.getElementById("editIsolator").value;
+  const renceng  = document.getElementById("editRenceng").value;
+  const status   = document.getElementById("editStatus").value;
+
+  await apiRequest("/api/tower", {
+    method: "PUT",
+    body: JSON.stringify({ id: editTowerId, fields: { jenis, isolator, renceng, status } })
+  });
+
+  localStorage.removeItem("srinai_cache_tower");
+  closeEditTowerModal();
+  await loadTable();
+}
+
+initPage();
+</script>
+
+</body>
+</html>

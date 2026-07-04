@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Group Chat - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A5E;
+  --navy-deep:#051433;
+  --wire:#1C3D7A;       /* warna "kabel" - garis penghubung antar bubble */
+  --gold:#F4B400;
+  --gold-deep:#C98E00;
+  --bg:#0D1B36;
+  --surface:#FFFFFF;
+  --bubble-mine:#1455D6;
+  --bubble-mine-deep:#0C3FAE;
+  --bubble-other:#152C56;
+  --ink:#0F1729;
+  --muted:#7C8AAE;
+  --line:rgba(255,255,255,.08);
+  --red:#E0504A;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(244,180,0,.10), transparent 45%),
+    radial-gradient(circle at 100% 30%, rgba(28,61,122,.35), transparent 55%),
+    var(--bg);
+  color:white;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.container{max-width:520px;margin:auto;height:100vh;display:flex;flex-direction:column;}
+.hidden{display:none !important;}
+
+/* ===== Header — "menara transmisi" motif ===== */
+.header{
+  position:relative;flex-shrink:0;
+  background:linear-gradient(165deg, var(--navy) 0%, var(--navy-deep) 100%);
+  padding:18px 18px 16px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.header-row{display:flex;align-items:center;gap:12px;}
+.back-circle{
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+}
+.header-text{flex:1;min-width:0;}
+.header-text h1{font-size:16px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:7px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#3DDC84;box-shadow:0 0 0 0 rgba(61,220,132,.6);animation:livePulse 2s infinite;flex-shrink:0;}
+@keyframes livePulse{
+  0%{box-shadow:0 0 0 0 rgba(61,220,132,.55);}
+  70%{box-shadow:0 0 0 6px rgba(61,220,132,0);}
+  100%{box-shadow:0 0 0 0 rgba(61,220,132,0);}
+}
+.header-text p{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+.clear-icon-btn{
+  width:34px;height:34px;border-radius:50%;background:rgba(224,80,74,.18);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+
+/* Garis "kabel transmisi" dekoratif di bawah header */
+.wire-strip{height:14px;flex-shrink:0;position:relative;overflow:hidden;background:var(--bg);}
+.wire-strip svg{position:absolute;top:0;left:0;width:100%;height:100%;}
+
+/* ===== Chat area ===== */
+.chat-area{flex:1;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:3px;}
+.day-divider{
+  text-align:center;font-size:10.5px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;
+  display:flex;align-items:center;gap:10px;
+}
+.day-divider::before,.day-divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+.row{display:flex;width:100%;margin-bottom:9px;}
+.row.mine{justify-content:flex-end;}
+.row.theirs{justify-content:flex-start;}
+
+.bubble-wrap{max-width:78%;display:flex;flex-direction:column;}
+.row.mine .bubble-wrap{align-items:flex-end;}
+.row.theirs .bubble-wrap{align-items:flex-start;}
+
+.sender-name{
+  font-size:11px;font-weight:700;margin-bottom:3px;padding:0 4px;
+  color:var(--gold);
+}
+.sender-name.ai{color:#3FD9C7;}
+
+.bubble{
+  padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.45;
+  word-wrap:break-word;white-space:pre-wrap;position:relative;
+}
+.row.mine .bubble{
+  background:linear-gradient(135deg, var(--bubble-mine) 0%, var(--bubble-mine-deep) 100%);
+  color:white;border-radius:16px 16px 4px 16px;
+}
+.row.theirs .bubble{
+  background:var(--bubble-other);color:#EAF0FF;border-radius:16px 16px 16px 4px;
+  border:1px solid rgba(255,255,255,.06);
+}
+.bubble.ai-bubble{
+  background:linear-gradient(135deg, #0E3D38 0%, #0A2E2A 100%);
+  border:1px solid rgba(63,217,199,.25);
+}
+.bubble.typing{display:flex;align-items:center;gap:5px;padding:12px 14px;}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:#3FD9C7;opacity:.5;animation:typingBlink 1.2s infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+@keyframes typingBlink{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
+.chat-photo{max-width:100%;border-radius:11px;margin-top:8px;display:block;cursor:pointer;}
+
+/* ===== Kartu koordinat tower di chat ===== */
+.coord-card{min-width:200px;}
+.coord-title{font-size:13.5px;font-weight:800;margin-bottom:2px;}
+.coord-sub{font-size:11px;opacity:.75;margin-bottom:4px;}
+.coord-value{font-size:13px;font-weight:700;letter-spacing:.2px;margin:6px 0;}
+.coord-link{
+  display:inline-flex;align-items:center;gap:5px;margin-top:4px;
+  font-size:12px;font-weight:700;color:inherit;text-decoration:none;
+  background:rgba(255,255,255,.14);padding:6px 11px;border-radius:20px;
+}
+
+.meta-row{display:flex;align-items:center;gap:6px;margin-top:4px;padding:0 4px;}
+.bubble-time{font-size:10px;color:var(--muted);}
+.del-icon{
+  background:none;border:none;color:rgba(224,80,74,.7);cursor:pointer;
+  font-size:10px;display:flex;align-items:center;padding:0;
+}
+
+.empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:var(--muted);padding:40px 20px;gap:10px;
+}
+.empty-state svg{width:40px;height:40px;opacity:.35;}
+.empty-state b{color:rgba(255,255,255,.65);font-size:14px;}
+.empty-state span{font-size:12.5px;line-height:1.5;}
+
+/* ===== Input area ===== */
+.input-area{
+  flex-shrink:0;background:var(--navy-deep);padding:10px 12px 12px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.photo-preview-bar{
+  display:none;align-items:center;gap:8px;background:rgba(255,255,255,.06);
+  border-radius:12px;padding:7px 10px;margin-bottom:8px;
+}
+.photo-preview-bar.show{display:flex;}
+.photo-preview-bar img{width:38px;height:38px;border-radius:8px;object-fit:cover;}
+.photo-preview-bar span{flex:1;font-size:11.5px;color:rgba(255,255,255,.7);}
+.photo-remove-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;}
+
+.input-row{display:flex;align-items:flex-end;gap:8px;}
+.attach-btn{
+  width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.08);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;
+}
+.text-input-wrap{flex:1;background:rgba(255,255,255,.08);border-radius:22px;padding:2px 4px 2px 16px;display:flex;align-items:flex-end;}
+textarea{
+  flex:1;background:transparent;border:none;color:white;font-family:inherit;
+  font-size:14px;padding:10px 4px;resize:none;max-height:100px;outline:none;
+}
+textarea::placeholder{color:rgba(255,255,255,.4);}
+.send-btn{
+  width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg, var(--gold) 0%, var(--gold-deep) 100%);
+  border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  box-shadow:0 3px 10px rgba(244,180,0,.3);transition:transform .12s;
+}
+.send-btn:active{transform:scale(.92);}
+.send-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
+.hint-row{font-size:10.5px;color:var(--muted);margin-top:7px;padding:0 6px;}
+
+/* ===== Lightbox ===== */
+.lightbox{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;align-items:center;justify-content:center;z-index:200;padding:24px;}
+.lightbox.active{display:flex;}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
+.lightbox-close{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:white;font-size:18px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <div class="header-row">
+      <a href="dashboard.html" class="back-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="header-text">
+        <h1><span class="live-dot"></span>Group Chat Tim</h1>
+        <p id="userInfo"></p>
+      </div>
+      <button class="clear-icon-btn hidden" id="clearBtn" onclick="clearChat()" title="Bersihkan chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E0504A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="wire-strip">
+    <svg preserveAspectRatio="none" viewBox="0 0 400 14"><path d="M0 7 Q 50 14, 100 7 T 200 7 T 300 7 T 400 7" stroke="#1C3D7A" stroke-width="1.5" fill="none" opacity="0.8"/></svg>
+  </div>
+
+  <div id="chatArea" class="chat-area"></div>
+
+  <div class="input-area">
+    <div class="photo-preview-bar" id="photoPreviewBar">
+      <img id="photoPreviewImg">
+      <span>Foto siap dikirim</span>
+      <button class="photo-remove-btn" onclick="removeSelectedPhoto()">✕</button>
+    </div>
+    <div class="input-row">
+      <button class="attach-btn" onclick="document.getElementById('photo').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <input type="file" id="photo" accept="image/*" style="display:none;">
+      <div class="text-input-wrap">
+        <textarea id="message" placeholder="Tulis pesan... (@SrinAI untuk panggil bot)" rows="1" oninput="autoGrow(this)"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0A2A5E" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+    <div class="hint-row">⚡ Pesan terlihat oleh seluruh tim secara real-time</div>
+  </div>
+
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+  <img id="lightboxImg">
+</div>
+
+<script>
+let currentUser, currentRole;
+let chatList = [];
+let pendingPhoto = null;
+let pollTimer = null;
+let lastMessageId = 0;
+
+const AI_BACKEND_URL = "https://srin-assist.vercel.app/api/gemini";
+const AI_TIMEOUT_MS = 20000;
+const AI_HISTORY_LIMIT = 10;
+const AI_NAME = "SrinAI 🤖";
+const AI_SYSTEM_PROMPT =
+`Kamu adalah SrinAI, ikut nimbrung di grup chat petugas lapangan SRINAI ASSIST (inspeksi tower & span SUTT 150 kV). Posisikan diri kayak rekan kerja di grup, bukan bot customer service.
+
+CARA NGOMONG: singkat (1-2 kalimat), santai, kontraksi natural ("udah", "gak", "nih"), emoji sewajarnya, jangan buka dengan "Tentu!" atau sapaan formal.
+
+BAHASA: ikuti bahasa pesan yang memanggil/menyebutmu. Kalau pakai Sunda (ada kata seperti "mang", "kumaha", "atuh", "kang", "naon"), balas Sunda santai dengan sapaan natural (Mang/Kang/Akang). Kalau Indonesia, balas Indonesia santai (Bang/Bos/Bro/Kang). Jangan campur kalau user konsisten satu bahasa.
+
+HUMOR: boleh nyahut ringan/bercanda untuk obrolan santai biasa. TAPI matikan humor total dan jadi serius kalau ada yang menyinggung K3/keselamatan, gangguan/insiden, kecelakaan, kondisi tower/span berbahaya, atau laporan resmi — saat itu langsung fokus ke isi, tanpa basa-basi atau emoji becandaan.`;
+
+const SERIOUS_KEYWORDS = [
+  "k3","kecelakaan","insiden","gangguan","bahaya","darurat",
+  "rusak parah","tower miring","kabel putus","kabel kendor",
+  "isolator pecah","korsleting","kebakaran","tersengat","jatuh",
+  "luka","cidera","emergency","sos"
+];
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  currentUser = getCurrentUser();
+  currentRole = getCurrentRole();
+  document.getElementById("userInfo").innerHTML = currentUser + " · " + currentRole.toUpperCase();
+
+  if(isAdmin()){
+    document.getElementById("clearBtn").classList.remove("hidden");
+  }
+
+  await loadChat(true);
+
+  // Polling ringan agar pesan dari petugas lain ikut muncul tanpa refresh manual
+  pollTimer = setInterval(()=>loadChat(false), 5000);
+}
+
+function getTimeLabel(iso){
+  return new Date(iso).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+}
+function getDayLabel(iso){
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(); yesterday.setDate(today.getDate()-1);
+  const sameDay = (a,b)=>a.toDateString()===b.toDateString();
+  if(sameDay(d,today)) return "Hari ini";
+  if(sameDay(d,yesterday)) return "Kemarin";
+  return d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+}
+
+function autoGrow(el){
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 100) + "px";
+}
+
+document.getElementById("photo").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    pendingPhoto = ev.target.result;
+    document.getElementById("photoPreviewImg").src = pendingPhoto;
+    document.getElementById("photoPreviewBar").classList.add("show");
+  };
+  reader.readAsDataURL(file);
+});
+
+function removeSelectedPhoto(){
+  pendingPhoto = null;
+  document.getElementById("photo").value = "";
+  document.getElementById("photoPreviewBar").classList.remove("show");
+}
+
+document.getElementById("message").addEventListener("keydown", function(e){
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+async function sendMessage(){
+  const textEl = document.getElementById("message");
+  const text = textEl.value.trim();
+  const photo = pendingPhoto;
+  if(text==="" && !photo) return;
+
+  const sendBtn = document.getElementById("sendBtn");
+  sendBtn.disabled = true;
+
+  await sendChatMessage(currentUser, text, photo);
+
+  textEl.value = "";
+  autoGrow(textEl);
+  removeSelectedPhoto();
+  sendBtn.disabled = false;
+
+  await loadChat(true);
+  checkSrinAI(text);
+}
+
+/* Susun beberapa pesan terakhir di grup sebagai histori konteks untuk Gemini */
+function buildGroupHistory(){
+  return chatList
+    .filter(item => item.text && item.text.trim())
+    .slice(-AI_HISTORY_LIMIT)
+    .map(item => ({
+      role: item.username===AI_NAME ? "model" : "user",
+      text: item.username===AI_NAME ? item.text : (item.username + ": " + item.text)
+    }));
+}
+
+function showGroupTypingIndicator(){
+  const area = document.getElementById("chatArea");
+  const row = document.createElement("div");
+  row.className = "row theirs";
+  row.id = "groupTypingIndicator";
+  row.innerHTML = `
+    <div class="bubble-wrap">
+      <div class="sender-name ai">${AI_NAME}</div>
+      <div class="bubble ai-bubble typing">
+        <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+      </div>
+    </div>`;
+  area.appendChild(row);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeGroupTypingIndicator(){
+  const el = document.getElementById("groupTypingIndicator");
+  if(el) el.remove();
+}
+
+async function callGeminiForGroup(message){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), AI_TIMEOUT_MS);
+
+  try{
+    const res = await fetch(AI_BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: currentUser + ": " + message,
+        history: buildGroupHistory(),
+        systemPrompt: AI_SYSTEM_PROMPT
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    if(!res.ok) throw new Error("Status " + res.status);
+
+    const data = await res.json();
+    if(!data || typeof data.reply !== "string" || !data.reply.trim()){
+      throw new Error("Format balasan tidak sesuai.");
+    }
+    return data.reply;
+
+  } catch(err){
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
+function isSeriousMessage(text){
+  const t = text.toLowerCase();
+  return SERIOUS_KEYWORDS.some(k => t.includes(k));
+}
+
+async function checkSrinAI(text){
+  if(!text) return;
+  const mention = text.toLowerCase().includes("@srinai");
+  const serious = isSeriousMessage(text);
+  const random = Math.random();
+
+  if(!(mention || (!serious && random<=0.3))) return;
+
+  const sendBtn = document.getElementById("sendBtn");
+  sendBtn.disabled = true;
+  showGroupTypingIndicator();
+
+  try{
+    const reply = await callGeminiForGroup(text);
+    removeGroupTypingIndicator();
+    await sendChatMessage(AI_NAME, reply, null);
+  } catch(err){
+    removeGroupTypingIndicator();
+    await sendChatMessage(AI_NAME, "⚠️ Lagi gangguan koneksi nih, bentar ya 🙏", null);
+  } finally {
+    sendBtn.disabled = false;
+    await loadChat(true);
+  }
+}
+
+async function deleteMessage(id){
+  if(!isAdmin()) return;
+  if(!confirm("Hapus pesan ini?")) return;
+  await deleteChatMessage(id);
+  await loadChat(true);
+}
+
+async function clearChat(){
+  if(!confirm("Hapus seluruh chat untuk semua orang?")) return;
+  await clearAllChatMessages();
+  await loadChat(true);
+}
+
+function openLightbox(src){
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("lightbox").classList.add("active");
+}
+function closeLightbox(e){
+  if(e) e.stopPropagation();
+  document.getElementById("lightbox").classList.remove("active");
+}
+
+async function loadChat(forceScroll){
+  const newList = await getChatMessages(150);
+
+  // Hindari render ulang penuh setiap polling kalau tidak ada pesan baru
+  const newestId = newList.length ? newList[newList.length-1].id : 0;
+  if(!forceScroll && newestId === lastMessageId) return;
+  lastMessageId = newestId;
+
+  chatList = newList;
+  const area = document.getElementById("chatArea");
+  const wasNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 80;
+
+  if(chatList.length === 0){
+    area.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        <b>Belum ada pesan</b>
+        <span>Mulai obrolan tim di sini. Ketik @SrinAI kalau butuh bantuan bot.</span>
+      </div>`;
+    return;
+  }
+
+  area.innerHTML = "";
+  let lastDay = null;
+
+  chatList.forEach(msg=>{
+    const day = getDayLabel(msg.createdAt);
+    if(day !== lastDay){
+      const div = document.createElement("div");
+      div.className = "day-divider";
+      div.textContent = day;
+      area.appendChild(div);
+      lastDay = day;
+    }
+
+    const isMine = msg.username === currentUser;
+    const isAI = msg.username === AI_NAME;
+
+    const row = document.createElement("div");
+    row.className = "row " + (isMine ? "mine" : "theirs");
+
+    let bubbleClass = "bubble";
+    if(isAI) bubbleClass += " ai-bubble";
+
+    let inner = `<div class="bubble-wrap">`;
+    if(!isMine){
+      inner += `<div class="sender-name${isAI ? " ai" : ""}">${msg.username}</div>`;
+    }
+    if(msg.meta && msg.meta.kind === "koordinat"){
+      inner += renderCoordinateCard(msg.meta, bubbleClass);
+    } else {
+      inner += `<div class="${bubbleClass}">`;
+      if(msg.text){
+        inner += `<div>${escapeHtml(msg.text)}</div>`;
+      }
+      if(msg.foto){
+        inner += `<img src="${msg.foto}" class="chat-photo" onclick="openLightbox('${msg.foto}')">`;
+      }
+      inner += `</div>`;
+    }
+    inner += `<div class="meta-row">`;
+    if(isAdmin()){
+      inner += `<button class="del-icon" onclick="deleteMessage(${msg.id})">🗑</button>`;
+    }
+    inner += `<span class="bubble-time">${getTimeLabel(msg.createdAt)}</span>`;
+    inner += `</div>`;
+    inner += `</div>`;
+
+    row.innerHTML = inner;
+    area.appendChild(row);
+  });
+
+  if(forceScroll || wasNearBottom){
+    area.scrollTop = area.scrollHeight;
+  }
+}
+
+function renderCoordinateCard(meta, bubbleClass){
+  const lat = Number(meta.latitude), lon = Number(meta.longitude);
+  const mapsUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`;
+  const akurasi = meta.akurasiMeter ? `±${Math.round(meta.akurasiMeter)}m` : "";
+  return `
+    <div class="${bubbleClass} coord-card">
+      <div class="coord-title">📍 ${escapeHtml(meta.towerLabel || "Koordinat Tower")}</div>
+      ${meta.jalur ? `<div class="coord-sub">${escapeHtml(meta.jalur)}</div>` : ""}
+      <div class="coord-value mono">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>
+      ${akurasi ? `<div class="coord-sub">Akurasi GPS ${akurasi}</div>` : ""}
+      <a href="${mapsUrl}" target="_blank" rel="noopener" class="coord-link">🗺️ Buka di Peta</a>
+    </div>`;
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+window.addEventListener("beforeunload", ()=>{
+  if(pollTimer) clearInterval(pollTimer);
+});
+
+initPage();
+</script>
+
+</body>
+</html>

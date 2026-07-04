@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log Aktivitas Login - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A5E;
+  --navy-deep:#051433;
+  --gold:#F4B400;
+  --gold-deep:#C98E00;
+  --bg:#0D1B36;
+  --green:#3DDC84;
+  --red:#E0504A;
+  --muted:#7C8AAE;
+  --line:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(244,180,0,.10), transparent 45%),
+    radial-gradient(circle at 100% 30%, rgba(28,61,122,.35), transparent 55%),
+    var(--bg);
+  color:white;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.hidden{display:none !important;}
+.container{max-width:560px;margin:auto;min-height:100vh;display:flex;flex-direction:column;}
+
+.header{
+  flex-shrink:0;background:linear-gradient(165deg, var(--navy) 0%, var(--navy-deep) 100%);
+  padding:18px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.header-row{display:flex;align-items:center;gap:12px;}
+.back-circle{
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+}
+.header-text h1{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+.header-text p{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+
+/* ===== Stat strip ===== */
+.stat-strip{display:flex;gap:8px;padding:14px 16px 0;flex-shrink:0;}
+.stat-card{
+  flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:14px;padding:11px 12px;
+}
+.stat-card .num{font-size:20px;font-weight:800;}
+.stat-card .label{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.stat-card.success .num{color:var(--green);}
+.stat-card.fail .num{color:var(--red);}
+
+/* ===== Filter bar ===== */
+.filter-bar{display:flex;gap:8px;padding:14px 16px;flex-shrink:0;}
+.filter-chip{
+  padding:8px 14px;border-radius:20px;background:rgba(255,255,255,.06);
+  border:1px solid var(--line);font-size:12.5px;font-weight:600;color:rgba(255,255,255,.7);
+  cursor:pointer;white-space:nowrap;
+}
+.filter-chip.active{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.search-row{padding:0 16px 14px;flex-shrink:0;}
+.search-input{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);
+  border-radius:12px;padding:10px 14px;color:white;font-size:13px;font-family:inherit;outline:none;
+}
+.search-input::placeholder{color:var(--muted);}
+
+/* ===== Log list ===== */
+.log-list{flex:1;padding:0 16px 24px;display:flex;flex-direction:column;gap:8px;}
+.log-card{
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  border-radius:14px;padding:12px 14px;display:flex;gap:11px;align-items:flex-start;
+}
+.log-card.fail{border-color:rgba(224,80,74,.25);background:rgba(224,80,74,.06);}
+.log-icon{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.log-card:not(.fail) .log-icon{background:rgba(61,220,132,.15);}
+.log-card.fail .log-icon{background:rgba(224,80,74,.18);}
+.log-body{flex:1;min-width:0;}
+.log-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.log-user{font-weight:700;font-size:13.5px;}
+.log-time{font-size:10.5px;color:var(--muted);flex-shrink:0;white-space:nowrap;}
+.log-msg{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px;}
+.log-meta{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+.log-meta span{font-size:10px;color:var(--muted);background:rgba(255,255,255,.05);padding:3px 8px;border-radius:8px;}
+.role-pill{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+  padding:2px 7px;border-radius:6px;background:rgba(244,180,0,.15);color:var(--gold);
+}
+
+.empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:var(--muted);padding:60px 30px;gap:10px;
+}
+.empty-state svg{width:40px;height:40px;opacity:.35;}
+.empty-state b{color:rgba(255,255,255,.65);font-size:14px;}
+
+.access-denied{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px;gap:14px;
+}
+.access-denied svg{width:48px;height:48px;color:var(--red);}
+.access-denied b{font-size:16px;}
+.access-denied span{font-size:13px;color:var(--muted);max-width:280px;line-height:1.5;}
+.access-denied a{
+  margin-top:8px;padding:10px 20px;background:var(--gold);color:var(--navy-deep);
+  border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;
+}
+
+.load-more-btn{
+  margin:6px 16px 20px;padding:11px;text-align:center;border-radius:12px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);color:rgba(255,255,255,.75);
+  font-size:12.5px;font-weight:700;cursor:pointer;
+}
+.load-more-btn:disabled{opacity:.5;cursor:not-allowed;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <div class="header-row">
+      <a href="pengaturan.html" class="back-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="header-text">
+        <h1>🔐 Log Aktivitas Login</h1>
+        <p id="userInfo"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainContent" class="hidden">
+
+    <div class="stat-strip">
+      <div class="stat-card success">
+        <div class="num" id="statSuccess">0</div>
+        <div class="label">Login berhasil</div>
+      </div>
+      <div class="stat-card fail">
+        <div class="num" id="statFail">0</div>
+        <div class="label">Login gagal</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statTotal">0</div>
+        <div class="label">Total tercatat</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">Semua</div>
+      <div class="filter-chip" data-filter="success" onclick="setFilter('success')">✅ Berhasil</div>
+      <div class="filter-chip" data-filter="fail" onclick="setFilter('fail')">⚠️ Gagal</div>
+    </div>
+
+    <div class="search-row">
+      <input type="text" class="search-input" id="searchInput" placeholder="Cari berdasarkan username..." oninput="renderLogs()">
+    </div>
+
+    <div id="logList" class="log-list"></div>
+
+    <button class="load-more-btn" id="loadMoreBtn" onclick="loadMore()">Muat log lebih lama</button>
+
+  </div>
+
+  <div id="deniedContent" class="hidden">
+    <div class="access-denied">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <b>Akses Khusus Admin</b>
+      <span>Halaman ini hanya bisa dilihat oleh Administrator untuk menjaga privasi seluruh petugas.</span>
+      <a href="dashboard.html">Kembali ke Dashboard</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentLimit = 200;
+let allLogs = [];
+let activeFilter = "all";
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  document.getElementById("userInfo").innerHTML = getCurrentUser();
+
+  if(!isAdmin()){
+    document.getElementById("deniedContent").classList.remove("hidden");
+    return;
+  }
+
+  document.getElementById("mainContent").classList.remove("hidden");
+  await loadLogs();
+}
+
+async function loadLogs(){
+  allLogs = await getLoginLogs({ limit: currentLimit });
+  renderStats();
+  renderLogs();
+}
+
+async function loadMore(){
+  const btn = document.getElementById("loadMoreBtn");
+  btn.disabled = true;
+  btn.textContent = "Memuat...";
+  currentLimit += 200;
+  await loadLogs();
+  btn.disabled = false;
+  btn.textContent = "Muat log lebih lama";
+}
+
+function setFilter(filter){
+  activeFilter = filter;
+  document.querySelectorAll(".filter-chip").forEach(chip=>{
+    chip.classList.toggle("active", chip.dataset.filter === filter);
+  });
+  renderLogs();
+}
+
+function renderStats(){
+  const success = allLogs.filter(l=>l.success).length;
+  const fail = allLogs.filter(l=>!l.success).length;
+  document.getElementById("statSuccess").textContent = success;
+  document.getElementById("statFail").textContent = fail;
+  document.getElementById("statTotal").textContent = allLogs.length;
+}
+
+function formatTime(iso){
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMin = Math.floor((now - d) / 60000);
+  if(diffMin < 1) return "Baru saja";
+  if(diffMin < 60) return diffMin + " menit lalu";
+  if(diffMin < 1440) return Math.floor(diffMin/60) + " jam lalu";
+  return d.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}) + " · " + d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+}
+
+function shortUserAgent(ua){
+  if(!ua) return null;
+  if(/android/i.test(ua)) return "📱 Android";
+  if(/iphone|ipad/i.test(ua)) return "📱 iOS";
+  if(/windows/i.test(ua)) return "💻 Windows";
+  if(/macintosh/i.test(ua)) return "💻 Mac";
+  return "🌐 Browser lain";
+}
+
+function renderLogs(){
+  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+  const list = document.getElementById("logList");
+
+  let filtered = allLogs;
+  if(activeFilter === "success") filtered = filtered.filter(l=>l.success);
+  if(activeFilter === "fail") filtered = filtered.filter(l=>!l.success);
+  if(keyword) filtered = filtered.filter(l=>l.username.toLowerCase().includes(keyword));
+
+  if(filtered.length === 0){
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <b>Tidak ada log yang cocok</b>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  filtered.forEach(log=>{
+    const card = document.createElement("div");
+    card.className = "log-card" + (log.success ? "" : " fail");
+
+    const icon = log.success
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="#3DDC84" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M20 6L9 17l-5-5"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="#E0504A" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+
+    const deviceLabel = shortUserAgent(log.userAgent);
+
+    let metaHtml = "";
+    if(log.ip) metaHtml += `<span>🌐 ${log.ip}</span>`;
+    if(deviceLabel) metaHtml += `<span>${deviceLabel}</span>`;
+
+    card.innerHTML = `
+      <div class="log-icon">${icon}</div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="log-user">${log.username}${log.role ? ` <span class="role-pill">${log.role}</span>` : ""}</div>
+          <div class="log-time">${formatTime(log.createdAt)}</div>
+        </div>
+        <div class="log-msg">${log.message || (log.success ? "Login berhasil" : "Login gagal")}</div>
+        ${metaHtml ? `<div class="log-meta">${metaHtml}</div>` : ""}
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+initPage();
+</script>
+
+</body>
+</html>

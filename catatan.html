@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catatan Span - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/choco-font.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:#001F54;}
+.container{max-width:500px;margin:auto;min-height:100vh;background:#001F54;padding-bottom:90px;}
+.header{background:#4DA6FF;color:white;padding:20px;text-align:center;}
+.header h1{font-size:24px;margin-bottom:5px;}
+.content{padding:15px;}
+
+/* ===== Sub Tabs ===== */
+.subtabs{display:flex;gap:8px;margin-bottom:15px;}
+.subtab-btn{flex:1;padding:11px;border:none;border-radius:12px;background:#0B2D6B;color:#9FB6E8;font-weight:bold;font-size:13px;cursor:pointer;}
+.subtab-btn.active{background:#FFD54F;color:#001F54;}
+.hidden{display:none;}
+
+/* ===== Catatan ===== */
+.card{background:#FFD54F;border-radius:20px;padding:15px;margin-bottom:15px;}
+.card h2{text-align:center;margin-bottom:15px;}
+.form-group{margin-bottom:12px;}
+label{display:block;font-weight:bold;margin-bottom:5px;}
+textarea{width:100%;padding:10px;border:none;border-radius:10px;resize:vertical;min-height:100px;font-family:Arial,sans-serif;font-size:14px;}
+input[type="file"]{width:100%;padding:10px;background:white;border-radius:10px;}
+input[type="text"]{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px;}
+.save-btn{width:100%;padding:12px;border:none;border-radius:10px;background:#1565C0;color:white;font-weight:bold;cursor:pointer;}
+.note-card{background:white;border-radius:15px;padding:15px;margin-bottom:15px;}
+.note-user{font-weight:bold;color:#1565C0;margin-bottom:5px;}
+.note-date{font-size:12px;color:#777;margin-bottom:10px;}
+.note-text{margin-bottom:10px;}
+.note-photo{width:100%;border-radius:10px;margin-top:10px;}
+.action{display:flex;gap:10px;margin-top:10px;}
+.edit-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#4DA6FF;color:white;cursor:pointer;}
+.delete-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#D32F2F;color:white;cursor:pointer;}
+.bottom-menu{position:fixed;bottom:0;left:0;right:0;background:#001F54;padding:12px;text-align:center;}
+.back-btn{background:#FFD54F;color:black;padding:14px 25px;border-radius:25px;text-decoration:none;font-weight:bold;display:inline-block;}
+
+/* ===== Data Tegakan ===== */
+.tegakan-intro{color:#C9D8F5;font-size:12.5px;line-height:1.5;margin-bottom:14px;padding:0 2px;}
+.tegakan-add-btn{width:100%;padding:13px;border:none;border-radius:14px;background:#FFD54F;color:#001F54;font-weight:bold;font-size:14px;cursor:pointer;margin-bottom:16px;}
+.select-hint{color:#9FB6E8;font-size:12px;margin-bottom:10px;padding:0 2px;}
+
+.tegakan-card{background:white;border-radius:16px;padding:0;margin-bottom:14px;overflow:hidden;border-left:5px solid #2E7D32;}
+.tegakan-card.kosong{border-left-color:#F57C00;}
+.tegakan-head{padding:14px 14px 10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.tegakan-headtext{flex:1;}
+.tegakan-name{font-size:16px;font-weight:bold;color:#001F54;}
+.tegakan-id{font-size:11px;color:#999;font-family:monospace;margin-top:2px;}
+.status-pill{font-size:11px;font-weight:bold;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.status-lengkap{background:#C8E6C9;color:#1B5E20;}
+.status-kosong{background:#FFE0E0;color:#B71C1C;}
+
+.tegakan-body{padding:0 14px 14px;}
+.tegakan-row{display:flex;font-size:13.5px;padding:6px 0;border-bottom:1px solid #F0F0F0;}
+.tegakan-row:last-child{border-bottom:none;}
+.tegakan-row .k{width:100px;color:#777;flex-shrink:0;}
+.tegakan-row .v{color:#222;font-weight:500;flex:1;word-break:break-word;}
+.tegakan-row .v.empty{color:#C77;font-style:italic;font-weight:400;}
+
+.ttd-box{margin-top:10px;padding:10px;background:#F7F9FF;border-radius:10px;display:flex;align-items:center;gap:10px;}
+.ttd-thumb{width:50px;height:34px;background:white;border:1px dashed #BBB;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;}
+.ttd-thumb img{width:100%;height:100%;object-fit:contain;}
+.ttd-info{flex:1;font-size:12.5px;color:#555;}
+.ttd-info b{display:block;color:#222;font-size:13px;}
+.ttd-missing{color:#D32F2F;font-weight:bold;}
+
+.ai-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:#E0F2F1;color:#00695C;padding:3px 9px;border-radius:20px;font-weight:bold;margin-top:8px;}
+
+.ttd-auto-applied{display:none;margin:8px 0 14px;padding:10px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:10px;font-size:12.5px;color:#1B5E20;align-items:center;gap:10px;}
+.ttd-auto-applied.show{display:flex;}
+.ttd-auto-applied span{flex:1;line-height:1.35;}
+.ttd-auto-applied .use-btn{background:#2E7D32;color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:bold;white-space:nowrap;cursor:pointer;}
+
+.tegakan-action{display:flex;gap:8px;margin-top:12px;}
+.btn-edit2{flex:1;padding:10px;border:none;border-radius:9px;background:#4DA6FF;color:white;font-weight:bold;font-size:13px;cursor:pointer;}
+.btn-hapus2{padding:10px 14px;border:none;border-radius:9px;background:#D32F2F;color:white;font-weight:bold;font-size:13px;cursor:pointer;}
+
+.empty-state{text-align:center;color:#9FB6E8;padding:40px 20px;font-size:13.5px;line-height:1.6;}
+
+/* checkbox */
+.check-wrap{position:relative;width:22px;height:22px;flex-shrink:0;margin-top:1px;cursor:pointer;}
+.check-wrap input{position:absolute;opacity:0;width:22px;height:22px;cursor:pointer;margin:0;}
+.checkmark{position:absolute;top:0;left:0;width:22px;height:22px;border-radius:6px;border:2px solid #CCC;background:white;}
+.check-wrap input:checked ~ .checkmark{background:#1565C0;border-color:#1565C0;}
+.check-wrap input:checked ~ .checkmark::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid white;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.check-wrap.disabled{cursor:not-allowed;opacity:.35;}
+
+/* floating action bar */
+.ba-floatbar{position:fixed;left:0;right:0;bottom:74px;max-width:500px;margin:0 auto;background:#001F54;border:1px solid #2A4A8A;border-radius:16px;padding:12px 14px;display:none;align-items:center;gap:12px;box-shadow:0 -4px 16px rgba(0,0,0,.3);z-index:30;}
+.ba-floatbar.active{display:flex;}
+.ba-floatbar-info{flex:1;color:white;font-size:12.5px;display:flex;flex-direction:column;}
+.ba-floatbar-info b{font-size:14px;}
+.ba-floatbar-info span{color:#FFB74D;font-size:11.5px;margin-top:2px;}
+.ba-floatbar-btn{padding:12px 18px;border:none;border-radius:11px;background:#FFD54F;color:#001F54;font-weight:bold;font-size:13.5px;cursor:pointer;white-space:nowrap;}
+
+/* modal pilih pemilik */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:white;border-radius:20px 20px 0 0;padding:22px 18px 26px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:bold;color:#001F54;margin-bottom:6px;}
+.modal-desc{font-size:13px;color:#666;line-height:1.5;margin-bottom:16px;}
+.owner-option{display:flex;gap:10px;align-items:flex-start;padding:12px;border:2px solid #EEE;border-radius:12px;margin-bottom:10px;cursor:pointer;}
+.owner-option input{margin-top:3px;}
+.owner-option-text b{display:block;font-size:14.5px;color:#001F54;}
+.owner-option-text span{font-size:12px;color:#777;}
+.modal-actions{display:flex;gap:10px;margin-top:8px;}
+.modal-btn-cancel{flex:1;padding:13px;border:none;border-radius:11px;background:#EEE;color:#444;font-weight:bold;cursor:pointer;}
+.modal-btn-confirm{flex:2;padding:13px;border:none;border-radius:11px;background:#1565C0;color:white;font-weight:bold;cursor:pointer;}
+
+/* form tambah/edit tegakan (modal) */
+.tg-form-row{margin-bottom:12px;}
+.tg-form-row label{display:block;font-weight:bold;margin-bottom:5px;font-size:13px;color:#333;}
+.tg-form-row input{width:100%;padding:11px;border:1px solid #DDD;border-radius:10px;font-size:14px;}
+.tg-id-row{display:flex;gap:8px;}
+.tg-id-row input{flex:1;}
+.tg-id-generate{padding:11px 12px;background:#F0F0F0;border:none;border-radius:10px;font-size:12px;font-weight:bold;color:#555;cursor:pointer;white-space:nowrap;}
+.tg-section-title{color:#1565C0;font-size:13.5px;font-weight:bold;margin:14px 0 8px;}
+
+.sig-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.sig-tab{flex:1;padding:9px;text-align:center;border-radius:9px;font-size:12px;font-weight:bold;cursor:pointer;background:#F0F0F0;color:#888;}
+.sig-tab.active{background:#1565C0;color:white;}
+.sig-canvas-wrap{background:#FAFAFA;border:2px dashed #CCC;border-radius:12px;position:relative;overflow:hidden;}
+.sig-canvas{width:100%;height:160px;display:block;touch-action:none;cursor:crosshair;}
+.sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#BBB;font-size:12.5px;pointer-events:none;}
+.sig-placeholder .icon{font-size:24px;margin-bottom:5px;}
+.sig-actions{display:flex;gap:8px;margin-top:10px;}
+.sig-clear-btn{flex:1;padding:10px;background:#EEE;border:none;border-radius:9px;color:#555;font-weight:bold;font-size:12.5px;cursor:pointer;}
+.sig-upload-box{display:none;}
+.sig-upload-box.show{display:block;}
+.sig-upload-area{border:2px dashed #CCC;border-radius:12px;padding:20px 14px;text-align:center;color:#999;font-size:12.5px;}
+.sig-upload-area input{margin-top:10px;width:100%;}
+
+.tg-modal-actions{display:flex;gap:10px;margin-top:16px;}
+.tg-modal-cancel{flex:1;padding:13px;border:none;border-radius:11px;background:#EEE;color:#444;font-weight:bold;cursor:pointer;}
+.tg-modal-save{flex:2;padding:13px;border:none;border-radius:11px;background:#2E7D32;color:white;font-weight:bold;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <h1 id="spanTitle">CATATAN SPAN</h1>
+  <p id="userInfo"></p>
+</div>
+
+<div class="content">
+
+  <div class="subtabs">
+    <button class="subtab-btn active" id="btnSubCatatan" onclick="showSub('catatan')">📝 CATATAN</button>
+    <button class="subtab-btn" id="btnSubTegakan" onclick="showSub('tegakan')">🌳 DATA TEGAKAN</button>
+  </div>
+
+  <!-- ============ TAB CATATAN ============ -->
+  <div id="subCatatan">
+    <div class="card">
+      <h2>Tambah Temuan Span</h2>
+      <div class="form-group">
+        <label>Catatan Temuan</label>
+        <textarea id="catatan"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Foto Temuan</label>
+        <input type="file" id="foto" accept="image/*">
+      </div>
+      <button class="save-btn" onclick="simpanCatatan()">SIMPAN CATATAN</button>
+    </div>
+
+    <div id="listCatatan"></div>
+  </div>
+
+  <!-- ============ TAB DATA TEGAKAN ============ -->
+  <div id="subTegakan" class="hidden">
+
+    <div class="tegakan-intro">
+      Daftar pohon/tegakan pada span ini. Data pemilik &amp; tanda tangan di sini dipakai SrinAI saat membuat atau melengkapi BA Sosialisasi.
+    </div>
+
+    <button class="tegakan-add-btn" onclick="openTegakanForm()">➕ Tambah Tegakan</button>
+
+    <div class="select-hint">☑️ Centang tegakan untuk digabung dalam satu BA</div>
+
+    <div id="listTegakan"></div>
+
+  </div>
+
+</div>
+
+</div>
+
+<!-- Floating action bar -->
+<div class="ba-floatbar" id="baFloatbar">
+  <div class="ba-floatbar-info">
+    <b id="baCountText">0 tegakan dipilih</b>
+    <span id="baOwnerWarn"></span>
+  </div>
+  <button class="ba-floatbar-btn" onclick="openModeModal()">📄 Buat BA</button>
+</div>
+
+<div class="bottom-menu">
+  <a href="span.html" class="back-btn">← Kembali ke Data Span</a>
+</div>
+
+<!-- ============ MODAL: Tambah/Edit Tegakan ============ -->
+<div class="modal-overlay" id="modalTegakanForm">
+  <div class="modal-box">
+    <div class="modal-title" id="tgFormTitle">Tambah Tegakan</div>
+
+    <div class="tg-section-title">🌳 Data Pohon</div>
+    <div class="tg-form-row">
+      <label>Nama Tegakan</label>
+      <input type="text" id="tgNama" placeholder="Contoh: Kelapa, Nangka, Bambu">
+    </div>
+    <div class="tg-form-row">
+      <label>ID Tegakan</label>
+      <div class="tg-id-row">
+        <input type="text" id="tgId" placeholder="Contoh: 4766cd41">
+        <button class="tg-id-generate" onclick="generateRandomId()">🎲 Acak</button>
+      </div>
+    </div>
+
+    <div class="tg-section-title">👤 Data Pemilik</div>
+    <div class="tg-form-row">
+      <label>Nama Pemilik</label>
+      <input type="text" id="tgPemilikNama" placeholder="Nama lengkap pemilik" oninput="onPemilikNamaInput()">
+    </div>
+    <div class="tg-form-row">
+      <label>Alamat</label>
+      <input type="text" id="tgPemilikAlamat" placeholder="Jl. / Kp. / Kecamatan / Kabupaten">
+    </div>
+    <div class="tg-form-row">
+      <label>Nomor Telepon (opsional)</label>
+      <input type="text" id="tgPemilikTelp" placeholder="08xx-xxxx-xxxx">
+    </div>
+
+    <div class="tg-section-title">✍️ Tanda Tangan Pemilik</div>
+    <div class="ttd-auto-applied" id="ttdAutoApplied">
+      <span>✅ TTD otomatis dipakai dari data pemilik ini sebelumnya — konsisten, tidak perlu minta tanda tangan ulang.</span>
+      <button type="button" class="use-btn" onclick="clearSig()">✏️ Ganti TTD</button>
+    </div>
+    <div class="sig-tabs">
+      <div class="sig-tab active" id="tabDigital" onclick="setSigMode('digital')">✍️ Gambar Digital</div>
+      <div class="sig-tab" id="tabFoto" onclick="setSigMode('foto')">📷 Upload Foto</div>
+    </div>
+    <div id="sigDigitalBox">
+      <div class="sig-canvas-wrap">
+        <canvas class="sig-canvas" id="sigCanvas"></canvas>
+        <div class="sig-placeholder" id="sigPlaceholder">
+          <div class="icon">✍️</div>
+          Minta pemilik tanda tangan di sini
+        </div>
+      </div>
+      <div class="sig-actions">
+        <button class="sig-clear-btn" onclick="clearSig()">Hapus &amp; Ulangi</button>
+      </div>
+    </div>
+    <div id="sigFotoBox" class="sig-upload-box">
+      <div class="sig-upload-area">
+        📄 Pilih foto kertas yang sudah ditandatangani pemilik
+        <input type="file" id="sigFotoInput" accept="image/*">
+      </div>
+    </div>
+
+    <div class="tg-modal-actions">
+      <button class="tg-modal-cancel" onclick="closeTegakanForm()">Batal</button>
+      <button class="tg-modal-save" onclick="saveTegakan()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Pilih Pemilik untuk BA ============ -->
+<div class="modal-overlay" id="modalPemilik">
+  <div class="modal-box">
+    <div class="modal-title">Pilih Pemilik untuk BA Ini</div>
+    <div class="modal-desc" id="modalPemilikDesc">Tegakan yang dipilih punya nama pemilik berbeda. Pilih satu nama yang akan tercantum sebagai Pemilik Tegakan di BA.</div>
+    <div id="ownerOptionsList"></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closePemilikModal()">Batal</button>
+      <button class="modal-btn-confirm" onclick="confirmGenerateBA()">Lanjut Buat BA →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Pilih Mode BA ============ -->
+<div class="modal-overlay" id="modalModeBA">
+  <div class="modal-box">
+    <div class="modal-title">Pilih Mode Cetak BA</div>
+    <div class="modal-desc">Pilih cara pembuatan Berita Acara Sosialisasi Tegakan.</div>
+
+    <label class="owner-option" id="modeOptionBg" style="cursor:pointer;">
+      <input type="radio" name="modePick" value="background" checked>
+      <div class="owner-option-text">
+        <b>📸 Mode Background Foto</b>
+        <span>Teks ditulis di atas foto/scan formulir yang sudah diupload di Pengaturan.</span>
+      </div>
+    </label>
+
+    <label class="owner-option" id="modeOptionTemplate" style="cursor:pointer;">
+      <input type="radio" name="modePick" value="template">
+      <div class="owner-option-text">
+        <b>📄 Mode PDF Template</b>
+        <span>Formulir dibuat otomatis dengan layout resmi PLN — termasuk logo, header, dan kolom TTD.</span>
+      </div>
+    </label>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn-cancel" onclick="closeModeModal()">Batal</button>
+      <button class="modal-btn-confirm" onclick="confirmModeBA()">Lanjut →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser, spanId, mySpan, myJalur, spanLabel, catatanList = [], tegakanList = [];
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  currentUser = getCurrentUser();
+  document.getElementById("userInfo").innerHTML = currentUser;
+
+  const params = new URLSearchParams(window.location.search);
+  spanId = params.get("span");
+
+  if(!spanId){
+    alert("Span tidak ditentukan.");
+    location.href="span.html";
+    return;
+  }
+
+  // Ambil detail span & jalur supaya judul menampilkan kode aset yang benar (mis. LCJ-S001)
+  const jalurList = await getJalurMasterList();
+  for(const j of jalurList){
+    const spans = await getSpanMasterList(j.id);
+    const found = spans.find(s => s.id === spanId);
+    if(found){ mySpan = found; myJalur = j; break; }
+  }
+
+  spanLabel = mySpan ? assetCodeSpan(myJalur.code, mySpan.nomor) : spanId;
+  document.getElementById("spanTitle").innerHTML = "CATATAN " + spanLabel;
+
+  await loadCatatan();
+
+  // Sembunyikan opsi background jika belum ada baBackground tersimpan
+  const hasBg = !!(await getAppSetting("baBackground"));
+  const optBg = document.getElementById("modeOptionBg");
+  if(!hasBg && optBg){
+    optBg.style.opacity = "0.45";
+    optBg.querySelector("span").textContent += " (belum ada background — upload dulu di Pengaturan)";
+    optBg.querySelector("input").disabled = true;
+    const tmpl = document.querySelector('input[name="modePick"][value="template"]');
+    if(tmpl) tmpl.checked = true;
+  }
+}
+
+/* =========================================================
+   SUB TABS
+========================================================= */
+function showSub(tab){
+  document.getElementById("subCatatan").classList.add("hidden");
+  document.getElementById("subTegakan").classList.add("hidden");
+  document.getElementById("btnSubCatatan").classList.remove("active");
+  document.getElementById("btnSubTegakan").classList.remove("active");
+  if(tab==="catatan"){
+    document.getElementById("subCatatan").classList.remove("hidden");
+    document.getElementById("btnSubCatatan").classList.add("active");
+  } else {
+    document.getElementById("subTegakan").classList.remove("hidden");
+    document.getElementById("btnSubTegakan").classList.add("active");
+    loadTegakan();
+  }
+}
+
+/* =========================================================
+   CATATAN — Neon Postgres lewat /api/catatan-span
+========================================================= */
+async function simpanCatatan(){
+  const isi = document.getElementById("catatan").value.trim();
+  if(isi===""){
+    alert("Catatan tidak boleh kosong.");
+    return;
+  }
+  const file = document.getElementById("foto").files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = async function(e){ await tambahData(isi, e.target.result); };
+    reader.readAsDataURL(file);
+  } else {
+    await tambahData(isi, "");
+  }
+}
+
+async function tambahData(catatan, foto){
+  await addCatatanSpan(spanId, currentUser, catatan, foto);
+  document.getElementById("catatan").value="";
+  document.getElementById("foto").value="";
+  await loadCatatan();
+}
+
+async function loadCatatan(){
+  catatanList = await getCatatanBySpan(spanId);
+  const container = document.getElementById("listCatatan");
+  container.innerHTML="";
+  catatanList.forEach(item=>{
+    const tanggal = new Date(item.createdAt).toLocaleString("id-ID");
+    let html = `
+      <div class="note-card">
+        <div class="note-user">${item.username}</div>
+        <div class="note-date">${tanggal}</div>
+        <div class="note-text">${item.catatan}</div>`;
+    if(item.foto){
+      html += `<img src="${item.foto}" class="note-photo">`;
+    }
+    if(item.username===currentUser || isAdmin()){
+      html += `
+        <div class="action">
+          <button class="edit-btn" onclick="editCatatan(${item.id})">Edit</button>
+          <button class="delete-btn" onclick="hapusCatatan(${item.id})">Hapus</button>
+        </div>`;
+    }
+    html += `</div>`;
+    container.innerHTML += html;
+  });
+}
+
+async function editCatatan(id){
+  const item = catatanList.find(x=>x.id===id);
+  if(!item) return;
+  const baru = prompt("Edit Catatan", item.catatan);
+  if(baru!==null && baru.trim()!==""){
+    await editCatatanSpan(id, baru);
+    await loadCatatan();
+  }
+}
+
+async function hapusCatatan(id){
+  if(!confirm("Hapus catatan ini?")) return;
+  await deleteCatatanSpan(id);
+  await loadCatatan();
+}
+
+/* =========================================================
+   DATA TEGAKAN — Neon Postgres lewat /api/tegakan
+========================================================= */
+
+function isLengkap(item){
+  return !!(item.pemilikNama && item.pemilikNama.trim() &&
+            item.pemilikAlamat && item.pemilikAlamat.trim() &&
+            item.ttdData);
+}
+
+async function loadTegakan(){
+  tegakanList = await getTegakanBySpan(spanId);
+  const container = document.getElementById("listTegakan");
+  container.innerHTML = "";
+
+  if(tegakanList.length === 0){
+    container.innerHTML = `<div class="empty-state">🌳 Belum ada data tegakan pada span ini.<br>Klik "Tambah Tegakan" untuk mulai mencatat.</div>`;
+    updateFloatbar();
+    return;
+  }
+
+  tegakanList.forEach(item=>{
+    const lengkap = isLengkap(item);
+    const canManage = (item.petugas === currentUser) || isAdmin() || isKLW();
+
+    let ttdHtml = `<div class="ttd-thumb">—</div><div class="ttd-info"><b class="ttd-missing">Belum ada tanda tangan</b>Lengkapi sebelum membuat BA</div>`;
+    if(item.ttdData){
+      const label = item.ttdType === "foto" ? "Foto kertas" : "Digital";
+      ttdHtml = `<div class="ttd-thumb"><img src="${item.ttdData}"></div><div class="ttd-info"><b>Tanda tangan tersimpan</b>${label} · ${item.tanggal}</div>`;
+    }
+
+    let html = `
+      <div class="tegakan-card ${lengkap ? "" : "kosong"}" data-owner="${(item.pemilikNama||"").replace(/"/g,'&quot;')}" data-id="${item.id}">
+        <div class="tegakan-head">
+          <label class="check-wrap ${lengkap ? "" : "disabled"}">
+            <input type="checkbox" class="tegakan-check" data-id="${item.id}" ${lengkap ? "" : "disabled"}>
+            <span class="checkmark"></span>
+          </label>
+          <div class="tegakan-headtext">
+            <div class="tegakan-name">🌳 ${item.nama || "(tanpa nama)"}</div>
+            <div class="tegakan-id">ID ${item.idTegakan || "-"}</div>
+          </div>
+          <div class="status-pill ${lengkap ? "status-lengkap" : "status-kosong"}">${lengkap ? "LENGKAP" : "BELUM DIISI"}</div>
+        </div>
+        <div class="tegakan-body">
+          <div class="tegakan-row"><div class="k">Pemilik</div><div class="v ${item.pemilikNama ? "" : "empty"}">${item.pemilikNama || "Belum diisi"}</div></div>
+          <div class="tegakan-row"><div class="k">Alamat</div><div class="v ${item.pemilikAlamat ? "" : "empty"}">${item.pemilikAlamat || "Belum diisi"}</div></div>
+          <div class="tegakan-row"><div class="k">Telepon</div><div class="v ${item.pemilikTelp ? "" : "empty"}">${item.pemilikTelp || "Belum diisi"}</div></div>
+          <div class="tegakan-row"><div class="k">Petugas</div><div class="v">${item.petugas}</div></div>
+          <div class="ttd-box">${ttdHtml}</div>
+          ${!lengkap ? `<span class="ai-tag">🤖 Bisa diisi lewat SrinAI</span>` : ""}
+          <div class="tegakan-action">
+            ${canManage ? `<button class="btn-edit2" onclick="openTegakanForm(${item.id})">✏️ ${lengkap ? "Edit" : "Lengkapi Data"}</button>` : ""}
+            ${canManage ? `<button class="btn-hapus2" onclick="hapusTegakan(${item.id})">🗑</button>` : ""}
+          </div>
+        </div>
+      </div>`;
+    container.innerHTML += html;
+  });
+
+  document.querySelectorAll(".tegakan-check").forEach(cb=>{
+    cb.addEventListener("change", updateFloatbar);
+  });
+
+  updateFloatbar();
+}
+
+async function hapusTegakan(id){
+  if(!confirm("Hapus data tegakan ini?")) return;
+  await deleteTegakan(id);
+  await loadTegakan();
+}
+
+/* =========================================================
+   FORM TAMBAH / EDIT TEGAKAN
+========================================================= */
+let editingTegakanId = null;
+let sigMode = "digital";
+let sigFotoDataUrl = null;
+
+function openTegakanForm(id){
+  editingTegakanId = id || null;
+  sigMode = "digital";
+  sigFotoDataUrl = null;
+  setSigMode("digital");
+
+  autoTtdState = { lastName:"", match:null, applied:false, overridden:false };
+  document.getElementById("ttdAutoApplied").classList.remove("show");
+
+  document.getElementById("tgFormTitle").textContent = id ? "Edit Tegakan" : "Tambah Tegakan";
+
+  if(id){
+    const item = tegakanList.find(x=>x.id===id);
+    document.getElementById("tgNama").value = item.nama || "";
+    document.getElementById("tgId").value = item.idTegakan || "";
+    document.getElementById("tgPemilikNama").value = item.pemilikNama || "";
+    document.getElementById("tgPemilikAlamat").value = item.pemilikAlamat || "";
+    document.getElementById("tgPemilikTelp").value = item.pemilikTelp || "";
+    if(item.ttdData){
+      if(item.ttdType === "foto"){
+        sigFotoDataUrl = item.ttdData;
+        setSigMode("foto");
+      } else {
+        setTimeout(()=>{
+          const img = new Image();
+          img.onload = function(){
+            resizeCanvas();
+            ctx.drawImage(img,0,0,canvas.width,canvas.height);
+            document.getElementById("sigPlaceholder").style.display="none";
+          };
+          img.src = item.ttdData;
+        }, 50);
+      }
+    }
+  } else {
+    document.getElementById("tgNama").value = "";
+    document.getElementById("tgId").value = "";
+    document.getElementById("tgPemilikNama").value = "";
+    document.getElementById("tgPemilikAlamat").value = "";
+    document.getElementById("tgPemilikTelp").value = "";
+  }
+
+  document.getElementById("modalTegakanForm").classList.add("active");
+  setTimeout(resizeCanvas, 50);
+  if(document.getElementById("tgPemilikNama").value.trim()) checkAutoTtd();
+}
+
+function closeTegakanForm(){
+  document.getElementById("modalTegakanForm").classList.remove("active");
+  clearSig();
+}
+
+/* =========================================================
+   TTD OTOMATIS — konsistensi TTD per nama pemilik
+   - Kalau nama pemilik sudah pernah punya TTD (di tegakan mana pun),
+     TTD itu otomatis dipakai lagi untuk tegakan baru ini, supaya
+     TTD-nya konsisten dan tidak perlu minta tanda tangan ulang.
+   - Kalau nama pemilik belum pernah ada sama sekali, kolom TTD
+     dikosongkan seperti biasa supaya bisa diisi/digambar baru.
+   - TTD pada tegakan-tegakan lama TIDAK PERNAH ditulis ulang oleh
+     fitur ini — hanya dibaca untuk disalin ke tegakan yang baru.
+   - Pengguna tetap bisa menekan "Ganti TTD" untuk menggambar/upload
+     tanda tangan baru jika memang diperlukan (mis. pemilik berbeda
+     orang walau namanya kebetulan sama).
+========================================================= */
+let autoTtdState = { lastName:"", match:null, applied:false, overridden:false };
+
+function onPemilikNamaInput(){
+  clearTimeout(window._ttdAutoTimer);
+  window._ttdAutoTimer = setTimeout(checkAutoTtd, 350);
+}
+
+async function checkAutoTtd(){
+  const nameRaw = document.getElementById("tgPemilikNama").value.trim();
+  const appliedBox = document.getElementById("ttdAutoApplied");
+
+  if(!nameRaw){
+    autoTtdState = { lastName:"", match:null, applied:false, overridden:false };
+    appliedBox.classList.remove("show");
+    return;
+  }
+
+  const nameKey = nameRaw.toLowerCase();
+  if(nameKey === autoTtdState.lastName) return; // nama belum berubah
+
+  autoTtdState.lastName = nameKey;
+  autoTtdState.overridden = false;
+  autoTtdState.applied = false;
+  appliedBox.classList.remove("show");
+
+  let all = [];
+  try{
+    const result = await apiRequest("/api/tegakan");
+    all = result.tegakan || [];
+  }catch(e){ all = []; }
+
+  const matches = (all || []).filter(it =>
+    it.id !== editingTegakanId &&
+    it.ttdData &&
+    (it.pemilikNama || "").trim().toLowerCase() === nameKey
+  );
+
+  if(matches.length === 0){
+    // Nama baru / belum pernah ada -> biarkan kosong, siap diisi TTD baru.
+    autoTtdState.match = null;
+    return;
+  }
+
+  // Nama sudah pernah ada -> pakai TTD yang sama secara otomatis (konsisten).
+  const m = matches[matches.length - 1]; // catatan TTD paling baru untuk nama ini
+  autoTtdState.match = m;
+  applyAutoTtd();
+}
+
+function applyAutoTtd(){
+  const m = autoTtdState.match;
+  if(!m) return;
+
+  if(m.ttdType === "foto"){
+    sigFotoDataUrl = m.ttdData;
+    setSigMode("foto");
+  } else {
+    setSigMode("digital");
+    const img = new Image();
+    img.onload = function(){
+      resizeCanvas();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      document.getElementById("sigPlaceholder").style.display = "none";
+    };
+    img.src = m.ttdData;
+  }
+
+  autoTtdState.applied = true;
+  document.getElementById("ttdAutoApplied").classList.add("show");
+}
+
+function generateRandomId(){
+  const id = Math.random().toString(16).slice(2,10);
+  document.getElementById("tgId").value = id;
+}
+
+function setSigMode(mode){
+  sigMode = mode;
+  document.getElementById("tabDigital").classList.toggle("active", mode==="digital");
+  document.getElementById("tabFoto").classList.toggle("active", mode==="foto");
+  document.getElementById("sigDigitalBox").style.display = mode==="digital" ? "block" : "none";
+  document.getElementById("sigFotoBox").classList.toggle("show", mode==="foto");
+}
+
+document.getElementById("sigFotoInput").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){ sigFotoDataUrl = ev.target.result; };
+  reader.readAsDataURL(file);
+});
+
+async function saveTegakan(){
+  const nama = document.getElementById("tgNama").value.trim();
+  const idTegakan = document.getElementById("tgId").value.trim();
+  const pemilikNama = document.getElementById("tgPemilikNama").value.trim();
+  const pemilikAlamat = document.getElementById("tgPemilikAlamat").value.trim();
+  const pemilikTelp = document.getElementById("tgPemilikTelp").value.trim();
+
+  if(!nama){
+    alert("Nama tegakan wajib diisi.");
+    return;
+  }
+
+  let ttdType = null, ttdData = null;
+  if(sigMode === "foto" && sigFotoDataUrl){
+    ttdType = "foto";
+    ttdData = sigFotoDataUrl;
+  } else if(sigMode === "digital" && !isCanvasBlank()){
+    ttdType = "digital";
+    ttdData = canvas.toDataURL("image/png");
+  }
+
+  if(editingTegakanId){
+    const fields = { nama, idTegakan, pemilikNama, pemilikAlamat, pemilikTelp };
+    if(ttdData){
+      fields.ttdType = ttdType;
+      fields.ttdData = ttdData;
+      fields.tanggal = new Date().toLocaleDateString("id-ID");
+    }
+    await updateTegakan(editingTegakanId, fields);
+  } else {
+    await addTegakan({
+      spanId, nama, idTegakan,
+      pemilikNama, pemilikAlamat, pemilikTelp,
+      petugas: currentUser,
+      ttdType, ttdData,
+      tanggal: new Date().toLocaleDateString("id-ID")
+    });
+  }
+
+  closeTegakanForm();
+  await loadTegakan();
+}
+
+/* =========================================================
+   SIGNATURE CANVAS
+========================================================= */
+const canvas = document.getElementById("sigCanvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  if(rect.width === 0) return;
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+let drawing = false;
+function getPos(e){
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  return {x,y};
+}
+function start(e){
+  drawing = true;
+  document.getElementById("sigPlaceholder").style.display="none";
+  const p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x,p.y);
+}
+function move(e){
+  if(!drawing) return;
+  e.preventDefault();
+  const p = getPos(e);
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#1A1A1A";
+  ctx.lineTo(p.x,p.y);
+  ctx.stroke();
+}
+function end(){ drawing = false; }
+
+canvas.addEventListener("mousedown", start);
+canvas.addEventListener("mousemove", move);
+canvas.addEventListener("mouseup", end);
+canvas.addEventListener("touchstart", start);
+canvas.addEventListener("touchmove", move);
+canvas.addEventListener("touchend", end);
+
+function clearSig(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById("sigPlaceholder").style.display="flex";
+  sigFotoDataUrl = null;
+  document.getElementById("sigFotoInput").value = "";
+  document.getElementById("ttdAutoApplied").classList.remove("show");
+  autoTtdState.applied = false;
+  autoTtdState.overridden = true; // pengguna sengaja mengganti TTD, jangan dipakai ulang otomatis
+}
+
+function isCanvasBlank(){
+  const blank = document.createElement("canvas");
+  blank.width = canvas.width;
+  blank.height = canvas.height;
+  return canvas.toDataURL() === blank.toDataURL();
+}
+
+/* =========================================================
+   PILIH TEGAKAN UNTUK BA + FLOATBAR
+========================================================= */
+function updateFloatbar(){
+  const checked = document.querySelectorAll(".tegakan-check:checked");
+  const floatbar = document.getElementById("baFloatbar");
+  if(checked.length === 0){
+    floatbar.classList.remove("active");
+    return;
+  }
+  floatbar.classList.add("active");
+  document.getElementById("baCountText").textContent = checked.length + " tegakan dipilih";
+
+  const owners = new Set();
+  checked.forEach(cb=>{
+    const card = cb.closest(".tegakan-card");
+    owners.add(card.dataset.owner);
+  });
+  const warn = document.getElementById("baOwnerWarn");
+  warn.textContent = owners.size > 1 ? owners.size + " pemilik berbeda terdeteksi" : "";
+}
+
+function getCheckedTegakan(){
+  const ids = Array.from(document.querySelectorAll(".tegakan-check:checked")).map(cb=>Number(cb.dataset.id));
+  return tegakanList.filter(item => ids.includes(item.id));
+}
+
+/* =========================================================
+   MODAL PILIH MODE BA
+========================================================= */
+let _baMode = "background"; // "background" | "template"
+
+function openModeModal(){
+  const checked = document.querySelectorAll(".tegakan-check:checked");
+  if(checked.length === 0) return;
+  document.getElementById("modalModeBA").classList.add("active");
+}
+
+function closeModeModal(){
+  document.getElementById("modalModeBA").classList.remove("active");
+}
+
+async function confirmModeBA(){
+  const picked = document.querySelector('input[name="modePick"]:checked');
+  if(!picked) return;
+  closeModeModal();
+  if(picked.value === "template"){
+    await openPemilihPemilik("template");
+  } else {
+    await openPemilihPemilik("background");
+  }
+}
+
+async function openPemilihPemilik(mode){
+  _baMode = mode || "background";
+  const selected = getCheckedTegakan();
+  if(selected.length === 0) return;
+
+  const owners = {};
+  selected.forEach(item=>{
+    if(!owners[item.pemilikNama]) owners[item.pemilikNama] = item;
+  });
+  const ownerNames = Object.keys(owners);
+
+  if(ownerNames.length <= 1){
+    if(_baMode === "template"){
+      await generateBAPdfTemplate(selected, selected[0]);
+    } else {
+      await generateBA(selected, selected[0]);
+    }
+    return;
+  }
+
+  const list = document.getElementById("ownerOptionsList");
+  list.innerHTML = "";
+  ownerNames.forEach((name, idx)=>{
+    const item = owners[name];
+    list.innerHTML += `
+      <label class="owner-option">
+        <input type="radio" name="ownerPick" value="${name.replace(/"/g,'&quot;')}" ${idx===0 ? "checked" : ""}>
+        <div class="owner-option-text">
+          <b>${name}</b>
+          <span>${item.pemilikAlamat || "-"} — dari tegakan ${item.nama}</span>
+        </div>
+      </label>`;
+  });
+
+  document.getElementById("modalPemilikDesc").textContent =
+    `${selected.length} tegakan yang dipilih punya ${ownerNames.length} nama pemilik berbeda. Pilih satu nama yang akan tercantum sebagai Pemilik Tegakan di BA.`;
+
+  document.getElementById("modalPemilik").classList.add("active");
+}
+
+function closePemilikModal(){
+  document.getElementById("modalPemilik").classList.remove("active");
+}
+
+async function confirmGenerateBA(){
+  const picked = document.querySelector('input[name="ownerPick"]:checked');
+  if(!picked) return;
+  const selected = getCheckedTegakan();
+  const ownerItem = selected.find(x=>x.pemilikNama === picked.value) || selected[0];
+  closePemilikModal();
+  if(_baMode === "template"){
+    await generateBAPdfTemplate(selected, ownerItem);
+  } else {
+    await generateBA(selected, ownerItem);
+  }
+}
+
+/* =========================================================
+   GENERATE BA (PDF)
+   Mode 1 — ADA background (baBackground di localStorage):
+     Gambar formulir kosong jadi halaman penuh, teks ditulis
+     di atas koordinat yang sudah dikalibrasi ke layout formulir
+     PLN yang ada di foto.
+   Mode 2 — TIDAK ADA background:
+     Fallback ke layout teks biasa seperti sebelumnya.
+========================================================= */
+/* Daftarkan font Choco Cooky ke instance jsPDF tertentu.
+   Dipakai HANYA untuk isian data BA (nama, tanggal, alamat, dll),
+   bukan untuk judul/kop surat — judul tetap pakai Helvetica. */
+function registerChocoFont(doc){
+  try{
+    doc.addFileToVFS("Chococooky.ttf", CHOCO_COOKY_FONT_BASE64);
+    doc.addFont("Chococooky.ttf", "ChocoCooky", "normal");
+  }catch(e){
+    console.error("Gagal memuat font Choco Cooky, isian BA fallback ke Helvetica.", e);
+  }
+}
+
+async function generateBA(selectedTegakan, ownerRef){
+  // Nama & TTD petugas pada BA mengikuti PEMILIK SPAN (LW yang
+  // di-assign ke span ini), bukan akun yang sedang login membuat BA.
+  const spanOwnerUsername = (await getSpanOwner(spanId)) || currentUser;
+  const profile = await getFullProfile(spanOwnerUsername);
+  const now = new Date();
+  const hariList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const bulanList = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const hari = hariList[now.getDay()];
+  const tgl = now.getDate();
+  const bulan = bulanList[now.getMonth()];
+  const tahun = now.getFullYear();
+
+  const namaPohonList = selectedTegakan.map(t=>t.nama).join(", ");
+  const idPohonList = selectedTegakan.map(t=>t.idTegakan).join(", ");
+  // Ambil nomor span bersih (hilangkan prefix jalur / S)
+  const noSpanClean = spanLabel.replace(/^[A-Z]+-?S?0*/i, "") || spanLabel;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  registerChocoFont(doc);
+  const pageW = 210;
+  const pageH = 297;
+
+  const baBg = await getAppSetting("baBackground");
+
+  if(baBg){
+    /* ======================================================
+       MODE 1: ISI FORMULIR DI ATAS BACKGROUND FOTO
+       Koordinat dikalibrasi untuk formulir BA PLN
+       (portrait A4, foto seperti yang di-upload).
+    ====================================================== */
+
+    // Gambar background memenuhi seluruh halaman A4
+    try{
+      doc.addImage(baBg, "JPEG", 0, 0, pageW, pageH);
+    }catch(e){
+      // jika gagal (format bukan JPEG), coba PNG
+      try{ doc.addImage(baBg, "PNG", 0, 0, pageW, pageH); }catch(e2){}
+    }
+
+    doc.setFont("helvetica", "normal");
+
+    /* ---- Baris pembuka: hari, tanggal, bulan, tahun ---- */
+    // "Pada hari ini _____, tanggal_____ bulan_____tahun_____"
+    // Koordinat Y disesuaikan dengan posisi baris pertama di formulir.
+    // Isi titik-titik dengan teks menggunakan font kecil agar pas.
+    try{ doc.setFont("ChocoCooky", "normal"); }catch(e){ doc.setFont("helvetica", "normal"); }
+    doc.setFontSize(10.5);
+
+    // Hari (setelah "hari ini")
+    doc.text(hari, 46, 80.5);
+    // Tanggal (setelah "tanggal")
+    doc.text(String(tgl), 78, 80.5);
+    // Bulan
+    doc.text(bulan, 103, 80.5);
+    // Tahun
+    doc.text(String(tahun), 143, 80.5);
+
+    /* ---- Jenis Saluran: centang SUTT 150kV ---- */
+    // Formulir punya 3 kotak: SUTT 70kV | SUTT 150kV | SUTET 500kV
+    // Posisi kotak centang SUTT 150kV (kolom tengah)
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("✓", 94.5, 95.5); // X SUTT 150kV
+    doc.setFont("helvetica", "normal");
+
+    /* ---- Field-field formulir ---- */
+    try{ doc.setFont("ChocoCooky", "normal"); }catch(e){ doc.setFont("helvetica", "normal"); }
+    doc.setFontSize(10.5);
+
+    // Penghantar
+    const penghantar = profile ? (profile.jalurLabel || "-") : "-";
+    doc.text(penghantar, 55, 101.5);
+
+    // No Span
+    doc.text(noSpanClean, 55, 107.5);
+
+    // Nama Pohon/Tegakan
+    doc.text(namaPohonList, 55, 113.5);
+
+    // ID Pohon/Tegakan
+    doc.text(idPohonList, 55, 119.5);
+
+    // Nama Pemilik Tegakan
+    doc.text(ownerRef.pemilikNama || "-", 65, 125.5);
+
+    // Alamat Pemilik
+    const alamatLines = doc.splitTextToSize(ownerRef.pemilikAlamat || "-", pageW - 75);
+    doc.text(alamatLines, 55, 131.5);
+
+    /* ---- Kota & tanggal di pojok kanan atas tanda tangan ---- */
+    doc.setFontSize(9.5);
+    const kota = "Sukabumi, " + tgl + " " + bulan + " " + tahun;
+    doc.text(kota, pageW - 20, 218, { align: "right" });
+
+    /* ---- Nama petugas (tengah kolom Petugas Line Walker) ---- */
+    doc.setFontSize(9.5);
+    const namaLW = profile ? profile.nama : spanOwnerUsername;
+    doc.text("(" + namaLW + ")", 125, 243, { align: "center" });
+
+    /* ---- Nama pemilik (kolom kanan) ---- */
+    const namaPemilik = ownerRef.pemilikNama || "......................";
+    doc.text("(" + namaPemilik + ")", 175, 243, { align: "center" });
+    doc.setFont("helvetica", "normal");
+
+    /* ---- Tanda tangan LW (dari profil petugas) ---- */
+    const petugasSig = await getProfileSignature(spanOwnerUsername);
+    if(petugasSig && petugasSig.ttdData){
+      try{
+        doc.addImage(petugasSig.ttdData, petugasSig.ttdType === "foto" ? "JPEG" : "PNG", 110, 225, 30, 16);
+      }catch(e){}
+    }
+
+    /* ---- Tanda tangan pemilik ---- */
+    if(ownerRef.ttdData){
+      try{
+        doc.addImage(ownerRef.ttdData, "PNG", 159, 225, 30, 16);
+      }catch(e){}
+    }
+
+    /* ---- TTD TL JARGI/JARGITET (gambar siap tempel) ---- */
+    const ttdJargi = await getAppSetting("ttdJargiLogo");
+    if(ttdJargi){
+      try{
+        doc.addImage(ttdJargi, "PNG", 60, 222, 32, 20);
+      }catch(e){
+        try{ doc.addImage(ttdJargi, "JPEG", 60, 222, 32, 20); }catch(e2){}
+      }
+    }
+
+  } else {
+    /* ======================================================
+       MODE 2: FALLBACK — LAYOUT TEKS BIASA (original)
+    ====================================================== */
+    const tanggalIndo = hari + ", " + tgl + " " + bulan + " " + tahun;
+    let y = 20;
+
+    // Header
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(11);
+    doc.text("PT PLN (Persero)", 35, y);
+    doc.setFontSize(9);
+    doc.setFont("helvetica","normal");
+    doc.text("Unit Induk Transmisi Jawa Bagian Tengah", 35, y+5);
+    doc.setLineWidth(0.6);
+    doc.line(15, y+9, pageW-15, y+9);
+
+    y += 20;
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(13);
+    doc.text("BERITA ACARA", pageW/2, y, {align:"center"});
+    y += 6;
+    doc.text("SOSIALISASI TEGAKAN", pageW/2, y, {align:"center"});
+
+    y += 12;
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(10);
+    const introText = `Pada hari ini ${tanggalIndo}, telah selesai dilaksanakan kegiatan SOSIALISASI TEGAKAN KRITIS kepada pemilik pohon/tegakan terkait RUANG BEBAS SALURAN TRANSMISI dan JARAK BEBAS MINIMUM. Pada jalur transmisi sebagai berikut:`;
+    const introLines = doc.splitTextToSize(introText, pageW-30);
+    doc.text(introLines, 15, y);
+    y += introLines.length * 5 + 4;
+
+    function field(label, value){
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(10);
+      doc.text("•  " + label, 18, y);
+      doc.text(":", 70, y);
+      try{ doc.setFont("ChocoCooky","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(String(value || "-"), pageW-95);
+      doc.text(lines, 73, y);
+      y += Math.max(lines.length, 1) * 5.5;
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(10);
+    }
+
+    field("Jenis Saluran", "SUTT 150kV ✓");
+    field("Penghantar", profile ? profile.jalurLabel : "-");
+    field("No Span", noSpanClean);
+    field("Nama Pohon/Tegakan", namaPohonList);
+    field("ID Pohon/Tegakan", idPohonList);
+    field("Nama Pemilik Tegakan", ownerRef.pemilikNama || "-");
+    field("Alamat Pemilik", ownerRef.pemilikAlamat || "-");
+
+    y += 4;
+    doc.setFont("helvetica","normal");
+    doc.text("Dengan point penyampaian sebagai berikut:", 15, y);
+    y += 6;
+
+    const points = [
+      "Sosialisasi batas aman minimum dibawah/diluar jalur SUTT/SUTET sesuai Peraturan Menteri ESDM Nomor 13 Tahun 2025 tentang Ruang Bebas Jaringan Transmisi Tenaga Listrik dan Kompensasi atas Tanah, Bangunan, dan/atau Tanaman yang Berada di Bawah Ruang Bebas Jaringan Transmisi Tenaga Listrik (terlampir).",
+      "Ketentuan batas minimum yang diatur sesuai PERMEN ESDM No 13 Tahun 2025 pada bangunan dan jembatan (terlampir).",
+      "Himbauan keselamatan kerja dan lingkungan (terlampir).",
+      "Demi menjaga keselamatan, untuk semua pekerjaan dibawah jalur SUTT/SUTET harus selalu berkoordinasi dan dalam pengawasan pihak PLN."
+    ];
+    const letters = ["a.","b.","c.","d."];
+    points.forEach((p,i)=>{
+      const lines = doc.splitTextToSize(p, pageW-40);
+      doc.text(letters[i], 20, y);
+      doc.text(lines, 27, y);
+      y += lines.length * 5 + 2;
+    });
+
+    y += 4;
+    doc.text("Demikian Berita Acara ini dibuat dan ditandatangani di lokasi sosialisasi", 15, y);
+    y += 5;
+    doc.text("dengan sebenarnya.", 15, y);
+
+    y += 12;
+    try{ doc.setFont("ChocoCooky","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
+    doc.text("Sukabumi, " + tgl + " " + bulan + " " + tahun, pageW-20, y, {align:"right"});
+    doc.setFont("helvetica","normal");
+
+    y += 14;
+    const col1 = 35, col2 = 105, col3 = 175;
+    doc.setFontSize(10);
+    doc.text("Mengetahui,", col1, y, {align:"center"});
+    doc.text("Petugas Line Walker", col2, y, {align:"center"});
+    doc.text("Pemilik Pohon/Tegakan", col3, y, {align:"center"});
+
+    y += 8;
+    const sigY = y;
+    const namaLW = profile ? profile.nama : spanOwnerUsername;
+
+    // TTD TL JARGI/JARGITET: gambar siap tempel (tanda tangan + nama
+    // sudah menyatu di gambar), diatur lewat Pengaturan BA.
+    const ttdJargi = await getAppSetting("ttdJargiLogo");
+    if(ttdJargi){
+      try{
+        doc.addImage(ttdJargi, "PNG", col1-16, sigY-2, 32, 20);
+      }catch(e){
+        try{ doc.addImage(ttdJargi, "JPEG", col1-16, sigY-2, 32, 20); }catch(e2){}
+      }
+    }
+
+    const petugasSig = await getProfileSignature(spanOwnerUsername);
+    if(petugasSig && petugasSig.ttdData){
+      try{
+        doc.addImage(petugasSig.ttdData, petugasSig.ttdType === "foto" ? "JPEG" : "PNG", col2-15, sigY, 30, 16);
+      }catch(e){}
+    }
+
+    if(ownerRef.ttdData){
+      try{
+        doc.addImage(ownerRef.ttdData, "PNG", col3-15, sigY, 30, 16);
+      }catch(e){}
+    }
+
+    y += 22;
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(10);
+    try{ doc.setFont("ChocoCooky","normal"); }catch(e){}
+    doc.setFontSize(11);
+    doc.text("(" + namaLW + ")", col2, y, {align:"center"});
+    doc.text("(" + (ownerRef.pemilikNama || "......................") + ")", col3, y, {align:"center"});
+    doc.setFont("helvetica","normal");
+  }
+
+  const pdfDataUrl = doc.output("datauristring");
+  const fileName = "BA_" + spanLabel + "_" + (ownerRef.pemilikNama || "tanpa-nama").replace(/\s+/g,"_") + ".pdf";
+
+  await saveBAToSOS(pdfDataUrl, fileName, ownerRef, selectedTegakan, "manual");
+  doc.save(fileName);
+}
+
+/* =========================================================
+   GENERATE BA — MODE 3: PDF TEMPLATE (layout murni jsPDF)
+   Tata letak mengikuti formulir BA PLN resmi persis:
+   - Header: logo kiri + teks instansi kanan (dari baLogo)
+   - Garis pembatas
+   - Judul BERITA ACARA / SOSIALISASI TEGAKAN (tengah)
+   - Paragraf pembuka (hari, tanggal, bulan, tahun)
+   - Bullet list field isian
+   - Point penyampaian a-d
+   - Penutup
+   - Kolom TTD: Mengetahui | Petugas LW | Pemilik Pohon
+========================================================= */
+async function generateBAPdfTemplate(selectedTegakan, ownerRef){
+  // Nama & TTD petugas pada BA mengikuti PEMILIK SPAN (LW yang
+  // di-assign ke span ini), bukan akun yang sedang login membuat BA.
+  const spanOwnerUsername = (await getSpanOwner(spanId)) || currentUser;
+  const profile = await getFullProfile(spanOwnerUsername);
+  const now = new Date();
+  const hariList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const bulanList = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const hari  = hariList[now.getDay()];
+  const tgl   = now.getDate();
+  const bulan = bulanList[now.getMonth()];
+  const tahun = now.getFullYear();
+
+  const namaPohonList = selectedTegakan.map(t=>t.nama).join(", ");
+  const idPohonList   = selectedTegakan.map(t=>t.idTegakan).join(", ");
+  const noSpanClean   = spanLabel.replace(/^[A-Z]+-?S?0*/i,"") || spanLabel;
+  const penghantar    = profile ? (profile.jalurLabel || "-") : "-";
+  const namaLW        = profile ? profile.nama : spanOwnerUsername;
+  const kota          = "Sukabumi, " + tgl + " " + bulan + " " + tahun;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  registerChocoFont(doc);
+  const pageW = 210;
+  const mL = 20, mR = 20;
+  const cW = pageW - mL - mR; // 170mm lebar konten
+
+  // ── Font helper ──────────────────────────────────────────
+  function txt(text, x, y, opts){ doc.text(text, x, y, opts||{}); }
+  function setF(style, size){ doc.setFont("helvetica", style); doc.setFontSize(size); }
+  // setFChoco: khusus untuk ISIAN DATA (nama, tanggal, alamat, dll),
+  // bukan untuk judul/label/teks baku formulir.
+  function setFChoco(size){ doc.setFont("ChocoCooky", "normal"); doc.setFontSize(size); }
+
+  // ── Warna tinta ──────────────────────────────────────────
+  doc.setTextColor(0,0,0);
+
+  /* ===================== HEADER ===================== */
+  const baLogo = await getAppSetting("baLogo");
+  const headerY = 15;
+
+  if(baLogo){
+    // Logo di kiri: 18x18mm
+    try{
+      doc.addImage(baLogo, "PNG", mL, headerY - 4, 18, 18);
+    } catch(e){
+      try{ doc.addImage(baLogo, "JPEG", mL, headerY - 4, 18, 18); } catch(e2){}
+    }
+    // Teks instansi di sebelah kanan logo
+    const txtX = mL + 22;
+    setF("bold", 10.5);
+    txt("PT PLN (Persero)", txtX, headerY + 2);
+    setF("normal", 9);
+    txt("Unit Induk Transmisi Jawa Bagian Tengah", txtX, headerY + 7);
+  } else {
+    // Tanpa logo: teks instansi rata kiri
+    setF("bold", 10.5);
+    txt("PT PLN (Persero)", mL, headerY + 2);
+    setF("normal", 9);
+    txt("Unit Induk Transmisi Jawa Bagian Tengah", mL, headerY + 7);
+  }
+
+  // Garis pembatas header
+  const lineY = headerY + 13;
+  doc.setLineWidth(0.7);
+  doc.line(mL, lineY, pageW - mR, lineY);
+
+  /* ===================== JUDUL ===================== */
+  let y = lineY + 9;
+  setF("bold", 11);
+  txt("BERITA ACARA", pageW/2, y, {align:"center"});
+  y += 6;
+  txt("SOSIALISASI TEGAKAN", pageW/2, y, {align:"center"});
+
+  /* ===================== PARAGRAF PEMBUKA ===================== */
+  y += 10;
+  setF("normal", 10);
+
+  // Baris: "Pada hari ini _____, tanggal_____ bulan_____tahun_____, telah selesai"
+  const introLine1 = `Pada hari ini ${hari}, tanggal ${tgl} bulan ${bulan} tahun ${tahun}, telah selesai`;
+  const introLine2 = "dilaksanakan kegiatan SOSIALISASI TEGAKAN KRITIS kepada pemilik";
+  const introLine3 = "pohon/tegakan terkait RUANG BEBAS SALURAN TRANSMISI dan JARAK BEBAS";
+  const introLine4 = "MINIMUM. Pada jalur transmisi sebagai berikut:";
+
+  // Render baris pertama dengan bold pada keyword
+  txt(introLine1, mL, y);
+  y += 5.5;
+
+  // Baris 2-4 dengan bold inline
+  setF("normal", 10);
+  txt("dilaksanakan kegiatan ", mL, y);
+  const x2 = mL + doc.getTextWidth("dilaksanakan kegiatan ");
+  setF("bold", 10);
+  txt("SOSIALISASI TEGAKAN KRITIS", x2, y);
+  const x3 = x2 + doc.getTextWidth("SOSIALISASI TEGAKAN KRITIS");
+  setF("normal", 10);
+  txt(" kepada pemilik", x3, y);
+  y += 5.5;
+
+  txt("pohon/tegakan terkait ", mL, y);
+  const x4 = mL + doc.getTextWidth("pohon/tegakan terkait ");
+  setF("bold", 10);
+  txt("RUANG BEBAS SALURAN TRANSMISI", x4, y);
+  const x5 = x4 + doc.getTextWidth("RUANG BEBAS SALURAN TRANSMISI");
+  setF("normal", 10);
+  txt(" dan ", x5, y);
+  const x6 = x5 + doc.getTextWidth(" dan ");
+  setF("bold", 10);
+  txt("JARAK BEBAS", x6, y);
+  y += 5.5;
+  setF("bold", 10);
+  txt("MINIMUM.", mL, y);
+  setF("normal", 10);
+  txt(" Pada jalur transmisi sebagai berikut:", mL + doc.getTextWidth("MINIMUM."), y);
+  y += 8;
+
+  /* ===================== FIELD LIST ===================== */
+  setF("normal", 10);
+  const bullet = "\u2022  ";
+  const labelW = 52; // lebar kolom label (misal "Nama Pemilik Tegakan :")
+  const valX = mL + labelW;
+  const valW = pageW - mR - valX;
+
+  function fieldRow(label, value){
+    setF("normal", 10);
+    const dots = " : ";
+    const fullLabel = bullet + label + dots;
+    txt(fullLabel, mL, y);
+    setFChoco(11);
+    const lines = doc.splitTextToSize(value || "-", valW);
+    lines.forEach((l, i)=>{
+      txt(l, valX, y + i * 5.5);
+    });
+    y += Math.max(lines.length, 1) * 5.5;
+    setF("normal", 10);
+  }
+
+  // Jenis Saluran — dengan 3 kotak checkbox manual
+  txt(bullet + "Jenis Saluran   : ", mL, y);
+  const jlX = mL + doc.getTextWidth(bullet + "Jenis Saluran   : ");
+  setF("normal", 9);
+  // Kotak checkbox — digambar sebagai persegi kecil
+  function drawCheckbox(cx, cy, checked){
+    doc.rect(cx, cy - 3, 3.5, 3.5);
+    if(checked){
+      doc.setFontSize(9);
+      doc.text("\u2713", cx + 0.5, cy - 0.2);
+    }
+  }
+  drawCheckbox(jlX, y, false);
+  txt(" SUTT 70kV", jlX + 4, y);
+  const jl2X = jlX + 4 + doc.getTextWidth(" SUTT 70kV") + 4;
+  drawCheckbox(jl2X, y, true); // ✓ SUTT 150kV
+  setF("normal", 9);
+  txt(" SUTT 150kV", jl2X + 4, y);
+  const jl3X = jl2X + 4 + doc.getTextWidth(" SUTT 150kV") + 4;
+  drawCheckbox(jl3X, y, false);
+  txt(" SUTET 500kV", jl3X + 4, y);
+  setF("normal", 10);
+  y += 6;
+
+  fieldRow("Penghantar", penghantar);
+  fieldRow("No Span", noSpanClean);
+  fieldRow("Nama Pohon/Tegakan", namaPohonList);
+  fieldRow("ID Pohon/Tegakan", idPohonList);
+  fieldRow("Nama Pemilik Tegakan", ownerRef.pemilikNama || "-");
+  fieldRow("Alamat Pemilik", ownerRef.pemilikAlamat || "-");
+
+  /* ===================== POIN PENYAMPAIAN ===================== */
+  y += 3;
+  setF("normal", 10);
+  txt("Dengan point penyampaian sebagai berikut:", mL, y);
+  y += 7;
+
+  const points = [
+    ["a. ", "Sosialisasi batas aman minimum dibawah/diluar jalur SUTT/SUTET sesuai peraturan Menteri ESDM Nomor 13 Tahun 2025 tentang \"RUANG BEBAS JARINGAN TRANSMISI TENAGA LISTRIK DAN KOMPENSASI ATAS TANAH, BANGUNAN, DAN/ATAU TANAMAN YANG BERADA DI BAWAH RUANG BEBAS JARINGAN TRANSMISI TENAGA LISTRIK\" (terlampir)."],
+    ["b. ", "Ketentuan batas minimum yang diatur sesuai PERMEN ESDM No 13 Tahun 2025 pada bangunan dan jembatan (terlampir)"],
+    ["c. ", "Himbauan keselamatan kerja dan lingkungan (terlampir)"],
+    ["d. ", "Demi menjaga keselamatan, untuk semua pekerjaan dibawah jalur SUTT/SUTET harus selalu berkoordinasi dan dalam pengawasan pihak PLN. Contact Person : nomor HP LW/KLW"]
+  ];
+
+  setF("normal", 10);
+  points.forEach(([letter, text])=>{
+    const indentX = mL + 6;
+    const pW = pageW - mR - indentX;
+    txt(letter, mL, y);
+    const lines = doc.splitTextToSize(text, pW);
+    lines.forEach((l, i)=>{
+      txt(l, indentX, y + i * 5.2);
+    });
+    y += lines.length * 5.2 + 2;
+  });
+
+  /* ===================== PENUTUP ===================== */
+  y += 3;
+  setF("normal", 10);
+  const closingLines = doc.splitTextToSize(
+    "Demikian Berita Acara ini dibuat dan ditanda tangani di lokasi sosialisasi dengan sebenarnya.", cW
+  );
+  closingLines.forEach(l=>{ txt(l, mL, y); y += 5.5; });
+
+  /* ===================== KOTA + TANGGAL ===================== */
+  y += 6;
+  setFChoco(10);
+  txt(kota, pageW - mR, y, {align:"right"});
+  setF("normal", 10);
+
+  /* ===================== KOLOM TTD ===================== */
+  y += 12;
+  const col1X = mL + 15;       // Mengetahui (kiri)
+  const col2X = pageW/2 - 5;   // Petugas LW (tengah)
+  const col3X = pageW - mR - 15; // Pemilik (kanan)
+
+  setF("normal", 10);
+  txt("Mengetahui,", col1X, y, {align:"center"});
+  txt("Petugas Line Walker", col2X, y, {align:"center"});
+  txt("Pemilik Pohon/Tegakan", col3X, y, {align:"center"});
+
+  // Tanda tangan LW (dari profil petugas)
+  const sigY = y + 3;
+  const sigH = 18;
+  const sigW = 32;
+
+  // TTD TL JARGI/JARGITET: gambar siap tempel (tanda tangan + nama
+  // sudah menyatu di gambar), diatur lewat Pengaturan BA.
+  const ttdJargi = await getAppSetting("ttdJargiLogo");
+  if(ttdJargi){
+    try{
+      doc.addImage(ttdJargi, "PNG", col1X - sigW/2, sigY - 2, sigW, sigH + 4);
+    }catch(e){
+      try{ doc.addImage(ttdJargi, "JPEG", col1X - sigW/2, sigY - 2, sigW, sigH + 4); }catch(e2){}
+    }
+  }
+
+  const petugasSig = await getProfileSignature(spanOwnerUsername);
+  if(petugasSig && petugasSig.ttdData){
+    try{
+      doc.addImage(petugasSig.ttdData,
+        petugasSig.ttdType === "foto" ? "JPEG" : "PNG",
+        col2X - sigW/2, sigY, sigW, sigH);
+    } catch(e){}
+  }
+
+  // Tanda tangan pemilik
+  if(ownerRef.ttdData){
+    try{
+      doc.addImage(ownerRef.ttdData, "PNG", col3X - sigW/2, sigY, sigW, sigH);
+    } catch(e){}
+  }
+
+  y += sigH + 6;
+  setF("normal", 10);
+  setFChoco(11);
+  txt("(" + namaLW + ")", col2X, y, {align:"center"});
+  txt("(" + (ownerRef.pemilikNama || "                     ") + ")", col3X, y, {align:"center"});
+  setF("normal", 10);
+
+  /* ===================== SAVE ===================== */
+  const pdfDataUrl = doc.output("datauristring");
+  const fileName = "BA_Template_" + spanLabel + "_" + (ownerRef.pemilikNama || "tanpa-nama").replace(/\s+/g,"_") + ".pdf";
+  await saveBAToSOS(pdfDataUrl, fileName, ownerRef, selectedTegakan, "manual");
+  doc.save(fileName);
+}
+
+async function saveBAToSOS(pdfDataUrl, fileName, ownerRef, selectedTegakan, sumber){
+  await saveBADocument({
+    spanId: spanId,
+    judul: "BA Sosialisasi — " + spanLabel,
+    pemilik: ownerRef.pemilikNama || "-",
+    jumlahTegakan: selectedTegakan.length,
+    namaTegakan: selectedTegakan.map(t=>t.nama).join(", "),
+    pdf: pdfDataUrl,
+    fileName: fileName,
+    sumber: sumber,
+    uploader: currentUser
+  });
+}
+
+initPage();
+</script>
+
+</body>
+</html>

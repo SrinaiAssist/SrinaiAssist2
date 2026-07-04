@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Data Span - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A5E;
+  --navy-deep:#071D42;
+  --blue:#2D6FE0;
+  --gold:#F4B400;
+  --surface:#FFFFFF;
+  --bg:#F4F6FB;
+  --ink:#1A1F2B;
+  --muted:#6B7488;
+  --line:#E8EAF0;
+  --green:#1E8E5A;
+  --green-bg:#E4F5EC;
+  --amber:#B6790B;
+  --amber-bg:#FCEFD6;
+  --red:#D33C3C;
+  --red-bg:#FBE7E7;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg);color:var(--ink);}
+.container{max-width:460px;margin:auto;min-height:100vh;background:var(--bg);padding-bottom:40px;}
+
+.header{
+  background:linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 100%);
+  padding:20px 18px 22px;display:flex;align-items:center;gap:12px;
+}
+.back-circle{
+  width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+}
+.header-text h1{color:white;font-size:18px;font-weight:800;letter-spacing:-0.2px;}
+.header-text p{color:rgba(255,255,255,.6);font-size:11.5px;margin-top:2px;}
+
+.crumb{
+  margin:-12px 18px 0;background:white;border-radius:14px;padding:10px 16px;
+  display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(7,29,66,0.12);
+  position:relative;z-index:2;font-size:12px;font-weight:600;color:var(--muted);
+}
+.crumb b{color:var(--navy-deep);}
+.crumb a{color:var(--muted);text-decoration:none;}
+
+.jalur-select-wrap{padding:18px 18px 0;}
+.jalur-select-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;}
+.jalur-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.jalur-chip{
+  flex-shrink:0;padding:9px 16px;border-radius:30px;background:white;
+  font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;
+  box-shadow:0 2px 8px rgba(7,29,66,0.06);white-space:nowrap;
+}
+.jalur-chip.active{background:var(--blue);color:white;}
+
+.add-card{
+  background:var(--surface);margin:14px 18px 0;border-radius:18px;padding:18px;
+  box-shadow:0 4px 16px rgba(7,29,66,0.06);
+}
+.add-card h3{font-size:14px;font-weight:800;color:var(--navy-deep);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.form-row{margin-bottom:11px;}
+.form-row label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+.form-row input{
+  width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px;font-size:13.5px;
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+}
+.form-row input:focus{outline:none;border-color:var(--blue);}
+.code-preview{
+  display:inline-flex;align-items:center;gap:6px;background:#EDF1FA;color:var(--blue);
+  font-weight:800;font-size:13px;padding:7px 13px;border-radius:8px;margin-top:6px;
+  font-family:monospace;letter-spacing:.5px;
+}
+.btn-primary{
+  width:100%;padding:13px;background:var(--blue);color:white;border:none;
+  border-radius:12px;font-weight:700;font-size:13.5px;cursor:pointer;margin-top:4px;
+}
+
+.section-label{
+  color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;margin:22px 18px 10px;display:flex;justify-content:space-between;
+}
+
+.list-wrap{padding:0 18px;}
+.span-card{
+  background:var(--surface);border-radius:16px;padding:14px 15px;margin-bottom:11px;
+  box-shadow:0 3px 12px rgba(7,29,66,0.06);display:flex;align-items:center;gap:13px;
+}
+.span-badge{
+  width:50px;height:46px;border-radius:13px;background:var(--blue);color:white;
+  font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;text-align:center;line-height:1.15;
+}
+.span-info{flex:1;min-width:0;}
+.span-row1{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.span-name{font-size:14px;font-weight:700;color:var(--navy-deep);}
+.status-chip{font-size:9.5px;font-weight:700;padding:2.5px 8px;border-radius:20px;white-space:nowrap;}
+.status-baik{background:var(--green-bg);color:var(--green);}
+.status-perhatian{background:var(--amber-bg);color:var(--amber);}
+.status-rusak{background:var(--red-bg);color:var(--red);}
+.status-kosong{background:#EEF0F4;color:var(--muted);}
+.span-detail{font-size:11px;color:var(--muted);}
+.span-actions{display:flex;gap:6px;flex-shrink:0;}
+.act-btn{
+  width:32px;height:32px;border-radius:9px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.act-edit{background:var(--gold);}
+.act-del{background:var(--red-bg);}
+
+.empty-msg{text-align:center;color:var(--muted);padding:40px 20px;font-size:13px;}
+.no-jalur-msg{text-align:center;color:var(--muted);padding:40px 20px;font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <a href="master-tower.html" class="back-circle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="header-text">
+    <h1>Master Data</h1>
+    <p>Kelola span per jalur</p>
+  </div>
+</div>
+
+<div class="crumb">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#6B7488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3v-6h6v6h3a1 1 0 001-1V10"/></svg>
+  <a href="master-jalur.html">Master Data</a> <span style="margin:0 2px;">›</span> <b>Span</b>
+</div>
+
+<div class="jalur-select-wrap">
+  <div class="jalur-select-label">Pilih Jalur</div>
+  <div class="jalur-chips" id="jalurChips"></div>
+</div>
+
+<div id="addCardWrap"></div>
+
+<div class="section-label">
+  <span>Daftar Span</span>
+  <span id="spanCountLabel"></span>
+</div>
+<div class="list-wrap" id="spanList"></div>
+
+</div>
+
+<script>
+let canEdit = false;
+let selectedJalurId = null;
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  if(!isAdmin() && !isKLW()){
+    alert("Akses ditolak.");
+    location.href="dashboard.html";
+    return;
+  }
+
+  canEdit = isAdmin() || isKLW();
+
+  await render();
+}
+
+/* =========================================================
+   DATA MASTER
+   PENTING: Span SEJAJAR dengan Tower, keduanya langsung anak
+   dari Jalur. Span TIDAK memilih Tower induk.
+   Sumber data: Neon Postgres lewat /api/jalur, /api/span
+   (fungsi getJalurMasterList/getSpanMasterList dan
+   assetCodeSpan sudah tersedia dari auth.js).
+========================================================= */
+
+/* =========================================================
+   PILIH JALUR (chip selector)
+========================================================= */
+let jalurListCache = [];
+
+async function loadJalurChips(){
+  jalurListCache = (await getJalurMasterList()).filter(j=>j.aktif);
+  const wrap = document.getElementById("jalurChips");
+  wrap.innerHTML = "";
+
+  if(jalurListCache.length===0){
+    wrap.innerHTML = `<div style="color:white;font-size:12px;">Belum ada jalur aktif. Tambah dulu di Master Jalur.</div>`;
+    return;
+  }
+
+  if(!selectedJalurId || !jalurListCache.some(j=>j.id===selectedJalurId)){
+    selectedJalurId = jalurListCache[0].id;
+  }
+
+  jalurListCache.forEach(j=>{
+    const chip = document.createElement("div");
+    chip.className = "jalur-chip" + (j.id===selectedJalurId ? " active" : "");
+    chip.textContent = j.code + " — " + j.label;
+    chip.onclick = ()=>{ selectedJalurId = j.id; render(); };
+    wrap.appendChild(chip);
+  });
+}
+
+function getSelectedJalur(){
+  return jalurListCache.find(j=>j.id===selectedJalurId);
+}
+
+/* =========================================================
+   FORM TAMBAH SPAN
+========================================================= */
+function renderAddCard(){
+  const jalur = getSelectedJalur();
+  if(!canEdit || !jalur){
+    document.getElementById("addCardWrap").innerHTML = "";
+    return;
+  }
+
+  document.getElementById("addCardWrap").innerHTML = `
+    <div class="add-card">
+      <h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2D6FE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+        Tambah Span — ${jalur.code}
+      </h3>
+      <div class="form-row">
+        <label>Nomor Span</label>
+        <input type="number" id="newSpanNomor" placeholder="Contoh: 25" min="1" oninput="updateSpanCodePreview()">
+        <div id="spanCodePreviewWrap"></div>
+      </div>
+      <button class="btn-primary" onclick="addSpan()">➕ Tambah Span</button>
+    </div>
+  `;
+}
+
+function updateSpanCodePreview(){
+  const jalur = getSelectedJalur();
+  const nomor = document.getElementById("newSpanNomor").value;
+  const preview = document.getElementById("spanCodePreviewWrap");
+  if(nomor && jalur){
+    preview.innerHTML = `<div class="code-preview">${assetCodeSpan(jalur.code, nomor)}</div>`;
+  } else {
+    preview.innerHTML = "";
+  }
+}
+
+async function addSpan(){
+  const jalur = getSelectedJalur();
+  const nomorRaw = document.getElementById("newSpanNomor").value;
+  const nomor = parseInt(nomorRaw);
+
+  if(!jalur){
+    alert("Pilih jalur terlebih dahulu.");
+    return;
+  }
+  if(!nomorRaw || isNaN(nomor) || nomor < 1){
+    alert("Nomor span wajib diisi dengan angka valid.");
+    return;
+  }
+
+  const result = await apiRequest("/api/span", {
+    method: "POST",
+    body: JSON.stringify({ jalurId: jalur.id, nomor: nomor })
+  });
+
+  if(!result.success){
+    alert(result.message || `Span nomor ${nomor} sudah ada di jalur ${jalur.code}.`);
+    return;
+  }
+
+  document.getElementById("newSpanNomor").value = "";
+  document.getElementById("spanCodePreviewWrap").innerHTML = "";
+
+  await render();
+  alert(`Span ${assetCodeSpan(jalur.code, nomor)} berhasil ditambahkan.`);
+}
+
+/* =========================================================
+   LIST SPAN PER JALUR
+========================================================= */
+function statusChipClass(status){
+  if(!status) return "status-kosong";
+  const s = status.toLowerCase();
+  if(s.includes("baik")) return "status-baik";
+  if(s.includes("perhatian")) return "status-perhatian";
+  if(s.includes("rusak")) return "status-rusak";
+  return "status-kosong";
+}
+
+let spanListCache = [];
+
+async function loadSpanList(){
+  const jalur = getSelectedJalur();
+  const wrap = document.getElementById("spanList");
+  const countLabel = document.getElementById("spanCountLabel");
+  wrap.innerHTML = "";
+
+  if(!jalur){
+    wrap.innerHTML = `<div class="no-jalur-msg">Pilih jalur untuk melihat daftar span.</div>`;
+    countLabel.textContent = "";
+    spanListCache = [];
+    return;
+  }
+
+  const spans = await getSpanMasterList(jalur.id);
+  spans.sort((a,b)=>a.nomor-b.nomor);
+  spanListCache = spans;
+
+  countLabel.textContent = spans.length + " span";
+
+  if(spans.length===0){
+    wrap.innerHTML = `<div class="empty-msg">Belum ada span di jalur ${jalur.code}. Tambahkan di atas.</div>`;
+    return;
+  }
+
+  spans.forEach(s=>{
+    const code = assetCodeSpan(jalur.code, s.nomor);
+    const statusText = s.status || "Belum diisi";
+    const detailParts = [];
+    if(s.spacer) detailParts.push(s.spacer + " spacer");
+    if(s.joint) detailParts.push("Joint: " + s.joint);
+    const detailText = detailParts.length ? detailParts.join(" · ") : "Belum ada data spacer/joint";
+
+    const card = document.createElement("div");
+    card.className = "span-card";
+    card.innerHTML = `
+      <div class="span-badge">${code}</div>
+      <div class="span-info">
+        <div class="span-row1">
+          <div class="span-name">Span ${String(s.nomor).padStart(3,"0")}</div>
+          <div class="status-chip ${statusChipClass(s.status)}">${statusText}</div>
+        </div>
+        <div class="span-detail">${detailText}</div>
+      </div>
+      ${canEdit ? `
+      <div class="span-actions">
+        <button class="act-btn act-edit" onclick="editSpan('${s.id}')" title="Edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0A2A5E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="act-btn act-del" onclick="deleteSpan('${s.id}')" title="Hapus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D33C3C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>` : ``}
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+async function editSpan(id){
+  const s = spanListCache.find(x=>x.id===id);
+  if(!s) return;
+
+  const spacer = prompt("Jumlah Spacer", s.spacer);
+  if(spacer===null) return;
+  const joint = prompt("Joint Span (Ada / Tidak Ada)", s.joint);
+  if(joint===null) return;
+  const status = prompt("Status (Baik / Perlu Perhatian / Rusak)", s.status);
+  if(status===null) return;
+
+  await apiRequest("/api/span", {
+    method: "PUT",
+    body: JSON.stringify({ id: id, fields: { spacer, joint, status } })
+  });
+
+  await loadSpanList();
+}
+
+async function deleteSpan(id){
+  const s = spanListCache.find(x=>x.id===id);
+  if(!s) return;
+  const jalur = getSelectedJalur();
+  const code = jalur ? assetCodeSpan(jalur.code, s.nomor) : s.id;
+
+  if(!confirm(`Hapus span ${code}? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+  await apiRequest("/api/span?id=" + encodeURIComponent(id), {
+    method: "DELETE"
+  });
+
+  await loadSpanList();
+}
+
+/* =========================================================
+   RENDER UTAMA
+========================================================= */
+async function render(){
+  await loadJalurChips();
+  renderAddCard();
+  await loadSpanList();
+}
+
+initPage();
+</script>
+
+</body>
+</html>

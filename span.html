@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Span - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* =========================================================
+   AMBIENT GLOW
+========================================================= */
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(56,191,160,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* =========================================================
+   TOP BAR / HEADER
+========================================================= */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+  transition:background .15s;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* =========================================================
+   STAT ROW
+========================================================= */
+.stat-row{
+  position:relative;z-index:2;
+  display:flex;gap:10px;
+  margin:18px 20px 0;
+}
+.stat-card{
+  flex:1;
+  background:var(--bg-card);
+  border-radius:16px;
+  padding:14px 14px;
+  border:1px solid var(--border);
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+}
+.stat-label{font-size:9.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.stat-value{font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.5px;}
+.stat-sub{font-size:10.5px;color:var(--ink-3);margin-top:2px;}
+.stat-card.accent{
+  background:linear-gradient(135deg, rgba(56,191,160,0.18) 0%, rgba(56,191,160,0.06) 100%);
+  border-color:rgba(56,191,160,0.25);
+}
+.stat-card.accent .stat-value{color:var(--teal);}
+
+/* =========================================================
+   FILTER BAR (search + dropdown filters)
+========================================================= */
+.filter-bar{
+  position:relative;z-index:2;
+  margin:16px 20px 0;
+  display:none;
+  flex-direction:column;gap:8px;
+}
+.search-box{
+  position:relative;display:flex;align-items:center;gap:8px;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+  padding:0 12px;
+}
+.search-box svg{color:var(--ink-3);flex-shrink:0;}
+.search-box input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);
+  font-family:inherit;font-size:13px;padding:11px 0;min-width:0;
+}
+.search-box input::placeholder{color:var(--ink-3);}
+.filter-row{display:flex;gap:8px;}
+.filter-select{
+  flex:1;min-width:0;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  color:var(--ink-2);font-family:inherit;font-size:11.5px;font-weight:700;
+  padding:9px 10px;outline:none;-webkit-appearance:none;appearance:none;
+}
+
+/* =========================================================
+   SECTION LABEL
+========================================================= */
+.section-head{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 0;
+}
+.section-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--teal);display:block;
+}
+.section-count{
+  font-size:11px;font-weight:700;
+  color:var(--teal);
+  background:rgba(56,191,160,0.12);
+  border:1px solid rgba(56,191,160,0.2);
+  padding:3px 9px;border-radius:20px;
+}
+
+/* =========================================================
+   SPAN LIST
+========================================================= */
+.list-wrap{
+  position:relative;z-index:2;
+  padding:12px 20px 4px;
+}
+
+.span-card{
+  background:var(--bg-card);
+  border-radius:18px;
+  padding:14px 15px;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+  display:flex;align-items:center;gap:13px;
+  transition:border-color .15s, background .15s;
+  cursor:default;
+}
+.span-card:active{background:var(--bg-card2);border-color:rgba(56,191,160,0.25);}
+
+.span-badge{
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  background:rgba(56,191,160,0.12);
+  border:1px solid rgba(56,191,160,0.22);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--teal);font-weight:800;font-size:10px;line-height:1.2;text-align:center;
+}
+.span-badge-num{font-size:13px;font-weight:900;}
+
+.span-info{flex:1;min-width:0;}
+.span-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.span-name{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.2px;}
+
+.status-chip{
+  font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:20px;
+  white-space:nowrap;
+}
+.status-baik{background:var(--green-bg);color:var(--green);}
+.status-perhatian{background:var(--amber-bg);color:var(--amber);}
+.status-rusak{background:var(--red-bg);color:var(--red);}
+.status-kosong{background:var(--bg-glass);color:var(--ink-3);border:1px solid var(--border);}
+
+.span-code{
+  font-size:10px;font-weight:700;color:var(--teal);
+  background:rgba(56,191,160,0.08);
+  border:1px solid rgba(56,191,160,0.18);
+  padding:1.5px 7px;border-radius:20px;
+}
+.tegakan-chip{
+  font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:20px;
+  white-space:nowrap;
+}
+.tegakan-chip.ada{background:rgba(56,191,160,0.12);color:var(--teal);border:1px solid rgba(56,191,160,0.22);}
+.tegakan-chip.belum{background:rgba(242,107,107,0.1);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
+.span-detail{font-size:11px;color:var(--ink-3);line-height:1.45;margin-top:2px;}
+.petugas-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;color:var(--gold);
+  background:var(--gold-dim);border:1px solid rgba(244,197,66,0.2);
+  padding:2px 8px;border-radius:20px;margin-top:4px;
+}
+
+.span-actions{display:flex;gap:6px;flex-shrink:0;}
+.act-btn{
+  width:36px;height:36px;border-radius:11px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s, opacity .12s;
+}
+.act-btn:active{transform:scale(0.88);opacity:.8;}
+.act-lihat{
+  background:rgba(74,142,245,0.15);
+  border:1px solid rgba(74,142,245,0.25);
+}
+.act-edit{
+  background:rgba(244,197,66,0.15);
+  border:1px solid rgba(244,197,66,0.25);
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+.empty-state{
+  text-align:center;padding:60px 30px;
+  position:relative;z-index:2;
+}
+.empty-icon{
+  width:60px;height:60px;border-radius:18px;
+  background:var(--bg-card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;
+}
+.empty-icon svg{width:26px;height:26px;opacity:.4;}
+.empty-title{font-size:14px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+.empty-sub{font-size:12px;color:var(--ink-3);line-height:1.55;}
+
+/* =========================================================
+   BOTTOM NAV — dark glassmorphism
+========================================================= */
+.bottomnav{
+  position:fixed;left:0;right:0;bottom:0;
+  max-width:460px;margin:0 auto;
+  background:rgba(8,15,30,0.92);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 6px 18px;
+  border-top:1px solid rgba(255,255,255,0.08);
+  z-index:40;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-decoration:none;color:var(--ink-3);flex:1;position:relative;
+  transition:color .15s;
+}
+.nav-item svg{width:21px;height:21px;}
+.nav-label{font-size:9.5px;font-weight:600;}
+.nav-item.active{color:var(--teal);}
+
+.nav-item.center{margin-top:-28px;}
+.nav-item.center .nav-circle{
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg, var(--blue), #1a4fa0);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(74,142,245,0.5);
+  margin-bottom:3px;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.nav-item.center .nav-circle svg{width:22px;height:22px;}
+.nav-item.center .nav-label{color:var(--ink-2);font-size:9.5px;}
+
+/* =========================================================
+   SHIMMER SKELETON (loading)
+========================================================= */
+@keyframes shimmer{
+  0%{background-position:-200% 0;}
+  100%{background-position:200% 0;}
+}
+.skeleton{
+  border-radius:18px;height:76px;
+  background:linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card2) 50%, var(--bg-card) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="container">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Data Span</h1>
+      <p id="userInfo">Memuat...</p>
+    </div>
+    <div style="width:38px;height:38px;"></div><!-- spacer -->
+  </div>
+
+  <!-- STAT ROW -->
+  <div class="stat-row">
+    <div class="stat-card accent">
+      <div class="stat-label">Akses Span</div>
+      <div class="stat-value" id="rangeInfo">—</div>
+      <div class="stat-sub" id="jalurName">Memuat jalur...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Span</div>
+      <div class="stat-value" id="spanCountVal">—</div>
+      <div class="stat-sub">span terdaftar</div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar" id="filterBar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Cari nomor span..." oninput="applyFilters()">
+    </div>
+    <div class="filter-row">
+      <select class="filter-select" id="tegakanFilter" onchange="applyFilters()">
+        <option value="all">Semua Tegakan</option>
+        <option value="ada">🌳 Ada Tegakan</option>
+        <option value="belum">🌱 Belum Ada Tegakan</option>
+      </select>
+      <select class="filter-select" id="petugasFilter" onchange="applyFilters()" style="display:none;">
+        <option value="all">Semua Petugas</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- LIST HEADER -->
+  <div class="section-head">
+    <div class="section-title">Daftar Span</div>
+    <div class="section-count" id="rangeCount">0 span</div>
+  </div>
+
+  <!-- SPAN LIST -->
+  <div class="list-wrap" id="spanList">
+    <div class="skeleton"></div>
+    <div class="skeleton" style="opacity:.7"></div>
+    <div class="skeleton" style="opacity:.4"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottomnav">
+  <a href="dashboard.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    <div class="nav-label">Beranda</div>
+  </a>
+  <a href="tower.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+    <div class="nav-label">Tower</div>
+  </a>
+  <a href="ai.html" class="nav-item center">
+    <div class="nav-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+    </div>
+    <div class="nav-label">SrinAI</div>
+  </a>
+  <a href="span.html" class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+    <div class="nav-label">Span</div>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+    <div class="nav-label">Akun</div>
+  </a>
+</div>
+
+<script>
+let currentUser, profile, jalurList, myJalur, canEdit, isFullAccess;
+let allowedSpanIds = null;
+let range = null;
+let spanListCache = [];
+let petugasSpanMap = {}; // spanId → nama petugas
+let tegakanSpanSet = new Set(); // spanId yang sudah punya tegakan
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  currentUser = getCurrentUser();
+
+  // Ambil profil + jalur PARALEL dari cache — tidak menunggu satu per satu
+  const [profileResult, jalurResult] = await Promise.all([
+    cachedGetFullProfile(currentUser),
+    cachedGetJalurMasterList()
+  ]);
+
+  profile   = profileResult;
+  jalurList = jalurResult;
+
+  if(!profile){
+    alert("Akun tidak dikenali.");
+    location.href="dashboard.html";
+    return;
+  }
+
+  isFullAccess = isAdmin() || isKLW() || isMonitor();
+
+  // Bangun map spanId → nama petugas (hanya untuk admin/klw/monitor)
+  if(isFullAccess){
+    const allAccounts = await getAllAccountsFull();
+    allAccounts.forEach(acc => {
+      if(acc.role === "lw" && acc.span_ids && acc.span_ids.length){
+        acc.span_ids.forEach(sid => {
+          petugasSpanMap[sid] = acc.username;
+        });
+      }
+    });
+  }
+
+  myJalur = jalurList.find(j => j.id === profile.jalurId)
+    || jalurList.find(j => j.aktif)
+    || jalurList[0];
+
+  canEdit = !isMonitor();
+
+  document.getElementById("userInfo").innerHTML = currentUser + (myJalur ? " · " + myJalur.code : "");
+
+  if(!isFullAccess){
+    if(profile.hasNewAssignment){
+      allowedSpanIds = profile.spanIds;
+    } else {
+      const akhir = Math.max(profile.towerAkhir - 1, profile.towerAwal);
+      range = [profile.towerAwal, akhir];
+    }
+  }
+
+  let rangeText;
+  if(isFullAccess){
+    rangeText = "Semua";
+  } else if(allowedSpanIds){
+    rangeText = allowedSpanIds.length + " span";
+  } else if(range){
+    rangeText = "S"+String(range[0]).padStart(3,"0")+"–S"+String(range[1]).padStart(3,"0");
+  }
+  document.getElementById("rangeInfo").innerHTML = rangeText || "—";
+  document.getElementById("jalurName").innerHTML = myJalur ? (myJalur.code + " — " + myJalur.label) : "Jalur belum dikonfigurasi";
+
+  await loadSpan();
+}
+function statusChipClass(status){
+  if(!status) return "status-kosong";
+  const s = status.toLowerCase();
+  if(s.includes("baik")) return "status-baik";
+  if(s.includes("perhatian")) return "status-perhatian";
+  if(s.includes("rusak")) return "status-rusak";
+  return "status-kosong";
+}
+
+function bukaCatatan(spanId){
+  window.location.href = "catatan-span.html?span=" + spanId;
+}
+
+async function loadSpan(){
+  const wrap = document.getElementById("spanList");
+  wrap.innerHTML = "";
+
+  if(!myJalur){
+    document.getElementById("filterBar").style.display = "none";
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        </div>
+        <div class="empty-title">Jalur belum dikonfigurasi</div>
+        <div class="empty-sub">Hubungi Admin untuk mengatur Master Data Jalur.</div>
+      </div>`;
+    document.getElementById("rangeCount").innerHTML = "0 span";
+    document.getElementById("spanCountVal").innerHTML = "0";
+    return;
+  }
+
+  let spans = await cachedGetSpanMasterList(myJalur.id);
+
+  const allTegakan = await cachedGetAllTegakan();
+  tegakanSpanSet = new Set((allTegakan || []).map(t => t.spanId));
+
+  if(allowedSpanIds){
+    spans = spans.filter(s => allowedSpanIds.includes(s.id));
+  } else if(range){
+    spans = spans.filter(s => s.nomor >= range[0] && s.nomor <= range[1]);
+  }
+
+  spans.sort((a,b)=>a.nomor-b.nomor);
+  spanListCache = spans;
+
+  document.getElementById("spanCountVal").innerHTML = spans.length;
+
+  if(spans.length === 0){
+    document.getElementById("filterBar").style.display = "none";
+    document.getElementById("rangeCount").innerHTML = "0 span";
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        </div>
+        <div class="empty-title">Belum ada span</div>
+        <div class="empty-sub">Span ditambahkan oleh Admin/KLW lewat Master Data.</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById("filterBar").style.display = "flex";
+  populatePetugasFilter();
+  applyFilters();
+}
+
+function populatePetugasFilter(){
+  const sel = document.getElementById("petugasFilter");
+  if(!isFullAccess){
+    sel.style.display = "none";
+    return;
+  }
+  const names = [...new Set(spanListCache.map(s => petugasSpanMap[s.id]).filter(Boolean))].sort();
+  if(!names.length){
+    sel.style.display = "none";
+    return;
+  }
+  sel.style.display = "block";
+  sel.innerHTML = `<option value="all">Semua Petugas</option>` +
+    names.map(n => `<option value="${n}">👤 ${n}</option>`).join("");
+}
+
+function applyFilters(){
+  const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+  const tegakanVal = document.getElementById("tegakanFilter").value;
+  const petugasVal = isFullAccess ? document.getElementById("petugasFilter").value : "all";
+
+  const filtered = spanListCache.filter(s => {
+    if(q){
+      const nomorPadded = String(s.nomor).padStart(3,"0").toLowerCase();
+      const code = assetCodeSpan(myJalur.code, s.nomor).toLowerCase();
+      if(!nomorPadded.includes(q) && !String(s.nomor).includes(q) && !code.includes(q)) return false;
+    }
+    if(tegakanVal === "ada" && !tegakanSpanSet.has(s.id)) return false;
+    if(tegakanVal === "belum" && tegakanSpanSet.has(s.id)) return false;
+    if(petugasVal !== "all" && (petugasSpanMap[s.id] || "") !== petugasVal) return false;
+    return true;
+  });
+
+  document.getElementById("rangeCount").innerHTML = filtered.length + " span";
+  renderSpanList(filtered);
+}
+
+function renderSpanList(spans){
+  const wrap = document.getElementById("spanList");
+
+  if(spans.length === 0){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </div>
+        <div class="empty-title">Tidak ada hasil</div>
+        <div class="empty-sub">Coba ubah kata kunci pencarian atau filter yang dipakai.</div>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = spans.map(s => {
+    const code = assetCodeSpan(myJalur.code, s.nomor);
+    const statusText = s.status || "Belum diisi";
+    const detailParts = [];
+    if(s.spacer) detailParts.push(s.spacer + " spacer");
+    if(s.joint) detailParts.push("Joint: " + s.joint);
+    const detailText = detailParts.length ? detailParts.join(" · ") : "Belum ada data spacer/joint";
+
+    return `
+      <div class="span-card">
+        <div class="span-badge">
+          <span style="font-size:8px;opacity:.6;font-weight:600;">SPAN</span>
+          <span class="span-badge-num">${String(s.nomor).padStart(3,"0")}</span>
+        </div>
+        <div class="span-info">
+          <div class="span-row1">
+            <div class="span-name">Span ${String(s.nomor).padStart(3,"0")}</div>
+            <div class="status-chip ${statusChipClass(s.status)}">${statusText}</div>
+          </div>
+          <div style="margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="span-code">${code}</span>
+            ${tegakanSpanSet.has(s.id)
+              ? `<span class="tegakan-chip ada">🌳 Ada Tegakan</span>`
+              : `<span class="tegakan-chip belum">🌱 Belum Ada Tegakan</span>`}
+          </div>
+          <div class="span-detail">${detailText}</div>
+          ${isFullAccess && petugasSpanMap[s.id] ? `<div class="petugas-chip">👤 ${petugasSpanMap[s.id]}</div>` : ""}
+        </div>
+        <div class="span-actions">
+          <button class="act-btn act-lihat" onclick="bukaCatatan('${s.id}')" title="Lihat catatan & tegakan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          ${canEdit ? `
+          <button class="act-btn act-edit" onclick="editSpan('${s.id}')" title="Edit data">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>` : ``}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function editSpan(spanId){
+  const s = spanListCache.find(x=>x.id===spanId);
+  if(!s) return;
+
+  const spacer = prompt("Jumlah Spacer", s.spacer);
+  if(spacer===null) return;
+  const joint = prompt("Joint Span (Ada / Tidak Ada)", s.joint);
+  if(joint===null) return;
+  const status = prompt("Status (Baik / Perlu Perhatian / Rusak)", s.status);
+  if(status===null) return;
+
+  await apiRequest("/api/span", {
+    method: "PUT",
+    body: JSON.stringify({ id: spanId, fields: { spacer, joint, status } })
+  });
+
+  // Invalidate cache span supaya loadSpan ambil data fresh
+  localStorage.removeItem("srinai_cache_span");
+  await loadSpan();
+}
+
+initPage();
+</script>
+
+</body>
+</html>

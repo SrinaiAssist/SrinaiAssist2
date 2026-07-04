@@ -1,0 +1,15 @@
+{
+  "name": "srinai-assist",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "migrate:accounts": "node scripts/migrate-accounts.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

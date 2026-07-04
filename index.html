@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRINAI ASSIST AI</title>
+<script src="js/auth.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:#001F54;background-size:cover;background-position:center;background-repeat:no-repeat;}
+body.has-custom-bg::before{
+  content:"";position:fixed;inset:0;background:rgba(0,31,84,0.55);z-index:0;
+}
+#loginPage{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;position:relative;z-index:1;}
+.login-container{width:100%;max-width:400px;text-align:center;}
+.login-logo{max-width:120px;max-height:120px;margin:0 auto 16px;display:block;}
+.app-title{color:white;font-size:32px;font-weight:bold;}
+.version{color:#D6D6D6;margin:8px 0;}
+.quote{color:#D6D6D6;font-style:italic;margin:20px 0;line-height:1.6;}
+.login-box select,
+.login-box input{width:100%;padding:15px;border:none;border-radius:10px;margin-bottom:12px;font-size:15px;}
+.login-box button{width:100%;padding:15px;border:none;border-radius:10px;background:#FFD54F;color:black;font-weight:bold;font-size:16px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="loginPage">
+<div class="login-container">
+
+<img id="loginLogoImg" class="login-logo" style="display:none;">
+<div class="app-title">SRINAI ASSIST AI</div>
+<div class="version">Version 1.0.0</div>
+<div class="quote">"Setiap tower yang diperiksa hari ini adalah keandalan sistem yang terjaga esok hari."</div>
+
+<div class="login-box">
+<select id="user">
+<option value="">Pilih Akun</option>
+</select>
+<input type="password" id="password" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+<button onclick="login()">MASUK</button>
+</div>
+
+</div>
+</div>
+
+<script>
+(async function init() {
+  // Redirect jika sudah login
+  if (typeof isLoggedIn === "function" && await isLoggedIn()) {
+    location.href = "dashboard.html";
+    return;
+  }
+
+  // Terapkan logo & background custom (jika sudah diatur Admin lewat Pengaturan)
+  const settings = await getAppSettings(["loginLogo", "loginBackground"]);
+
+  if (settings.loginLogo) {
+    const logoImg = document.getElementById("loginLogoImg");
+    logoImg.src = settings.loginLogo;
+    logoImg.style.display = "block";
+  }
+
+  if (settings.loginBackground) {
+    document.body.style.backgroundImage = "url('" + settings.loginBackground + "')";
+    document.body.classList.add("has-custom-bg");
+  }
+
+  // Load akun aktif dari server (otomatis termasuk akun baru dari Kelola Akun)
+  const userSelect = document.getElementById("user");
+  const activeUsernames = await getActiveUsernames();
+  activeUsernames.forEach(username => {
+    const option = document.createElement("option");
+    option.value = username;
+    option.textContent = username;
+    userSelect.appendChild(option);
+  });
+})();
+
+async function login() {
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("password").value;
+  if (!username) { alert("Pilih akun!"); return; }
+  if (!password) { alert("Masukkan password!"); return; }
+
+  const result = await loginUser(username, password);
+  if (result.success) {
+    location.href = "dashboard.html";
+    return;
+  }
+  alert(result.message || "Login gagal.");
+}
+</script>
+
+</body>
+</html>

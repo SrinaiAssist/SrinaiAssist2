@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Dark palette */
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+
+  /* Accent */
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+
+  /* Text */
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+
+  /* Semantic */
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* =========================================================
+   AMBIENT GLOW BACKGROUND
+========================================================= */
+.bg-glow{
+  position:fixed;
+  top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:340px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.18) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px 20px 0;
+}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg, var(--gold) 0%, #E89A20 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;color:#080F1E;font-size:17px;flex-shrink:0;
+  overflow:hidden;box-shadow:0 4px 12px rgba(244,197,66,0.35);
+}
+.brand-mark img{width:100%;height:100%;object-fit:cover;}
+.brand-text{display:flex;flex-direction:column;gap:0;}
+.brand-name{
+  font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;
+  display:flex;align-items:baseline;gap:5px;
+}
+.brand-name span{color:var(--gold);font-size:13px;font-weight:700;letter-spacing:1.2px;}
+.brand-sub{font-size:9.5px;color:var(--ink-3);font-weight:600;letter-spacing:.6px;text-transform:uppercase;}
+
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;flex-shrink:0;
+}
+.notif-dot{
+  position:absolute;top:7px;right:8px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--red);border:1.5px solid var(--bg-deep);
+}
+
+/* =========================================================
+   GREETING + DATETIME
+========================================================= */
+.greeting-wrap{
+  position:relative;z-index:2;
+  padding:20px 20px 0;
+}
+.datetime-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;color:var(--ink-3);
+  margin-bottom:6px;
+}
+.datetime-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+.greeting-wrap h1{
+  font-size:26px;font-weight:800;color:var(--ink);
+  letter-spacing:-0.5px;line-height:1.1;
+}
+.greeting-wrap h1 span{color:var(--gold);}
+.greeting-sub{font-size:12px;color:var(--ink-3);margin-top:4px;}
+
+/* =========================================================
+   HERO CARD
+========================================================= */
+.hero{
+  position:relative;z-index:2;
+  margin:18px 20px 0;
+  border-radius:22px;
+  background:linear-gradient(135deg, #1A2C52 0%, #0E1E3A 55%, #081428 100%);
+  border:1px solid rgba(74,142,245,0.2);
+  overflow:hidden;
+  min-height:190px;
+  box-shadow:0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+/* Shimmer line di atas — bergerak */
+@keyframes heroShimmer{
+  0%{background-position:-200% center;}
+  100%{background-position:200% center;}
+}
+.hero::before{
+  content:"";
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(74,142,245,0.5) 30%,
+    rgba(244,197,66,0.9) 50%,
+    rgba(74,142,245,0.5) 70%,
+    transparent 100%);
+  background-size:200% 100%;
+  animation:heroShimmer 3s linear infinite;
+  z-index:3;
+}
+/* Subtle grid texture */
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size:24px 24px;
+  pointer-events:none;
+  z-index:0;
+}
+/* Accent glow kanan bawah */
+.hero-glow{
+  position:absolute;right:-20px;bottom:-30px;
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle, rgba(74,142,245,0.2) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+/* Foto profil — full tinggi kartu, nempel sisi kanan */
+.hero-photo{
+  position:absolute;
+  right:0;top:0;bottom:0;
+  width:155px;
+  overflow:hidden;
+  z-index:1;
+}
+.hero-photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:top center;
+}
+.hero-photo-empty{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:rgba(255,255,255,0.2);font-size:10px;text-align:center;padding:10px;
+}
+.hero-photo-empty svg{width:36px;height:36px;margin-bottom:6px;opacity:.4;}
+/* Gradient fade dari kiri ke foto — teks tetap terbaca */
+.hero-photo-fade{
+  position:absolute;right:0;bottom:0;top:0;
+  width:195px;
+  background:linear-gradient(90deg,
+    #0E1E3A 0%,
+    #0E1E3A 10%,
+    rgba(14,30,58,0.92) 30%,
+    rgba(14,30,58,0.55) 55%,
+    transparent 100%);
+  pointer-events:none;
+  z-index:2;
+}
+
+.hero-content{
+  position:relative;z-index:3;
+  padding:20px 20px;
+  max-width:58%;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;color:var(--teal);
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;
+}
+.hero-eyebrow-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);}
+.hero-title{
+  font-size:17px;font-weight:800;color:var(--ink);
+  letter-spacing:-0.3px;line-height:1.3;margin-bottom:8px;
+}
+.hero-desc{
+  font-size:11.5px;color:var(--ink-2);
+  line-height:1.55;margin-bottom:16px;
+}
+.hero-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:white;color:#0A1E3D;
+  font-size:12px;font-weight:800;
+  padding:9px 16px;border-radius:30px;
+  border:none;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,0.25);
+  letter-spacing:-0.1px;
+}
+.hero-btn svg{flex-shrink:0;}
+
+/* =========================================================
+   MENU CARD (Profile strip + Quickgrid)
+========================================================= */
+.menu-card{
+  position:relative;z-index:2;
+  background:var(--bg-card);
+  margin:24px 20px 0;
+  border-radius:20px;
+  padding:16px 16px 8px;
+  border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* --- Profile strip --- */
+.profile-strip{
+  display:flex;justify-content:space-between;
+  padding-bottom:14px;margin-bottom:2px;
+  border-bottom:1px solid var(--border);
+}
+.profile-strip-item{text-align:center;flex:1;}
+.strip-icon{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--bg-glass);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 5px;
+}
+.strip-icon svg{width:13px;height:13px;}
+.strip-label{font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.strip-value{font-size:12px;color:var(--ink);font-weight:700;margin-top:2px;line-height:1.2;}
+
+/* --- Section title --- */
+.section-eyebrow{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  padding:12px 0 10px;
+}
+
+/* --- Quickgrid header row --- */
+.quickgrid-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 0 10px;
+}
+.hamburger-btn{
+  width:32px;height:32px;border-radius:10px;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;cursor:pointer;flex-shrink:0;
+  transition:background .15s;
+}
+.hamburger-btn:active{background:rgba(255,255,255,0.1);}
+.hamburger-btn span{
+  display:block;width:14px;height:1.5px;
+  background:var(--ink-2);border-radius:2px;
+  transition:all .25s ease;
+}
+/* animasi X saat open */
+.hamburger-btn.is-open span:nth-child(1){transform:translateY(5.5px) rotate(45deg);}
+.hamburger-btn.is-open span:nth-child(2){opacity:0;transform:scaleX(0);}
+.hamburger-btn.is-open span:nth-child(3){transform:translateY(-5.5px) rotate(-45deg);}
+
+/* --- Quickgrid --- */
+.quickgrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px 6px;
+  padding-bottom:8px;
+  overflow:hidden;
+  max-height:500px;
+  transition:max-height .3s ease, opacity .3s ease, padding .3s ease;
+  opacity:1;
+}
+.quickgrid.collapsed{
+  max-height:0;
+  opacity:0;
+  padding-bottom:0;
+  pointer-events:none;
+}
+.quick-item{
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  cursor:pointer;
+}
+.quick-icon{
+  width:52px;height:52px;border-radius:15px;
+  background:var(--bg-glass);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s ease, background .15s ease;
+}
+.quick-item:active .quick-icon{
+  transform:scale(0.9);
+  background:rgba(255,255,255,0.1);
+}
+.quick-icon svg{width:21px;height:21px;}
+.quick-label{
+  font-size:10px;font-weight:600;color:var(--ink-2);
+  text-align:center;line-height:1.25;
+}
+
+/* Special colored icons */
+.qi-tower   .quick-icon{background:rgba(74,142,245,0.15);border-color:rgba(74,142,245,0.25);}
+.qi-span    .quick-icon{background:rgba(56,191,160,0.12);border-color:rgba(56,191,160,0.22);}
+.qi-jadwal  .quick-icon{background:rgba(244,197,66,0.12);border-color:rgba(244,197,66,0.22);}
+.qi-sos     .quick-icon{background:rgba(242,107,107,0.12);border-color:rgba(242,107,107,0.22);}
+.qi-profil  .quick-icon{background:rgba(255,255,255,0.07);border-color:var(--border);}
+.qi-setting .quick-icon{background:rgba(255,255,255,0.07);border-color:var(--border);}
+.qi-chat    .quick-icon{background:rgba(56,191,160,0.12);border-color:rgba(56,191,160,0.22);}
+.qi-master  .quick-icon{background:rgba(74,142,245,0.12);border-color:rgba(74,142,245,0.22);}
+.qi-akun    .quick-icon{background:rgba(244,197,66,0.12);border-color:rgba(244,197,66,0.22);}
+.qi-eviden  .quick-icon{background:rgba(242,107,107,0.13);border-color:rgba(242,107,107,0.24);}
+
+/* =========================================================
+   PENGATURAN BA PANEL
+========================================================= */
+.ba-panel{
+  position:relative;z-index:2;
+  background:var(--bg-card);
+  margin:14px 20px 0;
+  border-radius:20px;
+  padding:18px;
+  border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+.panel-title{
+  font-size:13.5px;font-weight:800;color:var(--ink);
+  display:flex;align-items:center;gap:8px;margin-bottom:3px;
+}
+.panel-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
+
+.ba-upload-label{
+  display:block;font-size:10.5px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;
+}
+.ba-preview-box{
+  width:100%;border-radius:12px;
+  border:1.5px dashed rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.03);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;margin-bottom:8px;min-height:90px;position:relative;
+}
+.ba-preview-box.has-img{border-style:solid;border-color:rgba(255,255,255,0.1);}
+.ba-preview-box img{width:100%;max-height:180px;object-fit:contain;}
+.ba-preview-empty{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:16px;color:var(--ink-3);font-size:11.5px;text-align:center;line-height:1.4;
+}
+.ba-preview-empty svg{width:26px;height:26px;opacity:.4;}
+
+.ba-upload-actions{display:flex;gap:8px;align-items:center;}
+.ba-file-input{
+  flex:1;font-size:11.5px;color:var(--ink-3);
+  background:rgba(255,255,255,0.05);border-radius:10px;padding:9px 10px;
+  border:1px solid var(--border);
+}
+.ba-file-input::file-selector-button{
+  font-size:11px;font-weight:700;color:var(--ink);
+  background:rgba(255,255,255,0.1);border:none;border-radius:7px;
+  padding:5px 9px;cursor:pointer;margin-right:8px;
+}
+.ba-reset-btn{
+  padding:9px 12px;border:none;border-radius:10px;
+  background:var(--red-bg);color:var(--red);font-weight:700;font-size:12px;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+}
+.ba-divider{height:1px;background:var(--border);margin:14px 0;}
+.ba-kal-btn{
+  width:100%;padding:12px;background:rgba(74,142,245,0.15);
+  color:var(--blue);border:1px solid rgba(74,142,245,0.3);
+  border-radius:11px;font-weight:700;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px;
+}
+.ba-compress-note{font-size:11px;color:var(--ink-3);margin-top:7px;line-height:1.5;}
+
+/* =========================================================
+   PROFIL CARD (bawah)
+========================================================= */
+.section-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px 20px 10px;
+  position:relative;z-index:2;
+}
+.section-head h2{font-size:14px;font-weight:800;color:var(--ink);}
+.section-head a{font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;}
+
+.list-card{
+  position:relative;z-index:2;
+  background:var(--bg-card);
+  margin:0 20px;border-radius:18px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+  overflow:hidden;
+  border:1px solid var(--border);
+}
+.list-row{
+  display:flex;align-items:center;gap:13px;
+  padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;
+}
+.list-row:last-child{border-bottom:none;}
+.list-row-avatar{
+  width:44px;height:44px;border-radius:13px;
+  background:linear-gradient(135deg,rgba(74,142,245,0.25),rgba(56,191,160,0.2));
+  border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  overflow:hidden;font-weight:800;font-size:15px;color:var(--blue);
+}
+.list-row-avatar img{width:100%;height:100%;object-fit:cover;}
+.list-row-text{flex:1;min-width:0;}
+.list-row-title{font-size:14px;font-weight:700;color:var(--ink);}
+.list-row-desc{font-size:11.5px;color:var(--ink-3);margin-top:2px;}
+.list-row-chevron{flex-shrink:0;color:var(--ink-3);}
+
+/* =========================================================
+   NOTICE BOX
+========================================================= */
+.notice-box{
+  position:relative;z-index:2;
+  margin:14px 20px;
+  background:var(--amber-bg);
+  border-left:3px solid var(--amber);
+  color:var(--amber);
+  padding:12px 14px;border-radius:12px;
+  font-size:12px;line-height:1.5;display:none;
+}
+
+/* =========================================================
+   STAT WIDGET — Tegakan & BA (animasi count-up)
+========================================================= */
+.stat-section{
+  position:relative;z-index:2;
+  margin:18px 20px 0;
+}
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.stat-card{
+  position:relative;
+  border-radius:18px;
+  padding:16px 14px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  box-shadow:0 8px 22px rgba(0,0,0,0.3);
+  opacity:0;
+  transform:translateY(10px);
+  animation:statCardIn .5s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.stat-card.stat-tegakan{
+  background:linear-gradient(135deg, rgba(56,191,160,0.16) 0%, var(--bg-card) 65%);
+  animation-delay:.05s;
+}
+.stat-card.stat-ba{
+  background:linear-gradient(135deg, rgba(244,197,66,0.16) 0%, var(--bg-card) 65%);
+  animation-delay:.18s;
+}
+@keyframes statCardIn{
+  to{ opacity:1; transform:translateY(0); }
+}
+/* glow lingkar di pojok kartu, mempertegas kesan "hidup" */
+.stat-card::after{
+  content:"";
+  position:absolute;right:-26px;top:-26px;
+  width:88px;height:88px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+  pointer-events:none;
+}
+.stat-card-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.stat-icon{
+  width:34px;height:34px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.stat-tegakan .stat-icon{background:rgba(56,191,160,0.18);}
+.stat-ba .stat-icon{background:rgba(244,197,66,0.18);}
+.stat-icon svg{width:16px;height:16px;}
+.stat-pulse{
+  width:6px;height:6px;border-radius:50%;
+  flex-shrink:0;
+  box-shadow:0 0 0 0 rgba(56,191,160,0.55);
+  animation:statPulse 2s ease-out infinite;
+}
+.stat-tegakan .stat-pulse{background:var(--teal);}
+.stat-ba .stat-pulse{background:var(--gold);box-shadow:0 0 0 0 rgba(244,197,66,0.55);}
+@keyframes statPulse{
+  0%{ box-shadow:0 0 0 0 rgba(56,191,160,0.55); }
+  70%{ box-shadow:0 0 0 7px rgba(56,191,160,0); }
+  100%{ box-shadow:0 0 0 0 rgba(56,191,160,0); }
+}
+.stat-ba .stat-pulse{ animation-name:statPulseGold; }
+@keyframes statPulseGold{
+  0%{ box-shadow:0 0 0 0 rgba(244,197,66,0.55); }
+  70%{ box-shadow:0 0 0 7px rgba(244,197,66,0); }
+  100%{ box-shadow:0 0 0 0 rgba(244,197,66,0); }
+}
+.stat-value{
+  font-size:28px;font-weight:800;color:var(--ink);
+  letter-spacing:-0.5px;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.stat-label{
+  font-size:11px;font-weight:700;color:var(--ink-2);
+  margin-top:4px;
+}
+.stat-sub{
+  font-size:10px;color:var(--ink-3);margin-top:6px;
+  display:flex;align-items:center;gap:4px;
+}
+.stat-sub b{color:var(--ink-2);font-weight:700;}
+.stat-card.is-loading .stat-value{ color:var(--ink-3); }
+
+/* =========================================================
+   SYNC WIDGET
+========================================================= */
+.sync-bar{
+  position:relative;z-index:2;
+  margin:14px 20px 0;
+  background:var(--bg-card);
+  border-radius:16px;
+  border:1px solid var(--border);
+  padding:12px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.25);
+}
+.sync-icon-wrap{
+  width:36px;height:36px;border-radius:11px;flex-shrink:0;
+  background:rgba(74,142,245,0.15);border:1px solid rgba(74,142,245,0.25);
+  display:flex;align-items:center;justify-content:center;
+}
+.sync-icon-wrap svg{width:16px;height:16px;}
+.sync-info{flex:1;min-width:0;}
+.sync-title{font-size:12px;font-weight:700;color:var(--ink);}
+.sync-status{font-size:10.5px;color:var(--ink-3);margin-top:2px;transition:color .3s;}
+.sync-status.syncing{color:var(--blue);}
+.sync-status.success{color:var(--green);}
+.sync-status.error{color:var(--red);}
+.sync-btn{
+  position:relative;
+  display:flex;align-items:center;gap:6px;
+  padding:9px 14px;border-radius:11px;
+  background:rgba(74,142,245,0.15);
+  border:1px solid rgba(74,142,245,0.3);
+  color:var(--blue);font-size:12px;font-weight:700;
+  cursor:pointer;flex-shrink:0;
+  transition:background .15s, transform .15s;
+}
+.sync-btn:active{transform:scale(0.95);}
+.sync-btn.syncing{
+  background:rgba(74,142,245,0.08);
+  pointer-events:none;
+}
+.sync-btn svg{transition:transform .6s ease;}
+.sync-btn.syncing svg{animation:syncSpin .8s linear infinite;}
+@keyframes syncSpin{to{transform:rotate(360deg);}}
+/* badge merah jumlah pending */
+#syncPendingBadge{
+  position:absolute;top:-5px;right:-5px;
+  min-width:16px;height:16px;border-radius:8px;
+  background:var(--red);color:#fff;
+  font-size:9px;font-weight:800;
+  display:none;align-items:center;justify-content:center;
+  padding:0 4px;
+  border:1.5px solid var(--bg-deep);
+}
+
+/* =========================================================
+   KALIBRASI MODAL
+========================================================= */
+.kal-overlay{position:fixed;inset:0;background:#000d1e;z-index:100;display:none;flex-direction:column;}
+.kal-overlay.active{display:flex;}
+.kal-topbar{background:#0b1f3a;color:white;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--border);}
+.kal-topbar h3{font-size:14px;font-weight:800;}
+.kal-close-btn{background:rgba(255,255,255,.1);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
+.kal-toolbar{background:#0d1b33;padding:9px 10px;display:flex;gap:6px;flex-shrink:0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.kal-toolbar select{flex:1;min-width:140px;padding:9px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:#1a2d4a;color:white;}
+.kal-toolbar button{padding:9px 12px;border:none;border-radius:8px;background:var(--blue);color:white;font-weight:bold;font-size:12px;cursor:pointer;white-space:nowrap;}
+.kal-zoom-bar{background:#081428;padding:6px 10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;}
+.kal-zoom-btn{width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,255,255,.1);font-size:15px;font-weight:bold;color:white;cursor:pointer;}
+.kal-zoom-label{font-size:11.5px;color:var(--ink-2);font-weight:bold;min-width:42px;text-align:center;}
+.kal-canvas-scroll{flex:1;overflow:auto;background:#040c18;-webkit-overflow-scrolling:touch;}
+.kal-canvas-inner{min-width:100%;min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:16px;}
+.kal-canvas-wrap{position:relative;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.6);transform-origin:top center;}
+.kal-canvas-wrap img{display:block;width:600px;max-width:none;height:auto;}
+.kal-field-tag{
+  position:absolute;transform:translate(-50%,-50%);
+  background:#F4C542;color:#080F1E;font-size:9px;font-weight:bold;
+  padding:3px 6px;border-radius:5px;border:1.5px solid #c49a00;
+  cursor:grab;white-space:nowrap;touch-action:none;user-select:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.45);line-height:1.5;
+  display:flex;align-items:center;gap:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;
+}
+.kal-field-tag .tag-num{background:#080F1E;color:white;border-radius:50%;width:13px;height:13px;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;}
+.kal-field-tag.dragging{cursor:grabbing;opacity:.95;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.6);}
+.kal-field-tag.selected{background:var(--blue);color:white;border-color:#1e5abf;z-index:20;font-size:10px;padding:5px 8px;}
+.kal-field-tag.selected .tag-num{background:white;color:var(--blue);}
+.kal-field-tag .kal-del{margin-left:2px;color:#c00;font-weight:bold;cursor:pointer;flex-shrink:0;padding:0 2px;}
+.kal-field-tag.selected .kal-del{color:#ffcdd2;}
+.kal-field-tag.sig-tag{background:#38bfa0;border-color:#1e8a72;color:#001f17;}
+.kal-field-tag.sig-tag.selected{background:#1e8a72;border-color:#0e5243;color:white;}
+.kal-bottom{background:#0d1b33;padding:10px 12px;flex-shrink:0;border-top:1px solid var(--border);}
+.kal-list{max-height:84px;overflow-y:auto;margin-bottom:8px;}
+.kal-list-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;font-size:11.5px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;color:var(--ink-2);}
+.kal-list-item:active{background:rgba(255,255,255,0.05);}
+.kal-list-item.active-row{background:rgba(74,142,245,0.15);}
+.kal-list-item b{color:var(--blue);}
+.kal-list-empty{color:var(--ink-3);font-size:12px;text-align:center;padding:8px;}
+.kal-save-btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--teal);color:#080F1E;font-weight:bold;font-size:14px;cursor:pointer;}
+.kal-hint{font-size:10.5px;color:var(--ink-3);margin-bottom:6px;line-height:1.5;}
+
+/* =========================================================
+   BOTTOM NAV — dark glassmorphism
+========================================================= */
+.bottomnav{
+  position:fixed;left:0;right:0;bottom:0;
+  max-width:460px;margin:0 auto;
+  background:rgba(8,15,30,0.92);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 6px 18px;
+  border-top:1px solid rgba(255,255,255,0.08);
+  z-index:40;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-decoration:none;color:var(--ink-3);flex:1;position:relative;
+  transition:color .15s;
+}
+.nav-item svg{width:21px;height:21px;}
+.nav-label{font-size:9.5px;font-weight:600;}
+.nav-item.active{color:var(--blue);}
+
+/* Centre SrinAI button */
+.nav-item.center{margin-top:-28px;}
+.nav-item.center .nav-circle{
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg, var(--blue), #1a4fa0);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(74,142,245,0.5);
+  margin-bottom:3px;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.nav-item.center .nav-circle svg{width:22px;height:22px;}
+.nav-item.center .nav-label{color:var(--ink-2);font-size:9.5px;}
+
+/* Logout nav item */
+.nav-item.nav-logout{color:rgba(242,107,107,0.7);}
+.nav-item.nav-logout.active,
+.nav-item.nav-logout:hover{color:var(--red);}
+
+/* =========================================================
+   POINT 1 — QUICKGRID HOVER EFFECT
+========================================================= */
+.quick-item{transition:transform .2s ease;}
+.quick-item:hover{transform:translateY(-3px);}
+.quick-item:hover .quick-icon{
+  transition:transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.qi-tower:hover  .quick-icon{box-shadow:0 6px 18px rgba(74,142,245,0.35);}
+.qi-span:hover   .quick-icon{box-shadow:0 6px 18px rgba(56,191,160,0.3);}
+.qi-jadwal:hover .quick-icon{box-shadow:0 6px 18px rgba(244,197,66,0.3);}
+.qi-sos:hover    .quick-icon{box-shadow:0 6px 18px rgba(242,107,107,0.3);}
+.qi-chat:hover   .quick-icon{box-shadow:0 6px 18px rgba(56,191,160,0.3);}
+.qi-master:hover .quick-icon{box-shadow:0 6px 18px rgba(74,142,245,0.3);}
+.qi-akun:hover   .quick-icon{box-shadow:0 6px 18px rgba(244,197,66,0.3);}
+.qi-eviden:hover .quick-icon{box-shadow:0 6px 18px rgba(242,107,107,0.32);}
+.qi-profil:hover .quick-icon,
+.qi-setting:hover .quick-icon{box-shadow:0 6px 18px rgba(255,255,255,0.1);}
+
+/* =========================================================
+   POINT 2 — ENTRANCE ANIMATIONS
+========================================================= */
+@keyframes fadeSlideUp{
+  from{opacity:0;transform:translateY(18px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.topbar{animation:fadeSlideUp .4s ease both;}
+.greeting-wrap{animation:fadeSlideUp .45s .08s ease both;}
+.hero{animation:fadeSlideUp .45s .16s ease both;}
+.menu-card{animation:fadeSlideUp .45s .26s ease both;}
+#noticeBox{animation:fadeSlideUp .45s .32s ease both;}
+#baPanelWrap{animation:fadeSlideUp .45s .34s ease both;}
+.section-head{animation:fadeSlideUp .45s .38s ease both;}
+.list-card{animation:fadeSlideUp .45s .44s ease both;}
+
+/* =========================================================
+   POINT 3 — NAV CENTER GLOW PULSE (pengganti ring)
+========================================================= */
+@keyframes navGlowPulse{
+  0%,100%{box-shadow:0 6px 20px rgba(74,142,245,0.5);}
+  50%{box-shadow:0 6px 32px rgba(74,142,245,0.85), 0 0 0 6px rgba(74,142,245,0.15);}
+}
+.nav-item.center .nav-circle{
+  animation:navGlowPulse 2.4s ease-in-out infinite;
+}
+
+/* =========================================================
+   POINT 4 — BRAND MARK SHIMMER
+========================================================= */
+@keyframes brandShine{
+  0%,70%,100%{background-position:-150% center;}
+  75%,95%{background-position:250% center;}
+}
+.brand-mark{
+  background:linear-gradient(
+    135deg,
+    var(--gold) 0%,
+    #E89A20 40%,
+    #fff8e0 50%,
+    #E89A20 60%,
+    var(--gold) 100%
+  );
+  background-size:250% 100%;
+  animation:brandShine 4s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="container">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark" id="brandMark">S</div>
+      <div class="brand-text">
+        <div class="brand-name">Srinai <span>ASSIST</span></div>
+        <div class="brand-sub">Field Management System</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn" onclick="location.href='pengaturan.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        <div class="notif-dot" id="noticeDot" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GREETING -->
+  <div class="greeting-wrap">
+    <div class="datetime-badge">
+      <div class="datetime-dot"></div>
+      <span id="datetimeText">Memuat...</span>
+    </div>
+    <h1 id="greetingText">Selamat Pagi, <span id="firstName">-</span>!</h1>
+    <div class="greeting-sub">Ada yang bisa SrinAI bantu hari ini?</div>
+  </div>
+
+  <!-- HERO CARD -->
+  <div class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <!-- Foto Petugas — full tinggi kartu, sisi kanan sebagai background -->
+    <div class="hero-photo" id="heroPhotoWrap">
+      <div class="hero-photo-empty" id="heroPhotoPlaceholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.8-4.8 5-7 8-7s6.2 2.2 8 7"/></svg>
+        Foto petugas<br>(atur di Profil)
+      </div>
+      <img id="heroPhotoImg" src="" alt="Foto Petugas" style="display:none;">
+    </div>
+    <!-- Gradient fade menutupi transisi foto ke teks -->
+    <div class="hero-photo-fade"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow"><div class="hero-eyebrow-dot"></div>Asisten Lapangan Pintar</div>
+      <div class="hero-title">Inspeksi &amp; Berita Acara lebih cepat dengan SrinAI.</div>
+      <div class="hero-desc">Tanya, cari BA, atau buat laporan langsung dari sini.</div>
+      <button class="hero-btn" onclick="location.href='ai.html'">
+        Buka SrinAI
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0A1E3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MENU CARD -->
+  <div class="menu-card">
+    <!-- Profile strip -->
+    <div class="profile-strip">
+      <div class="profile-strip-item">
+        <div class="strip-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        </div>
+        <div class="strip-label">Jalur</div>
+        <div class="strip-value" id="jalur">-</div>
+      </div>
+      <div class="profile-strip-item">
+        <div class="strip-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
+        </div>
+        <div class="strip-label">Tower</div>
+        <div class="strip-value" id="tower">-</div>
+      </div>
+      <div class="profile-strip-item">
+        <div class="strip-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        </div>
+        <div class="strip-label">Span</div>
+        <div class="strip-value" id="span">-</div>
+      </div>
+    </div>
+
+    <!-- Quickgrid header + hamburger -->
+    <div class="quickgrid-header">
+      <div class="section-eyebrow" style="padding:0;margin:0;">Quickgrid</div>
+      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleQuickgrid()" title="Tutup/Buka menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Quickgrid items -->
+    <div class="quickgrid" id="quickgridEl">
+      <div class="quick-item qi-tower" onclick="location.href='tower.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+        </div>
+        <div class="quick-label">Data<br>Tower</div>
+      </div>
+      <div class="quick-item qi-span" onclick="location.href='span.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        </div>
+        <div class="quick-label">Data<br>Span</div>
+      </div>
+      <div class="quick-item qi-jadwal" onclick="location.href='jadwal.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        </div>
+        <div class="quick-label">Jadwal</div>
+      </div>
+      <div class="quick-item qi-sos" onclick="location.href='sos.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F26B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div class="quick-label">SOS<br>BA</div>
+      </div>
+      <div class="quick-item qi-profil" onclick="location.href='profile.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+        </div>
+        <div class="quick-label">Profil</div>
+      </div>
+      <div class="quick-item qi-setting" onclick="location.href='pengaturan.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.97 7.97 0 000-2l2-1.5-2-3.4-2.3.9a8 8 0 00-1.7-1l-.3-2.5h-4l-.3 2.5a8 8 0 00-1.7 1l-2.3-.9-2 3.4 2 1.5a8 8 0 000 2l-2 1.5 2 3.4 2.3-.9a8 8 0 001.7 1l.3 2.5h4l.3-2.5a8 8 0 001.7-1l2.3.9 2-3.4-2-1.5z"/></svg>
+        </div>
+        <div class="quick-label">Pengaturan</div>
+      </div>
+      <div class="quick-item qi-chat" onclick="location.href='chat.html'">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 1 1-3.8-7.1L21 3l-1.2 3.8a8.5 8.5 0 0 1 1.2 4.7z"/></svg>
+        </div>
+        <div class="quick-label">Group<br>Chat</div>
+      </div>
+      <div class="quick-item qi-eviden" onclick="location.href='foto-eviden.html'">
+        <div class="quick-icon" style="position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F26B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#F26B6B;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-card);">!</span>
+        </div>
+        <div class="quick-label">Foto<br>Eviden</div>
+      </div>
+      <div class="quick-item qi-master" id="masterDataQuick" onclick="location.href='master-jalur.html'" style="display:none;">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+        </div>
+        <div class="quick-label">Master<br>Data</div>
+      </div>
+      <div class="quick-item qi-ba-settings" id="pengaturanBaQuick" onclick="location.href='pengaturan-ba.html'" style="display:none;">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="quick-label">Pengaturan<br>BA</div>
+      </div>
+      <div class="quick-item qi-akun" id="kelolaAkunQuick" onclick="location.href='kelola-akun.html'" style="display:none;">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c1.2-3.4 3.4-5 6-5s4.8 1.6 6 5"/><path d="M17 11.5a2.6 2.6 0 100-5.2 2.6 2.6 0 000 5.2zM21 19c-.8-2.2-2-3.4-3.6-3.9"/></svg>
+        </div>
+        <div class="quick-label">Kelola<br>Akun</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAT WIDGET: TEGAKAN & BA -->
+  <div class="stat-section">
+    <div class="stat-grid">
+      <div class="stat-card stat-tegakan is-loading" id="statTegakanCard">
+        <div class="stat-card-top">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C9 5 7 8.5 7 12a5 5 0 0010 0c0-3.5-2-7-5-10z"/><path d="M12 22v-7"/></svg>
+          </div>
+          <div class="stat-pulse"></div>
+        </div>
+        <div class="stat-value" id="statTegakanValue">0</div>
+        <div class="stat-label">Tegakan Tercatat</div>
+        <div class="stat-sub" id="statTegakanSub">Memuat data...</div>
+      </div>
+
+      <div class="stat-card stat-ba is-loading" id="statBaCard">
+        <div class="stat-card-top">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+          </div>
+          <div class="stat-pulse"></div>
+        </div>
+        <div class="stat-value" id="statBaValue">0</div>
+        <div class="stat-label">Berita Acara</div>
+        <div class="stat-sub" id="statBaSub">Memuat data...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar" id="syncBar">
+    <div class="sync-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9A9 9 0 0120.5 9"/><path d="M20.5 15A9 9 0 013.5 15"/></svg>
+    </div>
+    <div class="sync-info">
+      <div class="sync-title">Sinkronisasi Data</div>
+      <div class="sync-status" id="syncStatusLabel">Memeriksa...</div>
+    </div>
+    <button class="sync-btn" id="syncBtn" onclick="doSync()">
+      <svg id="syncBtnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9A9 9 0 0120.5 9"/><path d="M20.5 15A9 9 0 013.5 15"/></svg>
+      Sinkron
+      <span id="syncPendingBadge">0</span>
+    </button>
+  </div>
+
+  <!-- NOTICE -->
+  <div id="noticeBox" class="notice-box"></div>
+
+
+</div><!-- /.container -->
+
+<!-- BOTTOM NAV -->
+<div class="bottomnav">
+  <a href="dashboard.html" class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    <div class="nav-label">Beranda</div>
+  </a>
+  <a href="span.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+    <div class="nav-label">Span</div>
+  </a>
+  <a href="ai.html" class="nav-item center">
+    <div class="nav-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+    </div>
+    <div class="nav-label">SrinAI</div>
+  </a>
+  <a href="tower.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+    <div class="nav-label">Tower</div>
+  </a>
+  <a href="#" class="nav-item nav-logout" onclick="doLogout(); return false;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+    <div class="nav-label">Logout</div>
+  </a>
+</div>
+
+<!-- =============================================
+     SRINAI WALKING CHARACTER v3
+     • wearpack merah + helm putih
+     • mode tidur otomatis jam 18:00
+     • tengkurap di sebelah tombol SrinAI
+     • ZZZ animasi, drag bangun + marah
+============================================= -->
+<style>
+/* ── container overlay ── */
+#srinai-wrap {
+  position: absolute;
+  left:0; right:0; top:0; bottom:0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 50;
+}
+
+/* ── karakter ── */
+#srinai-char {
+  position: absolute;
+  width: 68px;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.15s ease;
+}
+
+/* ── speech bubble ── */
+#srinai-bubble {
+  position: absolute;
+  bottom: 82px;
+  left: 4px;
+  background: #fff;
+  color: #0A1E3D;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 9px 13px;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  width: max-content;
+  max-width: 178px;
+  white-space: normal;
+  opacity: 0;
+  transform: scale(0.75) translateY(8px);
+  transform-origin: bottom left;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+#srinai-bubble.show { opacity:1; transform:scale(1) translateY(0); }
+#srinai-bubble::after {
+  content:""; position:absolute; bottom:-9px; left:16px;
+  border-width:9px 9px 0 0; border-style:solid;
+  border-color:#fff transparent transparent transparent;
+}
+#srinai-char.flip-bubble #srinai-bubble {
+  left:auto; right:4px;
+  border-radius:14px 14px 4px 14px;
+  transform-origin:bottom right;
+}
+#srinai-char.flip-bubble #srinai-bubble::after {
+  left:auto; right:16px;
+  border-width:9px 0 0 9px;
+  border-color:#fff transparent transparent transparent;
+}
+
+/* ── ZZZ tidur overlay ── */
+#srinai-zzz {
+  position: absolute;
+  top: -18px; right: -8px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #a0c4ff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  pointer-events: none;
+  opacity: 0;
+  letter-spacing: 1px;
+}
+#srinai-zzz.show { animation: zzzFloat 2.2s ease-in-out infinite; }
+@keyframes zzzFloat {
+  0%   { opacity:0;   transform: translate(0,0)    scale(0.7); }
+  15%  { opacity:1;   transform: translate(0,0)    scale(1); }
+  70%  { opacity:0.8; transform: translate(6px,-14px) scale(1.1); }
+  100% { opacity:0;   transform: translate(10px,-22px) scale(0.6); }
+}
+
+/* ── SVG karakter ── */
+#srinai-svg {
+  width: 68px;
+  height: 80px;
+  display: block;
+  filter: drop-shadow(0 5px 12px rgba(0,0,0,0.5));
+  will-change: transform;
+  transform-origin: center bottom;
+}
+
+/* ── mode tidur: rotasi 90° ke kiri (tengkurap / bersender) ── */
+#srinai-char.sleeping #srinai-svg {
+  transform: rotate(90deg) scaleX(-1) !important;
+  transform-origin: center center;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+}
+#srinai-char.sleeping {
+  cursor: grab;
+}
+#srinai-char.sleeping:active {
+  cursor: grabbing;
+}
+
+/* ── animasi berjalan ── */
+@keyframes sWalk {
+  0%   { transform:translateY(0)    rotate(0deg); }
+  20%  { transform:translateY(-6px) rotate(-2.5deg); }
+  40%  { transform:translateY(-1px) rotate(0deg); }
+  60%  { transform:translateY(-6px) rotate(2.5deg); }
+  80%  { transform:translateY(-1px) rotate(0deg); }
+  100% { transform:translateY(0)    rotate(0deg); }
+}
+/* idle: napas pelan */
+@keyframes sIdle {
+  0%,100% { transform:translateY(0) rotate(0deg); }
+  35%     { transform:translateY(-3px) rotate(-1.2deg); }
+  70%     { transform:translateY(-2px) rotate(1.2deg); }
+}
+/* ngintip */
+@keyframes sPeek {
+  0%,100% { transform:rotate(0deg); }
+  45%,60% { transform:rotate(14deg) translateY(-5px); }
+}
+/* marah: shake */
+@keyframes sAngry {
+  0%,100% { transform:translateX(0) rotate(0deg); }
+  20%     { transform:translateX(-5px) rotate(-3deg); }
+  40%     { transform:translateX(5px) rotate(3deg); }
+  60%     { transform:translateX(-4px) rotate(-2deg); }
+  80%     { transform:translateX(4px) rotate(2deg); }
+}
+/* napas tidur pelan */
+@keyframes sSleep {
+  0%,100% { transform:rotate(90deg) scaleX(-1) translateY(0); }
+  50%     { transform:rotate(90deg) scaleX(-1) translateY(-2px); }
+}
+
+#srinai-svg.s-walk  { animation: sWalk  0.4s ease-in-out infinite; }
+#srinai-svg.s-idle  { animation: sIdle  2.4s ease-in-out infinite; }
+#srinai-svg.s-peek  { animation: sPeek  1.5s ease-in-out infinite; transform-origin: bottom center; }
+#srinai-svg.s-angry { animation: sAngry 0.45s ease-in-out 3; }
+#srinai-char.sleeping #srinai-svg { animation: sSleep 3s ease-in-out infinite !important; }
+
+/* kaki & tangan swing saat jalan */
+@keyframes kL { 0%,100%{transform:rotate(-24deg)} 50%{transform:rotate(24deg)} }
+@keyframes kR { 0%,100%{transform:rotate(24deg)}  50%{transform:rotate(-24deg)} }
+@keyframes tL { 0%,100%{transform:rotate(28deg)}  50%{transform:rotate(-18deg)} }
+@keyframes tR { 0%,100%{transform:rotate(-28deg)} 50%{transform:rotate(18deg)} }
+
+#srinai-svg.s-walk #kaki-l { animation:kL 0.4s ease-in-out infinite; transform-origin:27px 57px; }
+#srinai-svg.s-walk #kaki-r { animation:kR 0.4s ease-in-out infinite; transform-origin:37px 57px; }
+#srinai-svg.s-walk #tgn-l  { animation:tL 0.4s ease-in-out infinite; transform-origin:16px 38px; }
+#srinai-svg.s-walk #tgn-r  { animation:tR 0.4s ease-in-out infinite; transform-origin:48px 38px; }
+</style>
+
+<script>
+(function(){
+  /* ══════════════════════════════════════════
+     BUILD DOM
+  ══════════════════════════════════════════ */
+  const container = document.querySelector('.container');
+  const wrap = document.createElement('div');
+  wrap.id = 'srinai-wrap';
+  container.appendChild(wrap);
+
+  wrap.innerHTML = `
+  <div id="srinai-char">
+    <div id="srinai-bubble"></div>
+    <div id="srinai-zzz">z z z</div>
+    <svg id="srinai-svg" viewBox="0 0 68 82" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- ══ HELM PROYEK PUTIH ══ -->
+      <!-- Brim bawah helm -->
+      <ellipse cx="34" cy="19" rx="16" ry="4.5" fill="#E8E8E8"/>
+      <!-- Kubah helm -->
+      <ellipse cx="34" cy="13" rx="13.5" ry="12" fill="#F5F5F5"/>
+      <!-- Highlight helm -->
+      <ellipse cx="29" cy="9" rx="5" ry="3" fill="white" opacity="0.6"/>
+      <!-- Shadow bawah kubah -->
+      <ellipse cx="34" cy="19" rx="13.5" ry="3" fill="#D0D0D0" opacity="0.5"/>
+      <!-- Tali helm -->
+      <path d="M21 18 Q18 24 20 28" stroke="#BBBBBB" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M47 18 Q50 24 48 28" stroke="#BBBBBB" stroke-width="1.2" stroke-linecap="round"/>
+
+      <!-- ══ WAJAH ══ -->
+      <ellipse cx="34" cy="29" rx="11" ry="10" fill="#FDDCB0"/>
+      <!-- Mata sipit kesal -->
+      <path d="M29.5 27.5 Q30.5 26.5 31.5 27.5" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M36.5 27.5 Q37.5 26.5 38.5 27.5" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <!-- Pupil -->
+      <circle cx="30.5" cy="28" r="1.2" fill="#1A1A1A"/>
+      <circle cx="37.5" cy="28" r="1.2" fill="#1A1A1A"/>
+      <!-- Alis lebat kesal -->
+      <path d="M27 25 Q30.5 23.2 33 24.5" stroke="#5C3000" stroke-width="2" stroke-linecap="round"/>
+      <path d="M35 24.5 Q37.5 23.2 41 25" stroke="#5C3000" stroke-width="2" stroke-linecap="round"/>
+      <!-- Mulut cemberut -->
+      <path d="M30 33 Q34 31 38 33" stroke="#B06030" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <!-- Pipi merona -->
+      <ellipse cx="26" cy="30.5" rx="3.5" ry="2" fill="#F4A0A0" opacity="0.45"/>
+      <ellipse cx="42" cy="30.5" rx="3.5" ry="2" fill="#F4A0A0" opacity="0.45"/>
+
+      <!-- ══ WEARPACK MERAH ══ -->
+      <!-- Badan utama -->
+      <rect x="22" y="38" width="24" height="24" rx="5.5" fill="#CC2222"/>
+      <!-- Kerah / risleting tengah -->
+      <rect x="32" y="38" width="4" height="24" rx="2" fill="#AA1111"/>
+      <!-- Ritsleting detail -->
+      <rect x="33.2" y="40" width="1.6" height="20" rx=".8" fill="#FF6666" opacity="0.4"/>
+      <!-- Strip reflektif kuning -->
+      <rect x="22" y="50" width="24" height="3" rx="1.5" fill="#F4C542" opacity="0.75"/>
+      <!-- Saku dada kiri -->
+      <rect x="23.5" y="40" width="7" height="6" rx="1.5" fill="#AA1111"/>
+      <!-- Badge "Srinai" di saku -->
+      <rect x="24" y="41" width="6" height="4" rx="1" fill="white" opacity="0.15"/>
+      <text x="27" y="44.5" text-anchor="middle" font-size="3" fill="white" font-weight="800" font-family="Arial" opacity="0.9">Srinai</text>
+
+      <!-- ══ LENGAN ══ -->
+      <!-- Lengan kiri -->
+      <rect id="tgn-l" x="11" y="38" width="11" height="5" rx="2.5" fill="#CC2222"/>
+      <!-- Tangan kiri + clipboard -->
+      <ellipse cx="11" cy="40.5" rx="4" ry="3.5" fill="#FDDCB0"/>
+      <!-- Clipboard -->
+      <rect x="3" y="34" width="9" height="12" rx="1.8" fill="#F4C542" opacity="0.92"/>
+      <rect x="6.5" y="33" width="3" height="2.5" rx="1" fill="#C89000"/>
+      <rect x="4.5" y="37" width="6" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
+      <rect x="4.5" y="39.5" width="6" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
+      <rect x="4.5" y="42" width="4" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
+      <!-- Lengan kanan -->
+      <rect id="tgn-r" x="46" y="38" width="11" height="5" rx="2.5" fill="#CC2222"/>
+      <ellipse cx="57" cy="40.5" rx="4" ry="3.5" fill="#FDDCB0"/>
+
+      <!-- ══ CELANA ══ -->
+      <rect id="kaki-l" x="23" y="61" width="9" height="15" rx="4.5" fill="#2C2C2C"/>
+      <rect id="kaki-r" x="34" y="61" width="9" height="15" rx="4.5" fill="#2C2C2C"/>
+      <!-- Sepatu safety -->
+      <ellipse cx="27.5" cy="76" rx="6" ry="3.8" fill="#1A1A1A"/>
+      <ellipse cx="38.5" cy="76" rx="6" ry="3.8" fill="#1A1A1A"/>
+      <!-- Ujung sepatu safety (toecap) -->
+      <ellipse cx="24" cy="75.5" rx="3" ry="2" fill="#333" opacity="0.6"/>
+      <ellipse cx="35" cy="75.5" rx="3" ry="2" fill="#333" opacity="0.6"/>
+    </svg>
+  </div>`;
+
+  const char   = document.getElementById('srinai-char');
+  const svg    = document.getElementById('srinai-svg');
+  const bubble = document.getElementById('srinai-bubble');
+  const zzz    = document.getElementById('srinai-zzz');
+
+  /* ══════════════════════════════════════════
+     DIALOG BANK
+  ══════════════════════════════════════════ */
+  const gerutu = [
+    "anjir, gua gabisa tidur cok 😩",
+    "woy, BA minggu ini siapa yang belum?! 🔥",
+    "bikin BA minimal 5 perminggu lah, jangan nanggung 😤",
+    "sinyal di lapangan 0 bar... hadeh 📵",
+    "hari ini 3 jalur sekaligus, serius?! 💀",
+    "span mana yang belum di-update nih?! 🤬",
+    "tower 17 dari kapan ga dicek ini? 😱",
+    "ya Allah, data kosong lagi kosong lagi 🤦",
+    "lembur lagi... lembur lagi... 😭",
+    "laporan belum, data belum, tidur juga belum 💤",
+    "kenapa harus gua yang ngecek semua sih 😤",
+    "jalur 2 towernya ada yang miring bos! 😨",
+    "deadline BA bentar lagi, santai aja kalian 🙃",
+    "kalau app-nya error lagi gua lempar HP nih 🤳💢",
+    "foto BA-nya buram lagi... bro serius? 🙄",
+  ];
+
+  const klikDialog = [
+    "ada apa, bro? 😒",
+    "bukan muhrim! jangan deket-deket 😤",
+    "apaan sih ganggu banget 🙄",
+    "lagi sibuk nih, BENTAR! 😤",
+    "hei, privasi dong! 😠",
+    "kenapa lo klik gua?! 😤",
+    "mau apa? ngomong yang jelas! 😒",
+    "auto-report lu udah beres belum? 😤",
+  ];
+
+  const bangunDicolek = [
+    "WOIII GANGGU AJA! 😡",
+    "YA AMPUN BRO... 🤬",
+    "siapa itu?! mau diapain?! 😤",
+    "astagaa, lagi enak tidur tau! 😡",
+    "BERISIK! gua lagi istirahat! 🔥",
+  ];
+
+  const bangunDiseret = [
+    "LEPAS! GUA MAU TIDUR! 😡🔥",
+    "woy diseret-seret apaan sih?! 🤬",
+    "HAAAAA?! lo seret gua?! 😤💢",
+    "balikin gua ke tempat tidur! 😡",
+  ];
+
+  /* ══════════════════════════════════════════
+     POSISI TIDUR: di sebelah kiri tombol SrinAI
+     (tengah bottom nav = posisi ~50% layar)
+  ══════════════════════════════════════════ */
+  const CW = Math.min(460, window.innerWidth);
+  // Posisi Y tidur: bottom dari container — tepat di atas bottom nav
+  // Kita pakai posisi absolut dalam container
+  function getSleepPos() {
+    const ch = container.scrollHeight;
+    const navBtn = document.querySelector('.nav-item.center');
+    if (navBtn) {
+      const nr = navBtn.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      // posisi x: tepat kiri tombol SrinAI
+      const sx = nr.left - cr.left - 50;
+      // posisi y: dasar container dikurangi tinggi karakter + sedikit
+      const sy = ch - 90;
+      return { x: Math.max(8, sx), y: sy };
+    }
+    return { x: CW / 2 - 60, y: ch - 90 };
+  }
+
+  /* ══════════════════════════════════════════
+     STATE MACHINE
+     states: 'walk' | 'idle' | 'peek' | 'sleep' | 'angry' | 'return'
+  ══════════════════════════════════════════ */
+  const CHAR_W = 68, CHAR_H = 82;
+  let posX = 20, posY = 350;
+  let targetX = posX, targetY = posY;
+  let returnX = posX, returnY = posY; // titik asal setelah sleep
+  let speed = 1.8;
+  let state = 'walk';
+  let facingRight = true;
+  let idleTimer = null, bubbleTimer = null, sleepCheckTimer = null;
+  let lastIdx = -1;
+  let sleeping = false;
+  let dragging = false;
+  let dragOffX = 0, dragOffY = 0;
+  let dragMoved = false;
+
+  /* ── helpers ── */
+  function rndDialog(arr) {
+    let i; do { i = Math.floor(Math.random()*arr.length); } while(i===lastIdx && arr.length>1);
+    lastIdx = i; return arr[i];
+  }
+  function clampX(x){ return Math.max(8, Math.min(CW - CHAR_W - 8, x)); }
+  function clampY(y){ return Math.max(80, Math.min(container.scrollHeight - CHAR_H - 10, y)); }
+
+  function showBubble(txt, ms) {
+    bubble.textContent = txt;
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms||3800);
+    // flip bubble kalau terlalu kanan
+    char.classList.toggle('flip-bubble', posX > CW * 0.55);
+  }
+
+  function setSvgAnim(cls) {
+    svg.classList.remove('s-walk','s-idle','s-peek','s-angry');
+    if(cls) svg.classList.add(cls);
+  }
+
+  function setFacing(dx) {
+    const goR = dx > 0;
+    if(goR !== facingRight) {
+      facingRight = goR;
+      if(!sleeping) svg.style.transform = facingRight ? 'scaleX(1)' : 'scaleX(-1)';
+    }
+  }
+
+  /* ══ TARGET POSITIONS ══ */
+  const targetSels = [
+    '.quickgrid','.menu-card','.hero','.greeting-wrap',
+    '.section-head','.ba-panel','.list-card','.profile-strip',
+  ];
+  function getTargets() {
+    const cr = container.getBoundingClientRect();
+    const pts = [];
+    targetSels.forEach(sel => {
+      const el = container.querySelector(sel);
+      if(!el) return;
+      const r = el.getBoundingClientRect();
+      pts.push({
+        x: r.left - cr.left + r.width * 0.3,
+        y: r.top - cr.top + window.scrollY + r.height * 0.8,
+        peek: true
+      });
+    });
+    for(let i=0;i<4;i++) pts.push({
+      x: 10 + Math.random()*(CW-90),
+      y: 180 + Math.random()*(Math.max(container.scrollHeight,900)-350),
+      peek: false
+    });
+    return pts;
+  }
+
+  function pickNext() {
+    const pts = getTargets();
+    const t = pts[Math.floor(Math.random()*pts.length)];
+    targetX = clampX(t.x);
+    targetY = clampY(t.y - CHAR_H);
+    return t.peek;
+  }
+
+  /* ══ SLEEP MODE ══ */
+  function isSleepTime() {
+    const h = new Date().getHours();
+    return h >= 18 || h < 6; // tidur jam 18.00–05.59
+  }
+
+  function goToSleep() {
+    if(sleeping) return;
+    sleeping = true;
+    state = 'sleep';
+    clearTimeout(idleTimer);
+    bubble.classList.remove('show');
+
+    // jalan dulu ke posisi tidur
+    const sp = getSleepPos();
+    targetX = clampX(sp.x);
+    targetY = clampY(sp.y);
+    state = 'return'; // mode jalan ke tempat tidur
+    setSvgAnim('s-walk');
+  }
+
+  function enterSleep() {
+    sleeping = true;
+    state = 'sleep';
+    char.classList.add('sleeping');
+    setSvgAnim('');
+    zzz.classList.add('show');
+  }
+
+  function wakeUp(dialogs, goBackToSleep) {
+    if(!sleeping && state!=='sleep') return;
+    sleeping = false;
+    state = 'angry';
+    char.classList.remove('sleeping');
+    zzz.classList.remove('show');
+    bubble.classList.remove('show');
+
+    setSvgAnim('s-angry');
+    showBubble(rndDialog(dialogs), 3200);
+
+    setTimeout(() => {
+      setSvgAnim('s-idle');
+      if(goBackToSleep) {
+        // setelah marah, balik tidur
+        setTimeout(() => {
+          if(isSleepTime()) goToSleep();
+        }, 3500);
+      }
+      else {
+        // balik aktif
+        setTimeout(() => {
+          if(isSleepTime()) {
+            goToSleep();
+          } else {
+            pickNext();
+            state = 'walk';
+            setSvgAnim('s-walk');
+          }
+        }, 3500);
+      }
+    }, 1350);
+  }
+
+  /* ══ SLEEP TIME CHECK ══ */
+  function scheduleSleepCheck() {
+    clearTimeout(sleepCheckTimer);
+    // cek tiap menit
+    sleepCheckTimer = setTimeout(() => {
+      if(isSleepTime() && !sleeping && state!=='return') {
+        goToSleep();
+      }
+      scheduleSleepCheck();
+    }, 60000);
+  }
+
+  /* ══ DRAG / TOUCH ══ */
+  function startDrag(clientX, clientY) {
+    if(!sleeping) return;
+    dragging = true;
+    dragMoved = false;
+    const cr = container.getBoundingClientRect();
+    dragOffX = clientX - cr.left - posX;
+    dragOffY = clientY - cr.top - posY + window.scrollY;
+    char.style.transition = 'none';
+  }
+
+  function moveDrag(clientX, clientY) {
+    if(!dragging) return;
+    const cr = container.getBoundingClientRect();
+    const nx = clientX - cr.left - dragOffX;
+    const ny = clientY - cr.top + window.scrollY - dragOffY;
+    if(Math.abs(nx - posX) > 4 || Math.abs(ny - posY) > 4) dragMoved = true;
+    posX = clampX(nx);
+    posY = clampY(ny);
+    char.style.left = posX+'px';
+    char.style.top  = posY+'px';
+  }
+
+  function endDrag() {
+    if(!dragging) return;
+    dragging = false;
+    if(dragMoved) {
+      wakeUp(bangunDiseret, false);
+    }
+  }
+
+  // pointer events
+  char.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    char.setPointerCapture(e.pointerId);
+    if(sleeping) startDrag(e.clientX, e.clientY);
+  });
+  char.addEventListener('pointermove', e => {
+    if(dragging) moveDrag(e.clientX, e.clientY);
+  });
+  char.addEventListener('pointerup', e => {
+    if(dragging) { endDrag(); return; }
+    // klik biasa
+    e.stopPropagation();
+    if(sleeping) {
+      wakeUp(bangunDicolek, true);
+    } else {
+      showBubble(rndDialog(klikDialog), 3000);
+      if(state==='walk') {
+        state='idle'; setSvgAnim('s-idle');
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(()=>{
+          bubble.classList.remove('show');
+          pickNext(); state='walk'; setSvgAnim('s-walk');
+        }, 4000);
+      }
+    }
+  });
+
+  /* ══ MAIN LOOP ══ */
+  function update() {
+    if(!dragging && (state==='walk' || state==='return')) {
+      const dx = targetX - posX;
+      const dy = targetY - posY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < 3) {
+        posX = targetX; posY = targetY;
+        char.style.left = posX+'px';
+        char.style.top  = posY+'px';
+
+        if(state === 'return') {
+          // sampai di titik tidur
+          enterSleep();
+        } else {
+          // jalan biasa, berhenti idle
+          const isPeek = pickNext();
+          state = 'idle';
+          setSvgAnim(isPeek ? 's-peek' : 's-idle');
+          showBubble(rndDialog(gerutu), 4000);
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(()=>{
+            bubble.classList.remove('show');
+            if(isSleepTime()) { goToSleep(); return; }
+            pickNext(); state='walk'; setSvgAnim('s-walk');
+          }, 4500 + Math.random()*1500);
+        }
+      } else {
+        const r = Math.min(speed, dist)/dist;
+        posX += dx*r; posY += dy*r;
+        char.style.left = Math.round(posX)+'px';
+        char.style.top  = Math.round(posY)+'px';
+        if(!sleeping) setFacing(dx);
+      }
+    }
+    requestAnimationFrame(update);
+  }
+
+  /* ══ INIT ══ */
+  char.style.left = posX+'px';
+  char.style.top  = posY+'px';
+  svg.style.transform = 'scaleX(1)';
+
+  if(isSleepTime()) {
+    // langsung jalan ke tempat tidur
+    sleeping = true; // flag sementara supaya wakeUp tau
+    sleeping = false;
+    goToSleep();
+  } else {
+    setSvgAnim('s-walk');
+    pickNext();
+    state = 'walk';
+  }
+
+  scheduleSleepCheck();
+  requestAnimationFrame(update);
+
+  /* ══════════════════════════════════════════
+     FITUR 1 — PAYUNG + KELUHAN CUACA HUJAN
+     Ambil cuaca dari GPS → OpenMeteo (free, no API key)
+  ══════════════════════════════════════════ */
+  const dialogHujan = [
+    "waduh hujan nih, males banget ke lapangan 🌧️☂️",
+    "hujan deras bro, tower bisa kesamber petir! ⚡🌧️",
+    "pakai payung atau bajang? dua-duanya gua yang nanggung 😩☂️",
+    "lapangan basah... foto BA-nya bakal blur semua nih 🌧️😤",
+    "hujan gini enaknya tidur, bukan inspeksi! 🌧️💤",
+    "aduh, helm gua kebasahan cuy! ☂️😭",
+  ];
+
+  // Modifikasi SVG: tambah payung saat hujan
+  function addUmbrella() {
+    const svgEl = document.getElementById('srinai-svg');
+    if(svgEl.querySelector('#payung')) return; // sudah ada
+    const payungSvg = `
+      <!-- ══ PAYUNG ══ -->
+      <g id="payung" transform="translate(44, 10)">
+        <!-- Gagang payung -->
+        <path d="M12 34 Q10 38 6 38 Q3 38 3 36" stroke="#4A3000" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <!-- Tongkat payung -->
+        <line x1="12" y1="8" x2="12" y2="34" stroke="#4A3000" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- Kanopi payung - merah -->
+        <path d="M0 10 Q12 -4 24 10" fill="#CC2222" stroke="#AA1111" stroke-width="1"/>
+        <path d="M0 10 Q6 4 12 4 Q18 4 24 10 Z" fill="#CC2222"/>
+        <!-- Panel warna alternatif -->
+        <path d="M12 4 Q12 -2 16 -1 Q22 2 24 10 Z" fill="#AA1111"/>
+        <path d="M12 4 Q12 -2 8 -1 Q2 2 0 10 Z" fill="#AA1111"/>
+        <!-- Tip tengah atas -->
+        <circle cx="12" cy="3" r="2" fill="#880000"/>
+        <!-- Jari-jari -->
+        <path d="M12 8 L0 10" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
+        <path d="M12 8 L24 10" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
+        <path d="M12 8 L6 6" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
+        <path d="M12 8 L18 6" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
+        <!-- Tetesan hujan di sekitar -->
+        <text x="-8" y="18" font-size="8" opacity="0.7">💧</text>
+        <text x="22" y="25" font-size="7" opacity="0.6">💧</text>
+      </g>`;
+    svgEl.insertAdjacentHTML('beforeend', payungSvg);
+
+    // pindahkan posisi tangan kanan supaya pegang payung
+    const tgnR = svgEl.querySelector('#tgn-r');
+    if(tgnR) tgnR.setAttribute('transform', 'rotate(-30, 48, 40)');
+  }
+
+  function removeUmbrella() {
+    const p = document.getElementById('payung');
+    if(p) p.remove();
+    const tgnR = document.querySelector('#srinai-svg #tgn-r');
+    if(tgnR) tgnR.removeAttribute('transform');
+  }
+
+  let isRaining = false;
+  let rainDialogInterval = null;
+
+  async function checkWeather() {
+    try {
+      if(!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=rain,precipitation,weathercode&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const wc = data.current?.weathercode ?? 0;
+        const rain = data.current?.rain ?? 0;
+        const precip = data.current?.precipitation ?? 0;
+
+        // WMO code: 51-67 = drizzle/rain, 80-82 = showers, 95-99 = thunderstorm
+        const hujan = rain > 0 || precip > 0 || (wc >= 51 && wc <= 67) || (wc >= 80 && wc <= 82) || (wc >= 95);
+
+        if(hujan && !isRaining) {
+          isRaining = true;
+          addUmbrella();
+          if(!sleeping && state !== 'sleep') {
+            showBubble(dialogHujan[0], 5000);
+          }
+          // setiap 5 menit tampilkan keluhan hujan
+          rainDialogInterval = setInterval(() => {
+            if(isRaining && !sleeping && state !== 'sleep') {
+              const d = dialogHujan[Math.floor(Math.random()*dialogHujan.length)];
+              showBubble(d, 5000);
+            }
+          }, 5 * 60 * 1000);
+        } else if(!hujan && isRaining) {
+          isRaining = false;
+          removeUmbrella();
+          clearInterval(rainDialogInterval);
+          if(!sleeping && state !== 'sleep') {
+            showBubble("syukurlah udah reda, ayo lanjut lapangan! ☀️", 4000);
+          }
+        }
+      }, () => { /* geoloc denied, skip */ });
+    } catch(e) { /* network error, skip */ }
+  }
+
+  // Cek cuaca pertama kali dan tiap 15 menit
+  checkWeather();
+  setInterval(checkWeather, 15 * 60 * 1000);
+
+  /* ══════════════════════════════════════════
+     FITUR 2 — PANIK BATERAI DI BAWAH 20%
+  ══════════════════════════════════════════ */
+  const dialogBaterai = [
+    "HP mau mati bro, colok dulu! 🔋😱",
+    "BATERAI 🔴 BATERAI 🔴 TOLONG COLOK CHARGER!! 😱",
+    "aduh HP hampir mati, data belum kesave semua! 🔋💀",
+    "charger mana charger?! gua ga bisa mati sekarang! 🔋😤",
+    "15% bro! ini darurat! darurat! 🚨🔋",
+    "tanpa daya gua tiada artinya... tolong colok! 😭🔋",
+  ];
+
+  let batteryLow = false;
+  let batteryPanicInterval = null;
+
+  /* ── Animasi lari panik ── */
+  const panicStyle = document.createElement('style');
+  panicStyle.textContent = `
+    @keyframes sPanic {
+      0%,100% { transform:translateY(0) rotate(0deg) scaleX(var(--sx,1)); }
+      15%     { transform:translateY(-10px) rotate(-5deg) scaleX(var(--sx,1)); }
+      30%     { transform:translateY(-2px) rotate(0deg) scaleX(var(--sx,1)); }
+      45%     { transform:translateY(-10px) rotate(5deg) scaleX(var(--sx,1)); }
+      60%     { transform:translateY(-2px) rotate(0deg) scaleX(var(--sx,1)); }
+      80%     { transform:translateY(-12px) rotate(-6deg) scaleX(var(--sx,1)); }
+    }
+    #srinai-svg.s-panic {
+      animation: sPanic 0.28s ease-in-out infinite !important;
+    }
+    #srinai-char.battery-low #srinai-svg {
+      filter: drop-shadow(0 0 8px rgba(255,60,60,0.9)) drop-shadow(0 5px 12px rgba(0,0,0,0.5));
+    }
+    /* Ikon baterai merah di atas kepala */
+    #srinai-char.battery-low::before {
+      content: "🔋❗";
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 18px;
+      animation: battPulse 0.5s ease-in-out infinite alternate;
+      pointer-events: none;
+      filter: drop-shadow(0 0 6px red);
+    }
+    @keyframes battPulse {
+      from { transform: translateX(-50%) scale(1); }
+      to   { transform: translateX(-50%) scale(1.25); }
+    }
+  `;
+  document.head.appendChild(panicStyle);
+
+  function startBatteryPanic() {
+    if(batteryLow) return;
+    batteryLow = true;
+    char.classList.add('battery-low');
+
+    function doPanic() {
+      if(!sleeping && state !== 'sleep') {
+        const d = dialogBaterai[Math.floor(Math.random()*dialogBaterai.length)];
+        showBubble(d, 4500);
+
+        // paksa lari lebih cepat & panik
+        speed = 3.5;
+        setSvgAnim('s-panic');
+
+        // gerakan acak cepat
+        targetX = clampX(30 + Math.random()*(CW-110));
+        targetY = clampY(200 + Math.random()*(Math.max(container.scrollHeight,900)-400));
+        state = 'walk';
+      }
+    }
+
+    doPanic();
+    batteryPanicInterval = setInterval(doPanic, 8000);
+  }
+
+  function stopBatteryPanic() {
+    batteryLow = false;
+    char.classList.remove('battery-low');
+    clearInterval(batteryPanicInterval);
+    speed = 1.8; // kembalikan kecepatan normal
+    setSvgAnim('s-walk');
+    showBubble("fiuh, udah dicharge! tenang... 😌🔋", 3500);
+  }
+
+  async function checkBattery() {
+    if(!('getBattery' in navigator)) return;
+    try {
+      const bat = await navigator.getBattery();
+
+      function evalBattery() {
+        const pct = bat.level * 100;
+        const charging = bat.charging;
+        if(pct <= 20 && !charging && !batteryLow) {
+          startBatteryPanic();
+        } else if((pct > 20 || charging) && batteryLow) {
+          stopBatteryPanic();
+        }
+      }
+
+      evalBattery();
+      bat.addEventListener('levelchange', evalBattery);
+      bat.addEventListener('chargingchange', evalBattery);
+    } catch(e) { /* not supported */ }
+  }
+
+  checkBattery();
+
+})();
+</script>
+
+<script>
+/* =========================================================
+   HAMBURGER — TOGGLE QUICKGRID
+========================================================= */
+function toggleQuickgrid(){
+  const grid = document.getElementById("quickgridEl");
+  const btn  = document.getElementById("hamburgerBtn");
+  const isCollapsed = grid.classList.toggle("collapsed");
+  btn.classList.toggle("is-open", isCollapsed);
+  localStorage.setItem("srinai_quickgrid_collapsed", isCollapsed ? "1" : "0");
+}
+
+function initQuickgridState(){
+  const saved = localStorage.getItem("srinai_quickgrid_collapsed");
+  if(saved === "1"){
+    document.getElementById("quickgridEl").classList.add("collapsed");
+    document.getElementById("hamburgerBtn").classList.add("is-open");
+  }
+}
+initQuickgridState();
+
+async function initPage(){
+
+  if(!(await isLoggedIn())){
+    location.href="index.html";
+    return;
+  }
+
+  const currentUser = getCurrentUser();
+  if(!currentUser){ location.href="index.html"; return; }
+
+  /* Gunakan cachedGetFullProfile — lebih cepat karena pakai localStorage */
+  const profile = await cachedGetFullProfile(currentUser);
+  if(!profile){ logoutUser(); location.href="index.html"; return; }
+
+  /* --- Brand logo (dari cache) --- */
+  const savedBrandLogo = await cachedGetAppSetting("loginLogo");
+  if(savedBrandLogo){
+    document.getElementById("brandMark").innerHTML = `<img src="${savedBrandLogo}" alt="Logo">`;
+  }
+
+  /* --- Datetime --- */
+  updateDatetime();
+  setInterval(updateDatetime, 30000);
+
+  /* --- Greeting --- */
+  const hour = new Date().getHours();
+  let greet = "Selamat Malam";
+  if(hour >= 4  && hour < 11) greet = "Selamat Pagi";
+  else if(hour >= 11 && hour < 15) greet = "Selamat Siang";
+  else if(hour >= 15 && hour < 18) greet = "Selamat Sore";
+  document.getElementById("greetingText").innerHTML =
+    `${greet}, <span>${profile.nama.split(" ")[0]}</span>!`;
+
+  /* --- Profile data --- */
+  document.getElementById("jalur").textContent     = (profile.jalurLabel || "-").replace(" - ","-\n");
+  document.getElementById("tower").textContent     = profile.towerLabel;
+  document.getElementById("span").textContent      = profile.jumlahSpan + " span";
+
+  /* --- Hero photo --- */
+  if(profile.foto){
+    document.getElementById("heroPhotoImg").src = profile.foto;
+    document.getElementById("heroPhotoImg").style.display = "block";
+    document.getElementById("heroPhotoPlaceholder").style.display = "none";
+  }
+
+  /* --- Role-based menu visibility --- */
+  if(typeof isAdmin === "function" && isAdmin()){
+    document.getElementById("kelolaAkunQuick").style.display = "flex";
+  }
+  if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
+    document.getElementById("masterDataQuick").style.display = "flex";
+    document.getElementById("pengaturanBaQuick").style.display = "flex";
+  }
+
+  /* --- Notice (dari cache) --- */
+  const notice = await cachedGetAppSetting("systemNotice");
+  if(notice){
+    const box = document.getElementById("noticeBox");
+    box.style.display = "block";
+    box.innerHTML = "📢 " + notice;
+    document.getElementById("noticeDot").style.display = "block";
+  }
+
+  /* --- Statistik Tegakan & BA (tidak blocking, pakai cache) --- */
+  loadStats();
+
+  /* --- Update label sync --- */
+  if(typeof _updateSyncBadge === "function") _updateSyncBadge();
+
+}
+
+initPage();
+
+/* =========================================================
+   TOMBOL SINKRON
+========================================================= */
+async function doSync(){
+  const btn    = document.getElementById("syncBtn");
+  const status = document.getElementById("syncStatusLabel");
+  if(!btn || !status) return;
+
+  btn.classList.add("syncing");
+  status.className = "sync-status syncing";
+  status.textContent = "Menghubungi server...";
+
+  let step = 0;
+  const result = await syncAll(function(current, total, label){
+    step = current;
+    status.textContent = `Mengambil: ${label} (${current}/${total})`;
+  });
+
+  btn.classList.remove("syncing");
+
+  if(result.failed === 0){
+    status.className = "sync-status success";
+    status.textContent = "✓ Sinkron berhasil — semua data terbaru";
+    /* Perbarui statistik dari data fresh */
+    loadStats();
+  } else if(result.success > 0){
+    status.className = "sync-status";
+    status.textContent = `⚠ ${result.success} berhasil, ${result.failed} gagal`;
+  } else {
+    status.className = "sync-status error";
+    status.textContent = "✕ Gagal — periksa koneksi internet";
+  }
+
+  /* Kembalikan ke label waktu setelah 4 detik */
+  setTimeout(()=>{
+    status.className = "sync-status";
+    if(typeof getLastSyncLabel === "function") status.textContent = getLastSyncLabel();
+  }, 4000);
+}
+
+/* --- Datetime (deklarasi function, dipanggil di initPage) --- */
+function updateDatetime(){
+  const now = new Date();
+  const hariList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const bulanList = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const hari  = hariList[now.getDay()];
+  const tgl   = now.getDate();
+  const bln   = bulanList[now.getMonth()];
+  const thn   = now.getFullYear();
+  const jam   = String(now.getHours()).padStart(2,"0");
+  const mnt   = String(now.getMinutes()).padStart(2,"0");
+  document.getElementById("datetimeText").textContent =
+    `${hari}, ${tgl} ${bln} ${thn} • ${jam}:${mnt}`;
+}
+
+/* --- Logout --- */
+function doLogout(){
+  if(confirm("Yakin ingin keluar?")){
+    logoutUser();
+    location.href="index.html";
+  }
+}
+
+/* =========================================================
+   STAT WIDGET — Tegakan & BA
+   Pakai cachedGetAllBA() — baca cache dulu, segar dari server
+   bila stale, tanpa memblokir tampilan.
+========================================================= */
+async function loadStats(){
+  try{
+    /* cachedGetAllBA: langsung dari localStorage kalau ada */
+    const allBA = await cachedGetAllBA();
+    /* PENTING: untuk statistik "Tersebar di X span", JANGAN pakai
+       cachedGetAllTegakan()/cachedGetSpanMasterList() — keduanya cache-first
+       dan bisa menampilkan angka basi (data lama di localStorage) sampai
+       refresh background selesai. Statistik ini langsung getAllTegakan()
+       dan getSpanMasterList() dari server supaya selalu akurat saat ini juga. */
+    const [allTegakan, allSpanMaster] = await Promise.all([
+      getAllTegakan(),
+      getSpanMasterList(),
+    ]);
+    const validSpanIds = new Set((allSpanMaster || []).map(s => String(s.id)));
+
+    /* Batasi ke span yang ditugaskan ke user saat ini saja — kalau tidak,
+       tegakan dari jalur/span milik petugas lain ikut terhitung sehingga
+       "Tersebar di X span" menampilkan angka yang lebih besar dari
+       jumlah span milik user yang sebenarnya punya tegakan. */
+    const currentUser2 = (typeof getCurrentUser === "function") ? getCurrentUser() : null;
+    const userProfile   = currentUser2 ? await cachedGetFullProfile(currentUser2) : null;
+    const userSpanIds   = (userProfile && Array.isArray(userProfile.spanIds) && userProfile.spanIds.length)
+      ? new Set(userProfile.spanIds.map(id => String(id)))
+      : null; // null = tidak ada batasan (mis. admin tanpa assignment spesifik)
+
+    const tegakanValid = (allTegakan || []).filter(t =>
+      validSpanIds.has(String(t.spanId)) &&
+      (!userSpanIds || userSpanIds.has(String(t.spanId)))
+    );
+
+    const totalBA = allBA.length;
+    const totalTegakan = userSpanIds
+      ? (allTegakan || []).filter(t => userSpanIds.has(String(t.spanId))).length
+      : (allTegakan || []).length;
+    const totalSpanTercatat = new Set(tegakanValid.map(t => String(t.spanId))).size;
+
+    const now = new Date();
+    const bulanIni = String(now.getMonth() + 1).padStart(2,"0");
+    const tahunIni = String(now.getFullYear());
+    const baBulanIni = allBA.filter(ba => {
+      if(!ba.tanggal) return false;
+      const parts = ba.tanggal.split("-");
+      return parts.length === 3 && parts[1] === bulanIni && parts[2] === tahunIni;
+    }).length;
+
+    document.getElementById("statTegakanCard").classList.remove("is-loading");
+    document.getElementById("statBaCard").classList.remove("is-loading");
+
+    animateCountUp("statTegakanValue", totalTegakan);
+    animateCountUp("statBaValue", totalBA);
+
+    document.getElementById("statTegakanSub").innerHTML =
+      totalSpanTercatat > 0 ? `Tersebar di <b>${totalSpanTercatat}</b> span` : "Belum ada data tegakan";
+    document.getElementById("statBaSub").innerHTML =
+      baBulanIni > 0 ? `<b>${baBulanIni}</b> baru bulan ini` : "Belum ada BA bulan ini";
+
+  } catch(err){
+    console.error("Gagal memuat statistik:", err);
+    document.getElementById("statTegakanSub").textContent = "Gagal memuat data";
+    document.getElementById("statBaSub").textContent = "Gagal memuat data";
+  }
+}
+
+/* Animasi hitung naik dari 0 ke target, easing supaya berasa "hidup"
+   tapi tidak norak (durasi pendek, ease-out). */
+function animateCountUp(elementId, target, duration){
+  duration = duration || 900;
+  const el = document.getElementById(elementId);
+  if(!el) return;
+
+  if(target <= 0){
+    el.textContent = "0";
+    return;
+  }
+
+  const start = performance.now();
+  function tick(now){
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const current = Math.round(eased * target);
+    el.textContent = current.toLocaleString("id-ID");
+    if(progress < 1){
+      requestAnimationFrame(tick);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+</script>
+
+</body>
+  </html>

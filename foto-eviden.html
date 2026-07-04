@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foto Eviden - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:40px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(242,107,107,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;min-width:0;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+/* ALERT banner */
+.alert-banner{
+  position:relative;z-index:2;
+  margin:16px 20px 0;
+  background:linear-gradient(135deg, rgba(242,107,107,0.16) 0%, var(--bg-card) 75%);
+  border:1px solid rgba(242,107,107,0.35);
+  border-left:4px solid var(--red);
+  border-radius:14px;
+  padding:13px 14px;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.alert-banner svg{flex-shrink:0;margin-top:1px;}
+.alert-banner-text{font-size:12px;line-height:1.55;color:var(--ink-2);}
+.alert-banner-text b{color:var(--red);font-weight:800;letter-spacing:.3px;}
+
+.section-row{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  margin:20px 20px 10px;
+}
+.section-title{font-size:13px;font-weight:800;color:var(--ink);}
+.section-count{font-size:11px;color:var(--ink-3);}
+
+.grid{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  margin:0 20px;
+}
+.ev-card{
+  background:var(--bg-card);border-radius:16px;overflow:hidden;
+  border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,0.3);
+}
+.ev-photo-wrap{position:relative;width:100%;padding-top:75%;background:var(--bg-card2);}
+.ev-photo-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.ev-badge{
+  position:absolute;top:7px;left:7px;
+  font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;
+  background:rgba(5,10,25,0.65);color:var(--ink);backdrop-filter:blur(4px);
+}
+.ev-body{padding:10px 11px 11px;}
+.ev-note{font-size:11.5px;color:var(--ink-2);line-height:1.4;margin-bottom:7px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ev-meta{font-size:9.5px;color:var(--ink-3);margin-bottom:9px;}
+.ev-meta b{color:var(--ink-2);}
+.ev-actions{display:flex;gap:6px;}
+.ev-dl{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  flex:1;padding:8px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(74,142,245,0.15);color:var(--blue);
+  font-size:11px;font-weight:700;text-decoration:none;
+}
+.ev-dl:active{background:rgba(74,142,245,0.25);}
+.ev-del{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;flex:none;padding:8px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--red-bg);color:var(--red);
+}
+.ev-del:active{background:rgba(242,107,107,0.28);}
+.ev-del[disabled]{opacity:.5;pointer-events:none;}
+
+.empty-state{
+  position:relative;z-index:2;text-align:center;padding:60px 30px 20px;
+}
+.empty-state svg{width:44px;height:44px;opacity:.3;margin-bottom:12px;}
+.empty-state p{font-size:12.5px;color:var(--ink-3);line-height:1.6;}
+
+.skeleton-grid{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 20px;
+}
+.skeleton{
+  border-radius:16px;height:190px;
+  background:linear-gradient(90deg,var(--bg-card2) 25%,var(--bg-card) 50%,var(--bg-card2) 75%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Lightbox sederhana */
+.lightbox{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;}
+.lightbox.active{display:flex;}
+.lightbox img{max-width:100%;max-height:80vh;border-radius:12px;}
+.lightbox-close{position:absolute;top:20px;right:20px;width:38px;height:38px;border-radius:50%;background:var(--bg-glass);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+
+/* Bottom nav (samakan dengan halaman lain) */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;max-width:460px;margin:auto;
+  background:var(--bg-card);border-top:1px solid var(--border);
+  display:flex;padding:8px 4px 22px;z-index:50;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-decoration:none;color:var(--ink-3);flex:1;position:relative;
+}
+.nav-item svg{width:21px;height:21px;}
+.nav-label{font-size:10px;font-weight:600;}
+.nav-item.active{color:var(--red);}
+
+/* FAB - Ambil Foto */
+.fab-camera{
+  position:fixed;left:0;right:0;bottom:96px;max-width:460px;margin:auto;
+  display:flex;justify-content:flex-end;padding-right:20px;z-index:60;
+  pointer-events:none;
+}
+.fab-camera button{
+  pointer-events:auto;
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--gold) 0%, #E0A82E 100%);
+  color:#1A1200;font-weight:800;font-size:13px;
+  border:none;border-radius:50px;padding:13px 18px;
+  box-shadow:0 8px 22px rgba(244,197,66,0.35);cursor:pointer;
+}
+.fab-camera button:active{transform:scale(0.97);}
+.fab-camera svg{width:18px;height:18px;flex-shrink:0;}
+
+/* Modal Ambil Foto */
+.cam-modal{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;z-index:400;
+  align-items:flex-end;justify-content:center;}
+.cam-modal.active{display:flex;}
+.cam-sheet{
+  width:100%;max-width:460px;max-height:92vh;overflow-y:auto;
+  background:var(--bg-card);border-radius:22px 22px 0 0;
+  padding:20px 20px 26px;position:relative;
+}
+.cam-sheet h2{font-size:16px;font-weight:800;margin-bottom:4px;}
+.cam-sheet .cam-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:18px;}
+.cam-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;
+  background:var(--bg-glass);border:1px solid var(--border);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;}
+
+.cam-field{margin-bottom:16px;}
+.cam-field label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:7px;}
+.cam-field select, .cam-field textarea{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:12px;
+  padding:12px 13px;color:var(--ink);font-size:13.5px;font-family:inherit;
+}
+.cam-field textarea{min-height:70px;resize:vertical;}
+.cam-field select{appearance:none;-webkit-appearance:none;}
+
+.cam-shoot-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--bg-card2);border:1.5px dashed var(--border);border-radius:14px;
+  padding:22px;color:var(--ink-2);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;
+}
+.cam-shoot-btn svg{width:22px;height:22px;}
+.cam-shoot-btn.has-photo{border-style:solid;padding:0;overflow:hidden;flex-direction:column;}
+.cam-preview{width:100%;display:block;}
+.cam-retake{width:100%;padding:10px;background:rgba(255,255,255,0.06);color:var(--ink-2);
+  font-size:11.5px;font-weight:700;text-align:center;}
+
+.cam-submit{
+  width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;
+  background:var(--gold);color:#1A1200;font-size:14px;font-weight:800;
+}
+.cam-submit:disabled{opacity:.4;}
+.cam-status{font-size:11.5px;color:var(--ink-3);text-align:center;margin-top:10px;min-height:14px;}
+.cam-geo-status{font-size:11px;color:var(--ink-3);text-align:center;margin:-4px 0 16px;display:flex;align-items:center;justify-content:center;gap:5px;}
+.cam-geo-status.ok{color:#7CD68A;}
+.cam-geo-status.warn{color:#F4C542;}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Foto Eviden</h1>
+      <p id="pageSub">Memuat...</p>
+    </div>
+  </div>
+
+  <div class="alert-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F26B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+    <div class="alert-banner-text"><b>ALERT.</b> Fitur ini berfungsi untuk menyimpan foto eviden yang sangat penting dan dapat didownload untuk kebutuhan di kemudian hari.</div>
+  </div>
+
+  <div class="section-row">
+    <div class="section-title">Semua Foto Eviden</div>
+    <div class="section-count" id="evCount">0 foto</div>
+  </div>
+
+  <div class="skeleton-grid" id="skeletonGrid">
+    <div class="skeleton"></div>
+    <div class="skeleton" style="opacity:.7;"></div>
+    <div class="skeleton" style="opacity:.5;"></div>
+    <div class="skeleton" style="opacity:.3;"></div>
+  </div>
+
+  <div class="grid" id="evGrid" style="display:none;"></div>
+
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#99A5C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <p>Belum ada foto eviden.<br>Foto akan muncul di sini setelah diambil lewat fitur catatan tower/span.</p>
+  </div>
+
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-close" onclick="closeLightbox(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </div>
+  <img id="lightboxImg" src="" alt="Foto eviden">
+</div>
+
+<div class="fab-camera">
+  <button onclick="openCamModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Ambil Foto
+  </button>
+</div>
+
+<div class="cam-modal" id="camModal">
+  <div class="cam-sheet">
+    <div class="cam-close" onclick="closeCamModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <h2>Ambil Foto Eviden</h2>
+    <div class="cam-sub">Foto otomatis diberi cap tanggal &amp; jam, lalu tersimpan ke Google Drive.</div>
+
+    <input type="file" id="camFileInput" accept="image/*" capture="environment" style="display:none;">
+    <div class="cam-shoot-btn" id="camShootBtn" onclick="document.getElementById('camFileInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span id="camShootLabel">Tap untuk buka kamera</span>
+    </div>
+
+    <div class="cam-geo-status" id="camGeoStatus">📡 Mencari lokasi GPS...</div>
+
+    <div class="cam-field">
+      <label>Lokasi Terkait (Tower / Span)</label>
+      <select id="camLokasi">
+        <option value="">Memuat daftar tower &amp; span...</option>
+      </select>
+    </div>
+
+    <div class="cam-field">
+      <label>Catatan Singkat</label>
+      <textarea id="camCatatan" placeholder="Contoh: Ranting pohon dekat konduktor fasa R"></textarea>
+    </div>
+
+    <button class="cam-submit" id="camSubmitBtn" onclick="submitCamEvidence()" disabled>Simpan ke Eviden</button>
+    <div class="cam-status" id="camStatus"></div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a href="dashboard.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+    <div class="nav-label">Beranda</div>
+  </a>
+  <a href="tower.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+    <div class="nav-label">Tower</div>
+  </a>
+  <a href="span.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+    <div class="nav-label">Span</div>
+  </a>
+  <a href="foto-eviden.html" class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <div class="nav-label">Eviden</div>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+    <div class="nav-label">Akun</div>
+  </a>
+</div>
+
+<script>
+function formatTanggal(iso){
+  if(!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" }) +
+    " " + d.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" });
+}
+
+function downloadUrl(item){
+  // fotoFileId ada -> foto tersimpan di Google Drive, pakai link download langsung
+  if(item.fotoFileId){
+    return "https://drive.google.com/uc?export=download&id=" + item.fotoFileId;
+  }
+  return item.foto; // fallback (base64 lama / belum sempat naik ke Drive)
+}
+
+function renderEvidence(list){
+  document.getElementById("skeletonGrid").style.display = "none";
+
+  if(!list.length){
+    document.getElementById("emptyState").style.display = "block";
+    document.getElementById("evCount").textContent = "0 foto";
+    return;
+  }
+
+  document.getElementById("evCount").textContent = list.length + " foto";
+  const grid = document.getElementById("evGrid");
+  grid.style.display = "grid";
+  grid.innerHTML = list.map(item => {
+    const jenis = item.towerId ? "Tower" : "Span";
+    const foto = item.foto || "";
+    const noteEsc = (item.catatan || "").replace(/"/g,"&quot;");
+    const deleteBtn = isAdmin() ? `
+          <button class="ev-del" onclick="deleteEvidence(${item.id}, this)" title="Hapus foto eviden ini">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>` : "";
+    return `
+      <div class="ev-card" data-id="${item.id}">
+        <div class="ev-photo-wrap" onclick="openLightbox('${foto}')">
+          <img src="${foto}" alt="Foto eviden" loading="lazy">
+          <div class="ev-badge">${jenis}</div>
+        </div>
+        <div class="ev-body">
+          <div class="ev-note" title="${noteEsc}">${item.catatan || "-"}</div>
+          <div class="ev-meta"><b>${item.username || "-"}</b><br>${formatTanggal(item.createdAt)}</div>
+          <div class="ev-actions">
+            <a class="ev-dl" href="${downloadUrl(item)}" target="_blank" rel="noopener">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              Unduh
+            </a>
+            ${deleteBtn}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function deleteEvidence(id, btnEl){
+  if(!isAdmin()) return;
+  if(!confirm("Hapus foto eviden ini dari daftar? Tindakan ini tidak bisa dibatalkan.")) return;
+
+  if(btnEl) btnEl.setAttribute("disabled", "true");
+  try{
+    const resp = await fetch("/api/catatan-span?id=" + encodeURIComponent(id), { method: "DELETE" });
+    const data = await resp.json().catch(() => ({}));
+    if(!resp.ok || !data.success){
+      throw new Error(data.message || "Gagal menghapus data.");
+    }
+    const card = document.querySelector('.ev-card[data-id="' + id + '"]');
+    if(card) card.remove();
+
+    const remaining = document.querySelectorAll('.ev-card').length;
+    document.getElementById("evCount").textContent = remaining + " foto";
+    if(remaining === 0){
+      document.getElementById("emptyState").style.display = "block";
+      document.getElementById("evGrid").style.display = "none";
+    }
+  }catch(err){
+    alert("Gagal menghapus: " + err.message);
+    if(btnEl) btnEl.removeAttribute("disabled");
+  }
+}
+
+function openLightbox(src){
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("lightbox").classList.add("active");
+}
+function closeLightbox(e){
+  if(e.target.id === "lightbox" || e.target.closest(".lightbox-close")){
+    document.getElementById("lightbox").classList.remove("active");
+  }
+}
+
+/* =========================================================
+   AMBIL FOTO CEPAT + WATERMARK TANGGAL/JAM
+========================================================= */
+let camWatermarkedDataUrl = null; // hasil foto (base64) yang siap diupload
+let camCapturedAt = null;         // Date saat foto diambil
+let camLokasiOptions = [];        // [{value:"span:ID"|"tower:ID", label:"LCJ-S001"}]
+let camGeoData = null;            // {lat, lon, accuracy, address} | null kalau gagal/ditolak
+
+async function openCamModal(){
+  document.getElementById("camModal").classList.add("active");
+  await populateCamLokasi();
+  mulaiAmbilLokasiGps();
+}
+
+/* Ambil GPS begitu modal dibuka, supaya sudah siap saat user selesai
+   memotret (tidak nunggu setelah foto diambil). Kalau gagal/ditolak,
+   foto tetap bisa disimpan tanpa cap lokasi. */
+function mulaiAmbilLokasiGps(){
+  camGeoData = null;
+  const statusEl = document.getElementById("camGeoStatus");
+  statusEl.className = "cam-geo-status";
+  statusEl.textContent = "📡 Mencari lokasi GPS...";
+
+  if(!navigator.geolocation){
+    statusEl.className = "cam-geo-status warn";
+    statusEl.textContent = "⚠ Perangkat tidak mendukung GPS";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      camGeoData = { lat: latitude, lon: longitude, accuracy: accuracy || null, address: null };
+
+      statusEl.className = "cam-geo-status";
+      statusEl.textContent = "📍 Mencari alamat...";
+
+      const address = await reverseGeocode(latitude, longitude);
+      if(camGeoData){ // bisa saja modal sudah ditutup/reset saat fetch berjalan
+        camGeoData.address = address;
+        statusEl.className = "cam-geo-status ok";
+        statusEl.textContent = "📍 " + (address || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      }
+    },
+    (err) => {
+      let msg = "⚠ Lokasi GPS tidak tersedia";
+      if(err.code === err.PERMISSION_DENIED) msg = "⚠ Izin lokasi ditolak — foto tanpa cap lokasi";
+      else if(err.code === err.TIMEOUT) msg = "⚠ GPS timeout — coba di area terbuka";
+      statusEl.className = "cam-geo-status warn";
+      statusEl.textContent = msg;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+  );
+}
+
+/* Reverse geocode pakai OpenStreetMap Nominatim (gratis, tanpa API key).
+   Kalau gagal/timeout, kembalikan null supaya fallback ke koordinat mentah. */
+async function reverseGeocode(lat, lon){
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+      { headers: { "Accept-Language": "id" }, signal: controller.signal }
+    );
+    clearTimeout(timeout);
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data?.display_name || null;
+  }catch(err){
+    console.error("Reverse geocode gagal:", err);
+    return null;
+  }
+}
+
+function closeCamModal(){
+  document.getElementById("camModal").classList.remove("active");
+  resetCamForm();
+}
+
+function resetCamForm(){
+  camWatermarkedDataUrl = null;
+  camCapturedAt = null;
+  camGeoData = null;
+  document.getElementById("camFileInput").value = "";
+  document.getElementById("camShootBtn").classList.remove("has-photo");
+  document.getElementById("camShootBtn").innerHTML =
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+     <span id="camShootLabel">Tap untuk buka kamera</span>`;
+  document.getElementById("camShootBtn").onclick = () => document.getElementById("camFileInput").click();
+  document.getElementById("camCatatan").value = "";
+  document.getElementById("camStatus").textContent = "";
+  document.getElementById("camGeoStatus").className = "cam-geo-status";
+  document.getElementById("camGeoStatus").textContent = "📡 Mencari lokasi GPS...";
+  document.getElementById("camSubmitBtn").disabled = true;
+}
+
+async function populateCamLokasi(){
+  const sel = document.getElementById("camLokasi");
+  sel.innerHTML = `<option value="">Memuat daftar tower &amp; span...</option>`;
+  try{
+    const profile = await getFullProfile(getCurrentUser());
+    const jalurList = await getJalurMasterList();
+    const [towerMaster, spanMaster] = await Promise.all([
+      getTowerMasterList(profile?.jalurId),
+      getSpanMasterList(profile?.jalurId)
+    ]);
+    const jalurMatch = jalurList.find(j => j.id === profile?.jalurId);
+    const jalurCode = jalurMatch ? jalurMatch.code : "";
+
+    const isAdmin = profile?.role === "admin";
+    const towers = isAdmin || !profile?.hasNewAssignment
+      ? towerMaster
+      : towerMaster.filter(t => (profile.towerIds || []).includes(t.id));
+    const spans = isAdmin || !profile?.hasNewAssignment
+      ? spanMaster
+      : spanMaster.filter(s => (profile.spanIds || []).includes(s.id));
+
+    camLokasiOptions = [
+      ...towers.map(t => ({ value: "tower:" + t.id, label: "🗼 " + assetCodeTower(jalurCode, t.nomor) })),
+      ...spans.map(s => ({ value: "span:" + s.id, label: "🔗 " + assetCodeSpan(jalurCode, s.nomor) }))
+    ];
+
+    if(!camLokasiOptions.length){
+      sel.innerHTML = `<option value="">Tidak ada tower/span yang ditugaskan ke akun ini</option>`;
+      return;
+    }
+
+    sel.innerHTML = `<option value="">-- Pilih lokasi --</option>` +
+      camLokasiOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+  }catch(err){
+    console.error(err);
+    sel.innerHTML = `<option value="">Gagal memuat daftar lokasi</option>`;
+  }
+}
+
+function formatWatermarkText(date){
+  const tgl = date.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" });
+  const jam = date.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  return { tgl, jam };
+}
+
+// Baca file foto -> gambar ke canvas -> bakar watermark tanggal/jam/lokasi -> hasil dataURL JPEG
+function processPhotoWithWatermark(file, geoData){
+  return new Promise((resolve, reject) => {
+    const capturedAt = new Date();
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gagal membaca file foto."));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Gagal memuat foto."));
+      img.onload = () => {
+        try{
+          const MAX_DIM = 1600;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if(!w || !h){ reject(new Error("Ukuran foto tidak terbaca.")); return; }
+          if(Math.max(w, h) > MAX_DIM){
+            const scale = MAX_DIM / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const { tgl, jam } = formatWatermarkText(capturedAt);
+          const username = getCurrentUser() || "-";
+          const address = geoData?.address || null;
+          const coordText = geoData
+            ? `${geoData.lat.toFixed(6)}, ${geoData.lon.toFixed(6)}` + (geoData.accuracy ? ` (±${Math.round(geoData.accuracy)}m)` : "")
+            : null;
+
+          const pad = Math.max(14, Math.round(w * 0.035));
+          const fontBig   = Math.max(20, Math.round(w * 0.052));
+          const fontSmall = Math.max(13, Math.round(w * 0.028));
+          const maxTextW  = w - pad * 2;
+          const fontAddr  = `600 ${fontSmall}px Arial, sans-serif`;
+
+          ctx.font = fontAddr; // dipakai buat ngukur wrap alamat
+          const addressLines = address ? wrapTextToLines(ctx, address, maxTextW, 3) : [];
+
+          // Susun baris watermark urut dari ATAS ke BAWAH:
+          // logo+nama web -> nama petugas -> tanggal & waktu -> alamat (1-3 baris) -> koordinat
+          const rows = [
+            { text: "⚡ SRINAI ASSIST - FOTO EVIDEN", font: `700 ${fontSmall}px Arial, sans-serif`, color: "#F4C542", lineH: fontSmall * 1.55 },
+            { text: "Petugas: " + username, font: `600 ${fontSmall}px Arial, sans-serif`, color: "rgba(255,255,255,0.85)", lineH: fontSmall * 1.5 },
+            { text: tgl + "   " + jam + " WIB", font: `800 ${fontBig}px Arial, sans-serif`, color: "#FFFFFF", lineH: fontBig * 1.3 },
+          ];
+          addressLines.forEach((line, i) => {
+            rows.push({ text: (i === 0 ? "📍 " : "    ") + line, font: fontAddr, color: "rgba(255,255,255,0.85)", lineH: fontSmall * 1.4 });
+          });
+          if(coordText){
+            rows.push({ text: "🧭 " + coordText, font: `600 ${fontSmall}px Arial, sans-serif`, color: "rgba(255,255,255,0.65)", lineH: fontSmall * 1.4 });
+          }
+
+          const blockH = rows.reduce((sum, r) => sum + r.lineH, 0);
+          const gradH = Math.min(Math.round(h * 0.62), Math.round(blockH + pad * 1.8));
+
+          // Gradasi gelap di bawah foto supaya teks selalu kebaca,
+          // apapun warna/kecerahan fotonya. Tinggi menyesuaikan jumlah baris.
+          const grad = ctx.createLinearGradient(0, h - gradH, 0, h);
+          grad.addColorStop(0, "rgba(0,0,0,0)");
+          grad.addColorStop(1, "rgba(0,0,0,0.75)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, h - gradH, w, gradH);
+
+          ctx.textBaseline = "alphabetic";
+          ctx.textAlign = "left";
+
+          // Gambar dari baris PALING BAWAH (koordinat) naik ke atas (logo/nama
+          // web), supaya urutan visualnya tetap: logo, nama web, petugas,
+          // tanggal & waktu, alamat, koordinat dari atas ke bawah.
+          let y = h - pad;
+          for(let i = rows.length - 1; i >= 0; i--){
+            const r = rows[i];
+            ctx.fillStyle = r.color;
+            ctx.font = r.font;
+            ctx.fillText(r.text, pad, y);
+            y -= r.lineH;
+          }
+
+          resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), capturedAt });
+        }catch(err){
+          reject(err);
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Pecah teks alamat jadi maksimal `maxLines` baris supaya muat di lebar foto.
+// Kalau masih kepanjangan setelah maxLines baris, baris terakhir dipotong "…".
+function wrapTextToLines(ctx, text, maxWidth, maxLines){
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+  let i = 0;
+  while(i < words.length && lines.length < maxLines){
+    const test = current ? current + " " + words[i] : words[i];
+    if(!current || ctx.measureText(test).width <= maxWidth){
+      current = test;
+      i++;
+    } else {
+      lines.push(current);
+      current = "";
+    }
+  }
+  if(current) lines.push(current);
+
+  if(i < words.length && lines.length > 0){
+    let last = lines[lines.length - 1];
+    while(last.length > 1 && ctx.measureText(last + "…").width > maxWidth){
+      last = last.slice(0, -1);
+    }
+    lines[lines.length - 1] = last + "…";
+  }
+  return lines;
+}
+
+document.getElementById("camFileInput").addEventListener("change", async function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const shootBtn = document.getElementById("camShootBtn");
+  shootBtn.innerHTML = `<span style="padding:22px;display:block;">Memproses foto...</span>`;
+
+  try{
+    const { dataUrl, capturedAt } = await processPhotoWithWatermark(file, camGeoData);
+    camWatermarkedDataUrl = dataUrl;
+    camCapturedAt = capturedAt;
+
+    shootBtn.classList.add("has-photo");
+    shootBtn.innerHTML = `<img src="${dataUrl}" class="cam-preview" alt="Preview foto">
+      <div class="cam-retake">Ganti Foto</div>`;
+    shootBtn.onclick = () => document.getElementById("camFileInput").click();
+
+    document.getElementById("camSubmitBtn").disabled = false;
+  }catch(err){
+    console.error(err);
+    document.getElementById("camStatus").textContent = "Gagal memproses foto: " + err.message;
+    resetCamForm();
+  }
+});
+
+async function submitCamEvidence(){
+  const lokasi = document.getElementById("camLokasi").value;
+  const catatan = document.getElementById("camCatatan").value.trim() || "Foto eviden cepat";
+  const statusEl = document.getElementById("camStatus");
+  const submitBtn = document.getElementById("camSubmitBtn");
+
+  if(!camWatermarkedDataUrl){
+    statusEl.textContent = "Ambil foto dulu.";
+    return;
+  }
+  if(!lokasi){
+    statusEl.textContent = "Pilih lokasi (tower/span) dulu.";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Mengunggah ke Google Drive...";
+
+  const [jenis, id] = lokasi.split(":");
+  const username = getCurrentUser();
+
+  try{
+    const result = jenis === "tower"
+      ? await addCatatanTower(id, username, catatan, camWatermarkedDataUrl)
+      : await addCatatanSpan(id, username, catatan, camWatermarkedDataUrl);
+
+    if(!result || result.success === false){
+      throw new Error(result?.message || "Gagal menyimpan.");
+    }
+
+    if(result.driveWarning){
+      statusEl.textContent = "Tersimpan, TAPI upload ke Drive gagal: " + result.driveWarning;
+      submitBtn.disabled = false;
+      return;
+    }
+
+    statusEl.textContent = "Tersimpan!";
+    setTimeout(async () => {
+      closeCamModal();
+      document.getElementById("skeletonGrid").style.display = "grid";
+      document.getElementById("evGrid").style.display = "none";
+      document.getElementById("emptyState").style.display = "none";
+      try{
+        const list = await getAllFotoEvidence();
+        renderEvidence(list);
+      }catch(e){ console.error(e); }
+    }, 600);
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = "Gagal menyimpan: " + err.message;
+    submitBtn.disabled = false;
+  }
+}
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href = "index.html"; return; }
+
+  const profile = await getFullProfile(getCurrentUser());
+  document.getElementById("pageSub").textContent = profile?.jabatan
+    ? profile.jabatan + " · Arsip foto bukti lapangan"
+    : "Arsip foto bukti lapangan";
+
+  try{
+    const list = await getAllFotoEvidence();
+    renderEvidence(list);
+  }catch(err){
+    console.error(err);
+    document.getElementById("skeletonGrid").style.display = "none";
+    document.getElementById("emptyState").style.display = "block";
+  }
+}
+
+initPage();
+</script>
+
+</body>
+</html>
