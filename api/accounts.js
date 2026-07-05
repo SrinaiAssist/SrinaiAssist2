@@ -10,34 +10,75 @@
 // Endpoint khusus password (dipisah agar jelas niatnya):
 // POST   /api/accounts?action=resetPassword   body:{ username }
 // POST   /api/accounts?action=changePassword  body:{ username, newPassword }
+//
+// PENTING (kuota transfer Neon): kolom foto profil (profiles.foto) sekarang
+// TIDAK lagi menyimpan base64 mentah langsung ke Postgres. Kalau foto yang
+// dikirim berupa base64 data URL, file diupload dulu ke Google Drive
+// (lib/googleDrive.js) dan yang disimpan di kolom foto cuma referensi kecil
+// "drive:<fileId>". Saat dibaca (GET), referensi itu otomatis di-download
+// dari Drive lalu dikonversi balik jadi base64 SEBELUM dikirim ke browser --
+// supaya frontend yang masih pakai <img src="..."> dengan base64 langsung
+// TIDAK PERLU diubah. Kalau kredensial Drive belum diset / upload gagal,
+// fallback: simpan base64 apa adanya seperti semula supaya fitur tetap jalan.
 
 const { sql } = require('../lib/db');
 const bcrypt = require('bcryptjs');
+const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+
+const DRIVE_PREFIX = 'drive:';
+
+async function resolveFotoForSave(foto, fileNamePrefix) {
+  if (!foto || typeof foto !== 'string' || !foto.startsWith('data:')) {
+    // Kosong, atau sudah berupa referensi Drive lama -> simpan apa adanya
+    return { toSave: foto ?? '', warning: null };
+  }
+  try {
+    const uploaded = await uploadPhotoToDrive(foto, `${fileNamePrefix}-${Date.now()}.jpg`);
+    return { toSave: `${DRIVE_PREFIX}${uploaded.fileId}`, warning: null };
+  } catch (driveErr) {
+    console.error('Upload foto profil ke Drive gagal, fallback simpan base64:', driveErr.message);
+    return { toSave: foto, warning: driveErr.message };
+  }
+}
+
+async function resolveFotoForRead(fotoRaw) {
+  if (!fotoRaw || typeof fotoRaw !== 'string' || !fotoRaw.startsWith(DRIVE_PREFIX)) {
+    return fotoRaw || '';
+  }
+  const fileId = fotoRaw.slice(DRIVE_PREFIX.length);
+  try {
+    return await downloadFileAsDataUrl(fileId, 'image/jpeg');
+  } catch (err) {
+    console.error('Download foto profil dari Drive gagal:', err.message);
+    return '';
+  }
+}
 
 async function listAccounts(filterUsername) {
-  if (filterUsername) {
-    const rows = await sql`
-      SELECT
-        a.username, a.role, a.status,
-        p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
-        p.tower_awal, p.tower_akhir, p.wilayah, p.foto
-      FROM accounts a
-      LEFT JOIN profiles p ON p.username = a.username
-      WHERE a.username = ${filterUsername}
-    `;
-    return rows;
-  }
+  const rows = filterUsername
+    ? await sql`
+        SELECT
+          a.username, a.role, a.status,
+          p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
+          p.tower_awal, p.tower_akhir, p.wilayah, p.foto
+        FROM accounts a
+        LEFT JOIN profiles p ON p.username = a.username
+        WHERE a.username = ${filterUsername}
+      `
+    : await sql`
+        SELECT
+          a.username, a.role, a.status,
+          p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
+          p.tower_awal, p.tower_akhir, p.wilayah, p.foto
+        FROM accounts a
+        LEFT JOIN profiles p ON p.username = a.username
+        ORDER BY a.username
+      `;
 
-  const rows = await sql`
-    SELECT
-      a.username, a.role, a.status,
-      p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
-      p.tower_awal, p.tower_akhir, p.wilayah, p.foto
-    FROM accounts a
-    LEFT JOIN profiles p ON p.username = a.username
-    ORDER BY a.username
-  `;
-  return rows;
+  // Resolve semua referensi Drive jadi base64 sebelum dikirim ke browser.
+  return Promise.all(
+    rows.map(async (r) => ({ ...r, foto: await resolveFotoForRead(r.foto) }))
+  );
 }
 
 module.exports = async (req, res) => {
@@ -99,6 +140,10 @@ module.exports = async (req, res) => {
       `;
 
       const pf = profileFields || {};
+      const { toSave: fotoToSave, warning: fotoWarning } = await resolveFotoForSave(
+        pf.foto, `profil-${trimmed}`
+      );
+
       await sql`
         INSERT INTO profiles (
           username, jabatan, jalur, jalur_id, tower_ids, span_ids,
@@ -113,11 +158,11 @@ module.exports = async (req, res) => {
           ${pf.towerAwal != null ? pf.towerAwal : 1},
           ${pf.towerAkhir != null ? pf.towerAkhir : 1},
           ${pf.wilayah || ''},
-          ''
+          ${fotoToSave}
         )
       `;
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, driveWarning: fotoWarning });
     }
 
     if (req.method === 'PUT') {
@@ -142,11 +187,13 @@ module.exports = async (req, res) => {
       // username adalah PRIMARY KEY dan direferensikan oleh tabel profiles
       // (FK, ON DELETE CASCADE, tanpa ON UPDATE CASCADE), jadi UPDATE
       // langsung ke kolom PK akan gagal kena constraint. Solusinya: insert
-      // baris baru dengan username baru (copy semua data), pindahkan TTD
-      // (profile_signatures) ke username baru, baru hapus baris lama
-      // (profiles lama ikut kehapus otomatis lewat CASCADE).
+      // baris baru dengan username baru (copy semua data -- termasuk
+      // referensi "drive:<fileId>" pada foto, TIDAK perlu upload ulang ke
+      // Drive karena file-nya tetap sama, cuma pindah pemilik baris di DB),
+      // pindahkan TTD (profile_signatures) ke username baru, baru hapus
+      // baris lama (profiles lama ikut kehapus otomatis lewat CASCADE).
       // Catatan histori: username lama yang sudah tercatat di catatan-span
-      // (laporan/inspeksi) TIDAK ikut diubah — itu memang riwayat dokumen,
+      // (laporan/inspeksi) TIDAK ikut diubah -- itu memang riwayat dokumen,
       // bukan referensi hidup ke akun.
       if (fields.newUsername !== undefined) {
         const newUsername = String(fields.newUsername).trim();
@@ -205,6 +252,14 @@ module.exports = async (req, res) => {
       ].some((k) => fields[k] !== undefined);
 
       if (hasProfileFields) {
+        let fotoToSave = null;
+        let fotoWarning = null;
+        if (fields.foto !== undefined) {
+          const resolved = await resolveFotoForSave(fields.foto, `profil-${username}`);
+          fotoToSave = resolved.toSave;
+          fotoWarning = resolved.warning;
+        }
+
         await sql`
           UPDATE profiles SET
             jabatan     = COALESCE(${fields.jabatan ?? null}, jabatan),
@@ -215,9 +270,13 @@ module.exports = async (req, res) => {
             tower_awal  = COALESCE(${fields.towerAwal ?? null}, tower_awal),
             tower_akhir = COALESCE(${fields.towerAkhir ?? null}, tower_akhir),
             wilayah     = COALESCE(${fields.wilayah ?? null}, wilayah),
-            foto        = COALESCE(${fields.foto ?? null}, foto)
+            foto        = COALESCE(${fotoToSave}, foto)
           WHERE username = ${username}
         `;
+
+        if (fotoWarning) {
+          return res.status(200).json({ success: true, username, driveWarning: fotoWarning });
+        }
       }
 
       return res.status(200).json({ success: true, username });

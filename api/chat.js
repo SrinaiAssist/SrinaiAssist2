@@ -7,8 +7,47 @@
 //          { kind:"koordinat", towerId, towerLabel, jalur, latitude, longitude, akurasiMeter }
 // DELETE /api/chat?id=..                   -> hapus satu pesan (Admin only, dicek di client)
 // DELETE /api/chat?all=1                   -> hapus seluruh chat (Admin only, dicek di client)
+//
+// PENTING (kuota transfer Neon): kolom foto (chat_messages.foto) sekarang
+// TIDAK lagi menyimpan base64 mentah langsung ke Postgres. Kalau foto yang
+// dikirim berupa base64 data URL, file diupload dulu ke Google Drive
+// (lib/googleDrive.js) dan yang disimpan di kolom foto cuma referensi kecil
+// "drive:<fileId>". Saat dibaca (GET), referensi itu otomatis di-download
+// dari Drive lalu dikonversi balik jadi base64 SEBELUM dikirim ke browser --
+// supaya frontend yang masih pakai <img src="..."> dengan base64 langsung
+// TIDAK PERLU diubah. Kalau kredensial Drive belum diset / upload gagal,
+// fallback: simpan base64 apa adanya seperti semula supaya fitur tetap jalan.
 
 const { sql } = require('../lib/db');
+const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+
+const DRIVE_PREFIX = 'drive:';
+
+async function resolveFotoForSave(foto, fileNamePrefix) {
+  if (!foto || typeof foto !== 'string' || !foto.startsWith('data:')) {
+    return { toSave: foto || null, warning: null };
+  }
+  try {
+    const uploaded = await uploadPhotoToDrive(foto, `${fileNamePrefix}-${Date.now()}.jpg`);
+    return { toSave: `${DRIVE_PREFIX}${uploaded.fileId}`, warning: null };
+  } catch (driveErr) {
+    console.error('Upload foto chat ke Drive gagal, fallback simpan base64:', driveErr.message);
+    return { toSave: foto, warning: driveErr.message };
+  }
+}
+
+async function resolveFotoForRead(fotoRaw) {
+  if (!fotoRaw || typeof fotoRaw !== 'string' || !fotoRaw.startsWith(DRIVE_PREFIX)) {
+    return fotoRaw || null;
+  }
+  const fileId = fotoRaw.slice(DRIVE_PREFIX.length);
+  try {
+    return await downloadFileAsDataUrl(fileId, 'image/jpeg');
+  } catch (err) {
+    console.error('Download foto chat dari Drive gagal:', err.message);
+    return null;
+  }
+}
 
 module.exports = async (req, res) => {
   try {
@@ -22,7 +61,10 @@ module.exports = async (req, res) => {
         ORDER BY created_at DESC
         LIMIT ${limit}
       `;
-      return res.status(200).json({ success: true, messages: rows.reverse() });
+      const resolved = await Promise.all(
+        rows.map(async (r) => ({ ...r, foto: await resolveFotoForRead(r.foto) }))
+      );
+      return res.status(200).json({ success: true, messages: resolved.reverse() });
     }
 
     if (req.method === 'POST') {
@@ -31,12 +73,14 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'username dan salah satu dari text/foto/meta wajib diisi.' });
       }
 
+      const { toSave: fotoToSave, warning } = await resolveFotoForSave(foto, `chat-${username}`);
+
       const id = Date.now();
       await sql`
         INSERT INTO chat_messages (id, username, text, foto, meta)
-        VALUES (${id}, ${username}, ${text || ''}, ${foto || null}, ${meta ? JSON.stringify(meta) : null})
+        VALUES (${id}, ${username}, ${text || ''}, ${fotoToSave}, ${meta ? JSON.stringify(meta) : null})
       `;
-      return res.status(200).json({ success: true, id });
+      return res.status(200).json({ success: true, id, driveWarning: warning });
     }
 
     if (req.method === 'DELETE') {
