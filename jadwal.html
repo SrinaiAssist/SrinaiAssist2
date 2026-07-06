@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jadwal - SRINAI ASSIST</title>
@@ -9,23 +9,64 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
 body{background:#001F54;}
-.container{max-width:500px;margin:auto;min-height:100vh;background:#001F54;padding-bottom:90px;}
+.container{max-width:600px;margin:auto;min-height:100vh;background:#001F54;padding-bottom:100px;}
 .header{background:#4DA6FF;color:white;text-align:center;padding:20px;}
 .content{padding:15px;}
-.card{background:#FFD54F;border-radius:20px;padding:15px;margin-bottom:15px;}
-.card h2{text-align:center;margin-bottom:15px;}
-.form-group{margin-bottom:10px;}
-label{display:block;font-weight:bold;margin-bottom:5px;}
-input,select{width:100%;padding:10px;border:none;border-radius:10px;}
-.save-btn{width:100%;padding:12px;background:#1565C0;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
+
+.card{background:#FFD54F;border-radius:16px;padding:12px 12px 16px;margin-bottom:15px;}
+.card h2{text-align:center;margin-bottom:12px;font-size:20px;letter-spacing:1px;}
+
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.toolbar select{padding:8px;border:none;border-radius:8px;font-weight:bold;}
+.toolbar button{padding:9px 12px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;color:white;}
+.btn-auto{background:#1565C0;}
+.btn-copy{background:#2E7D32;}
+.btn-clear{background:#D32F2F;}
+.hint{font-size:11px;color:#5a4300;margin:-6px 0 10px;}
+
+.table-wrap{overflow-x:auto;background:white;border-radius:12px;padding:6px;-webkit-overflow-scrolling:touch;}
+table#jadwalTable{border-collapse:collapse;width:100%;}
+table#jadwalTable th, table#jadwalTable td{
+  border:1px solid #cfd8dc;
+  text-align:center;
+  font-size:13px;
+  padding:0;
+}
+table#jadwalTable th{
+  background:#1565C0;color:white;padding:6px 4px;font-size:12px;white-space:nowrap;
+  position:sticky;top:0;z-index:2;
+}
+.col-tanggal{width:40px;min-width:40px;}
+.col-hari{width:78px;min-width:78px;}
+.col-cell{width:30px;min-width:30px;}
+
+td.tanggal-cell{font-weight:bold;background:#eef3fb;color:#001F54;}
+td[contenteditable="true"]{
+  min-width:100%;
+  height:34px;
+  line-height:34px;
+  outline:none;
+  cursor:text;
+}
+td.hari-cell{font-weight:bold;}
+td.hari-cell:empty::before{content:"-";color:#b0bec5;}
+td.cell-num:empty::before{content:"";}
+td[contenteditable="true"]:focus{background:#FFF3CD;}
+
+/* Warnai baris Minggu (kalau nama hari mengandung "minggu") */
+tr.row-minggu td.tanggal-cell, tr.row-minggu td.hari-cell{color:#c62828;}
+
 .jadwal-card{background:white;padding:15px;border-radius:15px;margin-bottom:12px;}
 .jadwal-card h3{color:#1565C0;margin-bottom:8px;}
 .status{font-weight:bold;margin-top:8px;}
 .action{display:flex;gap:10px;margin-top:10px;}
 .edit-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#4DA6FF;color:white;cursor:pointer;}
 .delete-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#D32F2F;color:white;cursor:pointer;}
+
 .bottom-menu{position:fixed;bottom:0;left:0;right:0;background:#001F54;padding:12px;text-align:center;}
 .back-btn{background:#FFD54F;color:black;padding:14px 25px;border-radius:25px;text-decoration:none;font-weight:bold;display:inline-block;}
+
+#saveInfo{color:white;text-align:center;font-size:12px;margin-top:8px;opacity:.8;}
 </style>
 </head>
 <body>
@@ -39,56 +80,36 @@ input,select{width:100%;padding:10px;border:none;border-radius:10px;}
 
 <div class="content">
 
-  <div class="card" id="formJadwal" style="display:none;">
-    <h2>Tambah Jadwal</h2>
+  <div class="card">
+    <h2>JADWAL</h2>
 
-    <div class="form-group">
-      <label>Tanggal</label>
-      <input type="date" id="tanggal">
+    <div class="toolbar">
+      <select id="bulanSelect"></select>
+      <select id="tahunSelect"></select>
+      <button class="btn-auto" onclick="isiHariOtomatis()">Isi Hari Otomatis</button>
+      <button class="btn-copy" onclick="copyTabel()">Copy Tabel</button>
+      <button class="btn-clear" onclick="kosongkanTabel()">Kosongkan</button>
+    </div>
+    <div class="hint">Ketuk sel untuk mengisi. Tabel otomatis tersimpan per bulan. Tombol "Copy Tabel" menyalin seluruh isi (bisa ditempel ke WhatsApp/Excel).</div>
+
+    <div class="table-wrap">
+      <table id="jadwalTable">
+        <thead>
+          <tr>
+            <th class="col-tanggal">Tgl</th>
+            <th class="col-hari">Hari</th>
+            <th class="col-cell">1</th><th class="col-cell">2</th><th class="col-cell">3</th>
+            <th class="col-cell">4</th><th class="col-cell">5</th><th class="col-cell">6</th>
+            <th class="col-cell">7</th><th class="col-cell">8</th><th class="col-cell">9</th>
+            <th class="col-cell">10</th><th class="col-cell">11</th><th class="col-cell">12</th>
+          </tr>
+        </thead>
+        <tbody id="jadwalTableBody"></tbody>
+      </table>
     </div>
 
-    <div class="form-group">
-      <label>Petugas</label>
-      <select id="petugas"></select>
-    </div>
-
-    <div class="form-group">
-      <label>Jalur</label>
-      <select id="jalur">
-        <option>Lembursitu - Cianjur</option>
-        <option>Lembursitu - Semenjawa</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>Tower Awal</label>
-      <input type="text" id="towerAwal" placeholder="T001">
-    </div>
-
-    <div class="form-group">
-      <label>Tower Akhir</label>
-      <input type="text" id="towerAkhir" placeholder="T026">
-    </div>
-
-    <div class="form-group">
-      <label>Kegiatan</label>
-      <input type="text" id="kegiatan" placeholder="Inspeksi Visual">
-    </div>
-
-    <div class="form-group">
-      <label>Status</label>
-      <select id="status">
-        <option>Belum Selesai</option>
-        <option>Sedang Berjalan</option>
-        <option>Selesai</option>
-        <option>Ditunda</option>
-      </select>
-    </div>
-
-    <button class="save-btn" onclick="simpanJadwal()">SIMPAN JADWAL</button>
+    <div id="saveInfo"></div>
   </div>
-
-  <div id="jadwalList"></div>
 
 </div>
 
@@ -106,102 +127,182 @@ if(!isLoggedIn()){
 const currentUser = getCurrentUser();
 document.getElementById("userInfo").innerHTML = currentUser;
 
-// Isi dropdown petugas otomatis dari seluruh akun terdaftar
-// (termasuk akun baru yang ditambahkan lewat Kelola Akun)
-const petugasSelect = document.getElementById("petugas");
-getAllUsernames().forEach(name=>{
-  if(name === "GI LEMBURSITU") return; // GI LEMBURSITU bukan petugas lapangan
+const JUMLAH_TANGGAL = 28;
+const JUMLAH_KOLOM   = 12;
+const NAMA_HARI = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const NAMA_BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+const bulanSelect = document.getElementById("bulanSelect");
+const tahunSelect = document.getElementById("tahunSelect");
+const tbody = document.getElementById("jadwalTableBody");
+const saveInfo = document.getElementById("saveInfo");
+
+// Isi dropdown bulan & tahun
+NAMA_BULAN.forEach((nama, i)=>{
   const opt = document.createElement("option");
-  opt.value = name;
-  opt.textContent = name;
-  petugasSelect.appendChild(opt);
+  opt.value = i;
+  opt.textContent = nama;
+  bulanSelect.appendChild(opt);
 });
+const now = new Date();
+for(let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++){
+  const opt = document.createElement("option");
+  opt.value = y;
+  opt.textContent = y;
+  tahunSelect.appendChild(opt);
+}
+bulanSelect.value = now.getMonth();
+tahunSelect.value = now.getFullYear();
 
-// Admin dan KLW bisa tambah jadwal
-if(isAdmin() || isKLW()){
-  document.getElementById("formJadwal").style.display="block";
+function storageKey(){
+  return "jadwalTabel_" + tahunSelect.value + "_" + bulanSelect.value;
 }
 
-let jadwalData = JSON.parse(localStorage.getItem("jadwalData")) || [];
+// Bangun 28 baris: kolom Tanggal (1-28) terisi, kolom Hari & 12 kolom kosong
+function buildTable(){
+  tbody.innerHTML = "";
+  for(let tgl = 1; tgl <= JUMLAH_TANGGAL; tgl++){
+    const tr = document.createElement("tr");
+    tr.dataset.tanggal = tgl;
 
-function simpanJadwal(){
-  const tanggal = document.getElementById("tanggal").value;
-  if(!tanggal){
-    alert("Isi tanggal terlebih dahulu.");
-    return;
-  }
-  const data = {
-    id: Date.now(),
-    tanggal: tanggal,
-    petugas: document.getElementById("petugas").value,
-    jalur: document.getElementById("jalur").value,
-    towerAwal: document.getElementById("towerAwal").value,
-    towerAkhir: document.getElementById("towerAkhir").value,
-    kegiatan: document.getElementById("kegiatan").value,
-    status: document.getElementById("status").value,
-    dibuat: currentUser
-  };
-  jadwalData.unshift(data);
-  localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
-  // Reset form
-  document.getElementById("tanggal").value="";
-  document.getElementById("kegiatan").value="";
-  loadJadwal();
-}
+    const tdTanggal = document.createElement("td");
+    tdTanggal.className = "tanggal-cell";
+    tdTanggal.textContent = tgl;
+    tr.appendChild(tdTanggal);
 
-function loadJadwal(){
-  const list = document.getElementById("jadwalList");
-  list.innerHTML="";
+    const tdHari = document.createElement("td");
+    tdHari.className = "hari-cell";
+    tdHari.setAttribute("contenteditable", "true");
+    tdHari.dataset.col = "hari";
+    tr.appendChild(tdHari);
 
-  // LW hanya lihat jadwal sendiri
-  let tampilData = isLW()
-    ? jadwalData.filter(j=>j.petugas===currentUser)
-    : jadwalData;
-
-  tampilData.forEach(item=>{
-    let html = `
-      <div class="jadwal-card">
-        <h3>${item.tanggal}</h3>
-        <div><b>Petugas :</b> ${item.petugas}</div>
-        <div><b>Jalur :</b> ${item.jalur}</div>
-        <div><b>Tower :</b> ${item.towerAwal} - ${item.towerAkhir}</div>
-        <div><b>Kegiatan :</b> ${item.kegiatan}</div>
-        <div class="status">Status : ${item.status}</div>`;
-
-    if(isAdmin() || isKLW()){
-      html += `
-        <div class="action">
-          <button class="edit-btn" onclick="editJadwal(${item.id})">Edit Status</button>
-          <button class="delete-btn" onclick="hapusJadwal(${item.id})">Hapus</button>
-        </div>`;
+    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+      const tdCell = document.createElement("td");
+      tdCell.className = "cell-num";
+      tdCell.setAttribute("contenteditable", "true");
+      tdCell.dataset.col = "c" + k;
+      tr.appendChild(tdCell);
     }
-    html += `</div>`;
-    list.innerHTML += html;
+
+    tbody.appendChild(tr);
+  }
+}
+
+// Simpan seluruh isi tabel bulan yang sedang aktif ke localStorage
+function simpanTabel(){
+  const data = { hari: [], cells: [] };
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const hari = tr.querySelector('[data-col="hari"]').textContent.trim();
+    data.hari.push(hari);
+    const baris = [];
+    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+      baris.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
+    }
+    data.cells.push(baris);
+  });
+  localStorage.setItem(storageKey(), JSON.stringify(data));
+  saveInfo.textContent = "Tersimpan " + new Date().toLocaleTimeString("id-ID");
+  tandaiBarisMinggu();
+}
+
+// Muat isi tabel bulan yang sedang aktif dari localStorage
+function muatTabel(){
+  buildTable();
+  const raw = localStorage.getItem(storageKey());
+  if(raw){
+    try{
+      const data = JSON.parse(raw);
+      const rows = tbody.querySelectorAll("tr");
+      rows.forEach((tr, i)=>{
+        if(data.hari && data.hari[i]) tr.querySelector('[data-col="hari"]').textContent = data.hari[i];
+        for(let k = 1; k <= JUMLAH_KOLOM; k++){
+          const val = data.cells && data.cells[i] ? data.cells[i][k-1] : "";
+          if(val) tr.querySelector('[data-col="c'+k+'"]').textContent = val;
+        }
+      });
+    }catch(e){ /* abaikan cache rusak */ }
+  }
+  saveInfo.textContent = raw ? "Data bulan ini dimuat dari penyimpanan." : "Belum ada data tersimpan untuk bulan ini.";
+  tandaiBarisMinggu();
+}
+
+// Isi otomatis kolom Hari berdasarkan bulan & tahun yang dipilih (tanggal 1-28)
+function isiHariOtomatis(){
+  const bulan = parseInt(bulanSelect.value, 10);
+  const tahun = parseInt(tahunSelect.value, 10);
+  const rows = tbody.querySelectorAll("tr");
+  rows.forEach((tr, i)=>{
+    const tgl = i + 1;
+    const d = new Date(tahun, bulan, tgl);
+    tr.querySelector('[data-col="hari"]').textContent = NAMA_HARI[d.getDay()];
+  });
+  simpanTabel();
+}
+
+function tandaiBarisMinggu(){
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const hari = tr.querySelector('[data-col="hari"]').textContent.trim().toLowerCase();
+    tr.classList.toggle("row-minggu", hari === "minggu");
+  });
+}
+
+// Salin seluruh tabel sebagai teks (dipisah tab antar-kolom, enter antar-baris)
+// supaya bisa langsung ditempel ke Excel/WhatsApp/Notes.
+async function copyTabel(){
+  const header = ["Tgl","Hari"];
+  for(let k = 1; k <= JUMLAH_KOLOM; k++) header.push(String(k));
+  const lines = [header.join("\t")];
+
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const baris = [tr.querySelector(".tanggal-cell").textContent.trim()];
+    baris.push(tr.querySelector('[data-col="hari"]').textContent.trim());
+    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+      baris.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
+    }
+    lines.push(baris.join("\t"));
   });
 
-  if(tampilData.length===0){
-    list.innerHTML = `<div style="color:white;text-align:center;padding:20px;">Belum ada jadwal.</div>`;
+  const teks = lines.join("\n");
+
+  try{
+    await navigator.clipboard.writeText(teks);
+    saveInfo.textContent = "Tabel berhasil disalin ke clipboard.";
+  }catch(e){
+    // Fallback untuk browser yang tidak dukung Clipboard API
+    const ta = document.createElement("textarea");
+    ta.value = teks;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{
+      document.execCommand("copy");
+      saveInfo.textContent = "Tabel berhasil disalin ke clipboard.";
+    }catch(e2){
+      saveInfo.textContent = "Gagal menyalin otomatis, silakan salin manual.";
+    }
+    document.body.removeChild(ta);
   }
 }
 
-function editJadwal(id){
-  const item = jadwalData.find(x=>x.id===id);
-  const status = prompt("Status Baru\n(Belum Selesai / Sedang Berjalan / Selesai / Ditunda)", item.status);
-  if(status!==null){
-    item.status = status;
-    localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
-    loadJadwal();
-  }
+function kosongkanTabel(){
+  if(!confirm("Kosongkan semua isi kolom Hari dan 12 kolom di tabel bulan ini?")) return;
+  localStorage.removeItem(storageKey());
+  muatTabel();
 }
 
-function hapusJadwal(id){
-  if(!confirm("Hapus jadwal ini?")) return;
-  jadwalData = jadwalData.filter(x=>x.id!==id);
-  localStorage.setItem("jadwalData", JSON.stringify(jadwalData));
-  loadJadwal();
-}
+// Simpan otomatis tiap kali ada perubahan di sel manapun (debounce ringan)
+let saveTimer = null;
+tbody && document.addEventListener("input", (e)=>{
+  if(!e.target.matches('[contenteditable="true"]')) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(simpanTabel, 400);
+});
 
-loadJadwal();
+bulanSelect.addEventListener("change", muatTabel);
+tahunSelect.addEventListener("change", muatTabel);
+
+muatTabel();
 </script>
 
 </body>
