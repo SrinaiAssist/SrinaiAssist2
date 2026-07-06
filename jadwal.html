@@ -453,42 +453,40 @@ function downloadPDF(){
   // ── Ukuran grid ──
   const startX = 15, startY = 36;
   const colTgl = 12, colHari = 30, colKecil = 19;
-  const headH1 = 7, headH2 = 6.5, rowH = 5.6;
-  const totalHeadH = headH1 + headH2;
+  const headH = 10, rowH = 5.6;
   const widths = [colTgl, colHari, ...Array(jumlahKolomPdf).fill(colKecil)];
 
-  // ── Header baris 1: Tgl & Hari (menyatu 2 baris) + judul TOWER ──
+  // ── Header: SATU baris saja (tanpa gabung/rowspan) supaya judul
+  //    "Hari" dan "Tower" selalu tercetak & tidak ada baris header kosong ganda ──
   doc.setFillColor(21, 101, 192);
   doc.setTextColor(255, 255, 255);
   doc.setDrawColor(120, 120, 120);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
 
   let x = startX;
-  doc.rect(x, startY, colTgl, totalHeadH, "FD");
-  doc.text("Tgl", x + colTgl/2, startY + totalHeadH/2 + 1.3, { align: "center" });
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.rect(x, startY, colTgl, headH, "FD");
+  doc.text("Tgl", x + colTgl/2, startY + headH/2 + 1.3, { align: "center" });
   x += colTgl;
 
-  doc.rect(x, startY, colHari, totalHeadH, "FD");
-  doc.text("Hari", x + colHari/2, startY + totalHeadH/2 + 1.3, { align: "center" });
+  doc.rect(x, startY, colHari, headH, "FD");
+  doc.text("Hari", x + colHari/2, startY + headH/2 + 1.3, { align: "center" });
   x += colHari;
 
-  const towerW = colKecil * jumlahKolomPdf;
-  doc.rect(x, startY, towerW, headH1, "FD");
-  doc.text("TOWER", x + towerW/2, startY + headH1/2 + 1.3, { align: "center" });
-
-  // ── Header baris 2: nomor urut tower ──
-  let xk = x;
   for(let k = 1; k <= jumlahKolomPdf; k++){
-    doc.rect(xk, startY + headH1, colKecil, headH2, "FD");
-    doc.text(String(k), xk + colKecil/2, startY + headH1 + headH2/2 + 1.2, { align: "center" });
-    xk += colKecil;
+    doc.rect(x, startY, colKecil, headH, "FD");
+    doc.setFontSize(6);
+    doc.text("TOWER", x + colKecil/2, startY + 4.2, { align: "center" });
+    doc.setFontSize(9.5);
+    doc.text(String(k), x + colKecil/2, startY + 8.3, { align: "center" });
+    x += colKecil;
   }
 
   // ── Baris data ──
   doc.setFont("helvetica", "normal");
   const rows = tbody.querySelectorAll("tr");
-  let y = startY + totalHeadH;
+  let y = startY + headH;
 
   rows.forEach(tr=>{
     const isLibur  = tr.classList.contains("row-libur");
