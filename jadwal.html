@@ -460,14 +460,18 @@ function downloadPDF(){
     colKecil = Math.max(14, (availW - colTgl - colHari) / jumlahKolomPdf);
   }
   const towerFontSize = colKecil < 18 ? 7 : 8.5;
-  const headH = 11, rowH = 6.2;
+  const headH = 7.5, rowH = 6.2;
   const widths = [colTgl, colHari, ...Array(jumlahKolomPdf).fill(colKecil)];
 
   // ── Header: SATU baris saja, SATU teks per sel, ukuran font normal
   //    (tanpa gabung/rowspan, tanpa teks kecil bertumpuk) supaya judul
-  //    "Hari" dan "Tower" tercetak jelas & tidak hilang saat dibuka/dikonversi ──
-  doc.setFillColor(21, 101, 192);
-  doc.setTextColor(255, 255, 255);
+  //    "Hari" dan "Tower" tercetak jelas & tidak hilang saat dibuka/dikonversi.
+  //    PENTING: teks header pakai warna GELAP (bukan putih) — kalau file
+  //    di-convert ke Word/dibuka di app lain yang membuang warna fill,
+  //    teks putih-di-atas-putih akan hilang total. Teks gelap tetap
+  //    terbaca walau fill background-nya hilang. ──
+  doc.setFillColor(244, 197, 66);   // gold terang, cukup kontras tapi tidak gelap
+  doc.setTextColor(20, 20, 20);     // teks gelap, tetap kebaca tanpa fill
   doc.setDrawColor(120, 120, 120);
   doc.setFont("helvetica", "bold");
 
@@ -536,7 +540,7 @@ function downloadPDF(){
   doc.setFontSize(7);
   doc.setTextColor(160, 160, 160);
   doc.setFont("helvetica", "normal");
-  doc.text("v3 - header Tgl/Hari/Tower satu baris", startX, 205);
+  doc.text("v4 - header teks gelap, tinggi normal (aman utk convert ke Word)", startX, 205);
   doc.save(namaFile);
   saveInfo.textContent = "PDF diunduh: " + namaFile;
 }
