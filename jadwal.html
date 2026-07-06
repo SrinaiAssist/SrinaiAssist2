@@ -7,44 +7,117 @@
 <title>Jadwal - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
-body{background:#001F54;}
-.container{max-width:600px;margin:auto;min-height:100vh;background:#001F54;padding-bottom:100px;}
-.header{background:#4DA6FF;color:white;text-align:center;padding:20px;}
-.content{padding:15px;}
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:40px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.18) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
 
-.card{background:#FFD54F;border-radius:16px;padding:12px 12px 16px;margin-bottom:15px;}
-.card h2{text-align:center;margin-bottom:12px;font-size:20px;letter-spacing:1px;}
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;min-width:0;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
 
-.petugas-row{margin-bottom:10px;}
-.petugas-row label{display:block;font-weight:bold;margin-bottom:4px;font-size:13px;}
-.petugas-row input{width:100%;padding:9px 10px;border:none;border-radius:8px;font-weight:bold;}
+.card{
+  position:relative;z-index:2;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:18px;
+  margin:16px 20px 0;padding:16px;box-shadow:0 10px 26px rgba(0,0,0,0.3);
+}
+.card-title{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.4px;text-transform:uppercase;margin-bottom:12px;}
 
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-.toolbar select{padding:8px;border:none;border-radius:8px;font-weight:bold;}
-.toolbar button{padding:9px 12px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;color:white;}
-.btn-pdf{background:#2E7D32;}
-.btn-clear{background:#D32F2F;}
-.hint{font-size:11px;color:#5a4300;margin:-6px 0 10px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+.field input, .field select{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;
+  padding:11px 12px;color:var(--ink);font-size:13.5px;font-family:inherit;
+}
+.row2{display:flex;gap:10px;}
+.row2 .field{flex:1;}
 
-.table-wrap{overflow-x:auto;background:white;border-radius:12px;padding:6px;-webkit-overflow-scrolling:touch;}
-table#jadwalTable{border-collapse:collapse;width:100%;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.tbtn{
+  flex:1;min-width:105px;padding:11px 10px;border:none;border-radius:12px;
+  font-weight:800;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.tbtn svg{width:14px;height:14px;flex-shrink:0;}
+.btn-auto{background:rgba(74,142,245,0.15);color:var(--blue);}
+.btn-auto:active{background:rgba(74,142,245,0.28);}
+.btn-pdf{background:var(--gold);color:#1A1200;}
+.btn-pdf:active{transform:scale(0.98);}
+.btn-clear{background:var(--red-bg);color:var(--red);}
+.btn-clear:active{background:rgba(242,107,107,0.28);}
+
+.hint{font-size:11px;color:var(--ink-3);line-height:1.5;margin:10px 2px 0;}
+.legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink-3);}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+.table-card{
+  position:relative;z-index:2;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:18px;
+  margin:16px 20px 0;padding:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+table#jadwalTable{border-collapse:collapse;width:max-content;min-width:100%;}
 table#jadwalTable th, table#jadwalTable td{
-  border:1px solid #cfd8dc;
+  border:1px solid var(--border);
   text-align:center;
-  font-size:13px;
+  font-size:12.5px;
   padding:0;
+  color:var(--ink);
 }
 table#jadwalTable th{
-  background:#1565C0;color:white;padding:6px 4px;font-size:12px;white-space:nowrap;
-  position:sticky;top:0;z-index:2;
+  background:var(--bg-card2);color:var(--gold);padding:7px 4px;font-size:11px;white-space:nowrap;
+  position:sticky;top:0;z-index:2;font-weight:800;
 }
-.col-tanggal{width:40px;min-width:40px;}
-.col-hari{width:78px;min-width:78px;}
+.col-tanggal{width:38px;min-width:38px;}
+.col-hari{width:76px;min-width:76px;}
 .col-cell{width:30px;min-width:30px;}
 
-td.tanggal-cell{font-weight:bold;background:#eef3fb;color:#001F54;cursor:pointer;user-select:none;}
+td.tanggal-cell{font-weight:800;background:rgba(244,197,66,0.08);color:var(--gold);cursor:pointer;user-select:none;}
 td[contenteditable="true"]{
   min-width:100%;
   height:34px;
@@ -52,79 +125,97 @@ td[contenteditable="true"]{
   outline:none;
   cursor:text;
 }
-td.hari-cell:empty::before{content:"-";color:#b0bec5;}
-td[contenteditable="true"]:focus{background:#FFF3CD;}
+td.hari-cell:empty::before{content:"-";color:var(--ink-3);}
+td[contenteditable="true"]:focus{background:rgba(244,197,66,0.18);}
 
-/* Tanggal merah / libur: ditandai manual dengan ketuk sel tanggal */
-tr.row-libur td.tanggal-cell{background:#D32F2F;color:#fff;}
+/* Baris Minggu — otomatis merah (masih bisa diisi) */
+tr.row-minggu td.tanggal-cell{background:rgba(242,107,107,0.22);color:var(--red);}
+tr.row-minggu td.hari-cell,
+tr.row-minggu td.cell-num{background:rgba(242,107,107,0.1);color:var(--red);}
+
+/* Tanggal merah / libur manual: ketuk sel tanggal — dikunci & kosong */
+tr.row-libur td.tanggal-cell{background:var(--red);color:#fff;}
 tr.row-libur td.hari-cell,
-tr.row-libur td.cell-num{background:#ffebee;color:#c62828;pointer-events:none;opacity:.65;}
+tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-events:none;opacity:.65;}
 
-.jadwal-card{background:white;padding:15px;border-radius:15px;margin-bottom:12px;}
-.jadwal-card h3{color:#1565C0;margin-bottom:8px;}
-.status{font-weight:bold;margin-top:8px;}
-.action{display:flex;gap:10px;margin-top:10px;}
-.edit-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#4DA6FF;color:white;cursor:pointer;}
-.delete-btn{flex:1;padding:10px;border:none;border-radius:8px;background:#D32F2F;color:white;cursor:pointer;}
-
-.bottom-menu{position:fixed;bottom:0;left:0;right:0;background:#001F54;padding:12px;text-align:center;}
-.back-btn{background:#FFD54F;color:black;padding:14px 25px;border-radius:25px;text-decoration:none;font-weight:bold;display:inline-block;}
-
-#saveInfo{color:white;text-align:center;font-size:12px;margin-top:8px;opacity:.8;}
+#saveInfo{color:var(--ink-3);text-align:center;font-size:11px;margin-top:10px;}
 </style>
 </head>
 <body>
 
+<div class="bg-glow"></div>
 <div class="container">
 
-<div class="header">
-  <h1>JADWAL INSPEKSI</h1>
-  <p id="userInfo"></p>
-</div>
-
-<div class="content">
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Jadwal Inspeksi</h1>
+      <p id="userInfo"></p>
+    </div>
+  </div>
 
   <div class="card">
-    <h2>JADWAL</h2>
+    <div class="card-title">Jadwal</div>
 
-    <div class="petugas-row">
+    <div class="field">
       <label>Nama Petugas</label>
       <input type="text" id="namaPetugas" placeholder="Nama petugas...">
     </div>
 
+    <div class="row2">
+      <div class="field">
+        <label>Bulan</label>
+        <select id="bulanSelect"></select>
+      </div>
+      <div class="field">
+        <label>Tahun</label>
+        <select id="tahunSelect"></select>
+      </div>
+    </div>
+
     <div class="toolbar">
-      <select id="bulanSelect"></select>
-      <select id="tahunSelect"></select>
-      <button class="btn-pdf" onclick="downloadPDF()">Download PDF</button>
-      <button class="btn-clear" onclick="kosongkanTabel()">Kosongkan</button>
-    </div>
-    <div class="hint">Ketuk sel Hari / kolom kecil untuk mengisi. Ketuk angka pada kolom Tgl untuk menandai tanggal merah (libur) — sel di baris itu jadi terkunci &amp; berwarna merah. Semua tersimpan otomatis per bulan.</div>
-
-    <div class="table-wrap">
-      <table id="jadwalTable">
-        <thead>
-          <tr>
-            <th class="col-tanggal">Tgl</th>
-            <th class="col-hari">Hari</th>
-            <th class="col-cell">1</th><th class="col-cell">2</th><th class="col-cell">3</th>
-            <th class="col-cell">4</th><th class="col-cell">5</th><th class="col-cell">6</th>
-            <th class="col-cell">7</th><th class="col-cell">8</th><th class="col-cell">9</th>
-            <th class="col-cell">10</th><th class="col-cell">11</th><th class="col-cell">12</th>
-          </tr>
-        </thead>
-        <tbody id="jadwalTableBody"></tbody>
-      </table>
+      <button class="tbtn btn-auto" onclick="isiHariOtomatis()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        Isi Hari Otomatis
+      </button>
+      <button class="tbtn btn-pdf" onclick="downloadPDF()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Download PDF
+      </button>
+      <button class="tbtn btn-clear" onclick="kosongkanTabel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        Kosongkan
+      </button>
     </div>
 
-    <div id="saveInfo"></div>
+    <div class="hint">"Isi Hari Otomatis" mengisi nama hari sesuai bulan/tahun terpilih dan otomatis menandai hari Minggu berwarna merah. Ketuk angka pada kolom Tgl untuk menandai tanggal libur manual (sel terkunci &amp; kosong). Semua tersimpan otomatis per bulan.</div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(242,107,107,0.35);"></span>Hari Minggu (otomatis)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#F26B6B;"></span>Libur manual (terkunci)</div>
+    </div>
   </div>
 
-</div>
+  <div class="table-card">
+    <table id="jadwalTable">
+      <thead>
+        <tr>
+          <th class="col-tanggal">Tgl</th>
+          <th class="col-hari">Hari</th>
+          <th class="col-cell">1</th><th class="col-cell">2</th><th class="col-cell">3</th>
+          <th class="col-cell">4</th><th class="col-cell">5</th><th class="col-cell">6</th>
+          <th class="col-cell">7</th><th class="col-cell">8</th><th class="col-cell">9</th>
+          <th class="col-cell">10</th><th class="col-cell">11</th><th class="col-cell">12</th>
+        </tr>
+      </thead>
+      <tbody id="jadwalTableBody"></tbody>
+    </table>
+  </div>
 
-</div>
+  <div id="saveInfo"></div>
 
-<div class="bottom-menu">
-  <a href="dashboard.html" class="back-btn">← Kembali ke Dashboard</a>
 </div>
 
 <script>
@@ -138,6 +229,7 @@ document.getElementById("userInfo").innerHTML = currentUser;
 const JUMLAH_TANGGAL = 28;
 const JUMLAH_KOLOM   = 12;
 const NAMA_BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const NAMA_HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"]; // index = Date.getDay()
 
 const bulanSelect  = document.getElementById("bulanSelect");
 const tahunSelect  = document.getElementById("tahunSelect");
@@ -207,7 +299,10 @@ function toggleLibur(tr){
 
   const tdHari = tr.querySelector('[data-col="hari"]');
   tdHari.setAttribute("contenteditable", jadiLibur ? "false" : "true");
-  if(jadiLibur) tdHari.textContent = "";
+  if(jadiLibur){
+    tdHari.textContent = "";
+    tr.classList.remove("row-minggu");
+  }
 
   for(let k = 1; k <= JUMLAH_KOLOM; k++){
     const tdCell = tr.querySelector('[data-col="c'+k+'"]');
@@ -215,6 +310,31 @@ function toggleLibur(tr){
     if(jadiLibur) tdCell.textContent = "";
   }
   simpanTabel();
+}
+
+// Tandai baris sebagai "Minggu" (merah, tidak dikunci) berdasar isi kolom Hari.
+function terapkanGayaMinggu(tr, namaHari){
+  if(tr.classList.contains("row-libur")) return; // libur manual lebih prioritas
+  tr.classList.toggle("row-minggu", (namaHari || "").trim().toLowerCase() === "minggu");
+}
+
+// Isi kolom Hari otomatis sesuai Bulan/Tahun terpilih. Baris yang sudah
+// ditandai libur manual dilewati (tetap kosong & terkunci).
+function isiHariOtomatis(){
+  const tahun = parseInt(tahunSelect.value, 10);
+  const bulan = parseInt(bulanSelect.value, 10);
+  const rows = tbody.querySelectorAll("tr");
+  rows.forEach((tr, i)=>{
+    if(tr.classList.contains("row-libur")) return;
+    const tgl = i + 1;
+    const d = new Date(tahun, bulan, tgl);
+    const namaHari = NAMA_HARI[d.getDay()];
+    const tdHari = tr.querySelector('[data-col="hari"]');
+    tdHari.textContent = namaHari;
+    terapkanGayaMinggu(tr, namaHari);
+  });
+  simpanTabel();
+  saveInfo.textContent = "Kolom Hari terisi otomatis.";
 }
 
 // Simpan seluruh isi tabel + nama petugas bulan yang sedang aktif ke localStorage
@@ -248,7 +368,10 @@ function muatTabel(){
           toggleLibur(tr); // langsung terapkan kunci + tampilan merah
           return; // baris libur tidak perlu diisi hari/kolomnya
         }
-        if(data.hari && data.hari[i]) tr.querySelector('[data-col="hari"]').textContent = data.hari[i];
+        if(data.hari && data.hari[i]){
+          tr.querySelector('[data-col="hari"]').textContent = data.hari[i];
+          terapkanGayaMinggu(tr, data.hari[i]);
+        }
         for(let k = 1; k <= JUMLAH_KOLOM; k++){
           const val = data.cells && data.cells[i] ? data.cells[i][k-1] : "";
           if(val) tr.querySelector('[data-col="c'+k+'"]').textContent = val;
@@ -273,6 +396,9 @@ function kosongkanTabel(){
 let saveTimer = null;
 document.addEventListener("input", (e)=>{
   if(!e.target.matches('[contenteditable="true"]')) return;
+  if(e.target.dataset.col === "hari"){
+    terapkanGayaMinggu(e.target.closest("tr"), e.target.textContent);
+  }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(simpanTabel, 400);
 });
@@ -284,6 +410,22 @@ namaPetugasEl.addEventListener("input", ()=>{
 bulanSelect.addEventListener("change", muatTabel);
 tahunSelect.addEventListener("change", muatTabel);
 
+// Hitung jumlah kolom Tower yang benar-benar terpakai (kolom terisi paling jauh
+// di seluruh baris) — dipakai supaya PDF tidak menampilkan kolom kosong berlebih.
+function hitungKolomTerpakai(){
+  let maxK = 1;
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    for(let k = JUMLAH_KOLOM; k >= 1; k--){
+      const val = tr.querySelector('[data-col="c'+k+'"]').textContent.trim();
+      if(val){
+        if(k > maxK) maxK = k;
+        break;
+      }
+    }
+  });
+  return maxK;
+}
+
 /* =========================================================
    DOWNLOAD PDF — digambar manual pakai primitive jsPDF
    (sama seperti pola dipakai di catatan-span.html / catatan.html)
@@ -294,6 +436,7 @@ function downloadPDF(){
 
   const bulanLabel = NAMA_BULAN[bulanSelect.value] + " " + tahunSelect.value;
   const petugas = namaPetugasEl.value.trim() || "-";
+  const jumlahKolomPdf = hitungKolomTerpakai(); // menyesuaikan jadwal terpanjang
 
   // ── Judul & info ──
   doc.setFont("helvetica", "bold");
@@ -310,10 +453,11 @@ function downloadPDF(){
   // ── Ukuran grid ──
   const startX = 15, startY = 36;
   const colTgl = 12, colHari = 30, colKecil = 19;
-  const rowH = 5.6, headH = 7;
-  const totalW = colTgl + colHari + colKecil * JUMLAH_KOLOM;
+  const headH1 = 7, headH2 = 6.5, rowH = 5.6;
+  const totalHeadH = headH1 + headH2;
+  const widths = [colTgl, colHari, ...Array(jumlahKolomPdf).fill(colKecil)];
 
-  // Header kolom
+  // ── Header baris 1: Tgl & Hari (menyatu 2 baris) + judul TOWER ──
   doc.setFillColor(21, 101, 192);
   doc.setTextColor(255, 255, 255);
   doc.setDrawColor(120, 120, 120);
@@ -321,27 +465,38 @@ function downloadPDF(){
   doc.setFont("helvetica", "bold");
 
   let x = startX;
-  const headerLabels = ["Tgl", "Hari"];
-  for(let k = 1; k <= JUMLAH_KOLOM; k++) headerLabels.push(String(k));
-  const widths = [colTgl, colHari, ...Array(JUMLAH_KOLOM).fill(colKecil)];
+  doc.rect(x, startY, colTgl, totalHeadH, "FD");
+  doc.text("Tgl", x + colTgl/2, startY + totalHeadH/2 + 1.3, { align: "center" });
+  x += colTgl;
 
-  headerLabels.forEach((label, i)=>{
-    doc.rect(x, startY, widths[i], headH, "FD");
-    doc.text(label, x + widths[i]/2, startY + headH/2 + 1.3, { align: "center" });
-    x += widths[i];
-  });
+  doc.rect(x, startY, colHari, totalHeadH, "FD");
+  doc.text("Hari", x + colHari/2, startY + totalHeadH/2 + 1.3, { align: "center" });
+  x += colHari;
 
-  // Baris data
+  const towerW = colKecil * jumlahKolomPdf;
+  doc.rect(x, startY, towerW, headH1, "FD");
+  doc.text("TOWER", x + towerW/2, startY + headH1/2 + 1.3, { align: "center" });
+
+  // ── Header baris 2: nomor urut tower ──
+  let xk = x;
+  for(let k = 1; k <= jumlahKolomPdf; k++){
+    doc.rect(xk, startY + headH1, colKecil, headH2, "FD");
+    doc.text(String(k), xk + colKecil/2, startY + headH1 + headH2/2 + 1.2, { align: "center" });
+    xk += colKecil;
+  }
+
+  // ── Baris data ──
   doc.setFont("helvetica", "normal");
   const rows = tbody.querySelectorAll("tr");
-  let y = startY + headH;
+  let y = startY + totalHeadH;
 
   rows.forEach(tr=>{
-    const isLibur = tr.classList.contains("row-libur");
-    const tanggal = tr.querySelector(".tanggal-cell").textContent.trim();
-    const hari    = tr.querySelector('[data-col="hari"]').textContent.trim();
-    const cells   = [];
-    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+    const isLibur  = tr.classList.contains("row-libur");
+    const tanggal  = tr.querySelector(".tanggal-cell").textContent.trim();
+    const hari     = tr.querySelector('[data-col="hari"]').textContent.trim();
+    const isMinggu = !isLibur && hari.toLowerCase() === "minggu";
+    const cells    = [];
+    for(let k = 1; k <= jumlahKolomPdf; k++){
       cells.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
     }
     const values = [tanggal, hari, ...cells];
@@ -350,6 +505,10 @@ function downloadPDF(){
     values.forEach((val, i)=>{
       if(isLibur){
         doc.setFillColor(255, 205, 210);
+        doc.setTextColor(198, 40, 40);
+        doc.rect(x, y, widths[i], rowH, "FD");
+      } else if(isMinggu){
+        doc.setFillColor(255, 235, 238);
         doc.setTextColor(198, 40, 40);
         doc.rect(x, y, widths[i], rowH, "FD");
       } else {
