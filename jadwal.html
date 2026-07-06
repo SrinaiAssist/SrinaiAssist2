@@ -446,9 +446,9 @@ function downloadPDF(){
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Bulan", 15, 24);
-  doc.text(": " + bulanLabel, 32, 24);
+  doc.text(": " + bulanLabel, 46, 24);
   doc.text("Nama Petugas", 15, 30);
-  doc.text(": " + petugas, 32, 30);
+  doc.text(": " + petugas, 46, 30);
 
   // ── Ukuran grid ──
   const startX = 15, startY = 36;
@@ -533,6 +533,10 @@ function downloadPDF(){
   });
 
   const namaFile = "Jadwal_" + bulanLabel.replace(" ", "_") + ".pdf";
+  doc.setFontSize(7);
+  doc.setTextColor(160, 160, 160);
+  doc.setFont("helvetica", "normal");
+  doc.text("v3 - header Tgl/Hari/Tower satu baris", startX, 205);
   doc.save(namaFile);
   saveInfo.textContent = "PDF diunduh: " + namaFile;
 }
