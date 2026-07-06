@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jadwal - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
 body{background:#001F54;}
@@ -16,11 +17,14 @@ body{background:#001F54;}
 .card{background:#FFD54F;border-radius:16px;padding:12px 12px 16px;margin-bottom:15px;}
 .card h2{text-align:center;margin-bottom:12px;font-size:20px;letter-spacing:1px;}
 
+.petugas-row{margin-bottom:10px;}
+.petugas-row label{display:block;font-weight:bold;margin-bottom:4px;font-size:13px;}
+.petugas-row input{width:100%;padding:9px 10px;border:none;border-radius:8px;font-weight:bold;}
+
 .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
 .toolbar select{padding:8px;border:none;border-radius:8px;font-weight:bold;}
 .toolbar button{padding:9px 12px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;color:white;}
-.btn-auto{background:#1565C0;}
-.btn-copy{background:#2E7D32;}
+.btn-pdf{background:#2E7D32;}
 .btn-clear{background:#D32F2F;}
 .hint{font-size:11px;color:#5a4300;margin:-6px 0 10px;}
 
@@ -40,7 +44,7 @@ table#jadwalTable th{
 .col-hari{width:78px;min-width:78px;}
 .col-cell{width:30px;min-width:30px;}
 
-td.tanggal-cell{font-weight:bold;background:#eef3fb;color:#001F54;}
+td.tanggal-cell{font-weight:bold;background:#eef3fb;color:#001F54;cursor:pointer;user-select:none;}
 td[contenteditable="true"]{
   min-width:100%;
   height:34px;
@@ -48,13 +52,13 @@ td[contenteditable="true"]{
   outline:none;
   cursor:text;
 }
-td.hari-cell{font-weight:bold;}
 td.hari-cell:empty::before{content:"-";color:#b0bec5;}
-td.cell-num:empty::before{content:"";}
 td[contenteditable="true"]:focus{background:#FFF3CD;}
 
-/* Warnai baris Minggu (kalau nama hari mengandung "minggu") */
-tr.row-minggu td.tanggal-cell, tr.row-minggu td.hari-cell{color:#c62828;}
+/* Tanggal merah / libur: ditandai manual dengan ketuk sel tanggal */
+tr.row-libur td.tanggal-cell{background:#D32F2F;color:#fff;}
+tr.row-libur td.hari-cell,
+tr.row-libur td.cell-num{background:#ffebee;color:#c62828;pointer-events:none;opacity:.65;}
 
 .jadwal-card{background:white;padding:15px;border-radius:15px;margin-bottom:12px;}
 .jadwal-card h3{color:#1565C0;margin-bottom:8px;}
@@ -83,14 +87,18 @@ tr.row-minggu td.tanggal-cell, tr.row-minggu td.hari-cell{color:#c62828;}
   <div class="card">
     <h2>JADWAL</h2>
 
+    <div class="petugas-row">
+      <label>Nama Petugas</label>
+      <input type="text" id="namaPetugas" placeholder="Nama petugas...">
+    </div>
+
     <div class="toolbar">
       <select id="bulanSelect"></select>
       <select id="tahunSelect"></select>
-      <button class="btn-auto" onclick="isiHariOtomatis()">Isi Hari Otomatis</button>
-      <button class="btn-copy" onclick="copyTabel()">Copy Tabel</button>
+      <button class="btn-pdf" onclick="downloadPDF()">Download PDF</button>
       <button class="btn-clear" onclick="kosongkanTabel()">Kosongkan</button>
     </div>
-    <div class="hint">Ketuk sel untuk mengisi. Tabel otomatis tersimpan per bulan. Tombol "Copy Tabel" menyalin seluruh isi (bisa ditempel ke WhatsApp/Excel).</div>
+    <div class="hint">Ketuk sel Hari / kolom kecil untuk mengisi. Ketuk angka pada kolom Tgl untuk menandai tanggal merah (libur) — sel di baris itu jadi terkunci &amp; berwarna merah. Semua tersimpan otomatis per bulan.</div>
 
     <div class="table-wrap">
       <table id="jadwalTable">
@@ -129,13 +137,13 @@ document.getElementById("userInfo").innerHTML = currentUser;
 
 const JUMLAH_TANGGAL = 28;
 const JUMLAH_KOLOM   = 12;
-const NAMA_HARI = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const NAMA_BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
-const bulanSelect = document.getElementById("bulanSelect");
-const tahunSelect = document.getElementById("tahunSelect");
-const tbody = document.getElementById("jadwalTableBody");
-const saveInfo = document.getElementById("saveInfo");
+const bulanSelect  = document.getElementById("bulanSelect");
+const tahunSelect  = document.getElementById("tahunSelect");
+const tbody        = document.getElementById("jadwalTableBody");
+const saveInfo      = document.getElementById("saveInfo");
+const namaPetugasEl = document.getElementById("namaPetugas");
 
 // Isi dropdown bulan & tahun
 NAMA_BULAN.forEach((nama, i)=>{
@@ -158,7 +166,8 @@ function storageKey(){
   return "jadwalTabel_" + tahunSelect.value + "_" + bulanSelect.value;
 }
 
-// Bangun 28 baris: kolom Tanggal (1-28) terisi, kolom Hari & 12 kolom kosong
+// Bangun 28 baris: kolom Tanggal (1-28) terisi & bisa diketuk untuk tandai libur,
+// kolom Hari & 12 kolom kosong dan bisa diisi manual.
 function buildTable(){
   tbody.innerHTML = "";
   for(let tgl = 1; tgl <= JUMLAH_TANGGAL; tgl++){
@@ -168,6 +177,8 @@ function buildTable(){
     const tdTanggal = document.createElement("td");
     tdTanggal.className = "tanggal-cell";
     tdTanggal.textContent = tgl;
+    tdTanggal.title = "Ketuk untuk tandai tanggal merah / libur";
+    tdTanggal.addEventListener("click", ()=> toggleLibur(tr));
     tr.appendChild(tdTanggal);
 
     const tdHari = document.createElement("td");
@@ -188,12 +199,30 @@ function buildTable(){
   }
 }
 
-// Simpan seluruh isi tabel bulan yang sedang aktif ke localStorage
+// Tandai / batalkan tanggal merah (libur) untuk satu baris.
+// Saat ditandai libur: isi Hari & 12 kolom dikosongkan dan dikunci (tak dapat diisi).
+function toggleLibur(tr){
+  const jadiLibur = !tr.classList.contains("row-libur");
+  tr.classList.toggle("row-libur", jadiLibur);
+
+  const tdHari = tr.querySelector('[data-col="hari"]');
+  tdHari.setAttribute("contenteditable", jadiLibur ? "false" : "true");
+  if(jadiLibur) tdHari.textContent = "";
+
+  for(let k = 1; k <= JUMLAH_KOLOM; k++){
+    const tdCell = tr.querySelector('[data-col="c'+k+'"]');
+    tdCell.setAttribute("contenteditable", jadiLibur ? "false" : "true");
+    if(jadiLibur) tdCell.textContent = "";
+  }
+  simpanTabel();
+}
+
+// Simpan seluruh isi tabel + nama petugas bulan yang sedang aktif ke localStorage
 function simpanTabel(){
-  const data = { hari: [], cells: [] };
+  const data = { petugas: namaPetugasEl.value.trim(), hari: [], cells: [], libur: [] };
   tbody.querySelectorAll("tr").forEach(tr=>{
-    const hari = tr.querySelector('[data-col="hari"]').textContent.trim();
-    data.hari.push(hari);
+    data.hari.push(tr.querySelector('[data-col="hari"]').textContent.trim());
+    data.libur.push(tr.classList.contains("row-libur"));
     const baris = [];
     for(let k = 1; k <= JUMLAH_KOLOM; k++){
       baris.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
@@ -202,105 +231,148 @@ function simpanTabel(){
   });
   localStorage.setItem(storageKey(), JSON.stringify(data));
   saveInfo.textContent = "Tersimpan " + new Date().toLocaleTimeString("id-ID");
-  tandaiBarisMinggu();
 }
 
-// Muat isi tabel bulan yang sedang aktif dari localStorage
+// Muat isi tabel + nama petugas bulan yang sedang aktif dari localStorage
 function muatTabel(){
   buildTable();
+  namaPetugasEl.value = "";
   const raw = localStorage.getItem(storageKey());
   if(raw){
     try{
       const data = JSON.parse(raw);
+      namaPetugasEl.value = data.petugas || "";
       const rows = tbody.querySelectorAll("tr");
       rows.forEach((tr, i)=>{
+        if(data.libur && data.libur[i]){
+          toggleLibur(tr); // langsung terapkan kunci + tampilan merah
+          return; // baris libur tidak perlu diisi hari/kolomnya
+        }
         if(data.hari && data.hari[i]) tr.querySelector('[data-col="hari"]').textContent = data.hari[i];
         for(let k = 1; k <= JUMLAH_KOLOM; k++){
           const val = data.cells && data.cells[i] ? data.cells[i][k-1] : "";
           if(val) tr.querySelector('[data-col="c'+k+'"]').textContent = val;
         }
       });
-    }catch(e){ /* abaikan cache rusak */ }
-  }
-  saveInfo.textContent = raw ? "Data bulan ini dimuat dari penyimpanan." : "Belum ada data tersimpan untuk bulan ini.";
-  tandaiBarisMinggu();
-}
-
-// Isi otomatis kolom Hari berdasarkan bulan & tahun yang dipilih (tanggal 1-28)
-function isiHariOtomatis(){
-  const bulan = parseInt(bulanSelect.value, 10);
-  const tahun = parseInt(tahunSelect.value, 10);
-  const rows = tbody.querySelectorAll("tr");
-  rows.forEach((tr, i)=>{
-    const tgl = i + 1;
-    const d = new Date(tahun, bulan, tgl);
-    tr.querySelector('[data-col="hari"]').textContent = NAMA_HARI[d.getDay()];
-  });
-  simpanTabel();
-}
-
-function tandaiBarisMinggu(){
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    const hari = tr.querySelector('[data-col="hari"]').textContent.trim().toLowerCase();
-    tr.classList.toggle("row-minggu", hari === "minggu");
-  });
-}
-
-// Salin seluruh tabel sebagai teks (dipisah tab antar-kolom, enter antar-baris)
-// supaya bisa langsung ditempel ke Excel/WhatsApp/Notes.
-async function copyTabel(){
-  const header = ["Tgl","Hari"];
-  for(let k = 1; k <= JUMLAH_KOLOM; k++) header.push(String(k));
-  const lines = [header.join("\t")];
-
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    const baris = [tr.querySelector(".tanggal-cell").textContent.trim()];
-    baris.push(tr.querySelector('[data-col="hari"]').textContent.trim());
-    for(let k = 1; k <= JUMLAH_KOLOM; k++){
-      baris.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
+      saveInfo.textContent = "Data bulan ini dimuat dari penyimpanan.";
+    }catch(e){
+      saveInfo.textContent = "Data tersimpan rusak, dimulai dari kosong.";
     }
-    lines.push(baris.join("\t"));
-  });
-
-  const teks = lines.join("\n");
-
-  try{
-    await navigator.clipboard.writeText(teks);
-    saveInfo.textContent = "Tabel berhasil disalin ke clipboard.";
-  }catch(e){
-    // Fallback untuk browser yang tidak dukung Clipboard API
-    const ta = document.createElement("textarea");
-    ta.value = teks;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try{
-      document.execCommand("copy");
-      saveInfo.textContent = "Tabel berhasil disalin ke clipboard.";
-    }catch(e2){
-      saveInfo.textContent = "Gagal menyalin otomatis, silakan salin manual.";
-    }
-    document.body.removeChild(ta);
+  } else {
+    saveInfo.textContent = "Belum ada data tersimpan untuk bulan ini.";
   }
 }
 
 function kosongkanTabel(){
-  if(!confirm("Kosongkan semua isi kolom Hari dan 12 kolom di tabel bulan ini?")) return;
+  if(!confirm("Kosongkan seluruh isi tabel (termasuk nama petugas) untuk bulan ini?")) return;
   localStorage.removeItem(storageKey());
   muatTabel();
 }
 
 // Simpan otomatis tiap kali ada perubahan di sel manapun (debounce ringan)
 let saveTimer = null;
-tbody && document.addEventListener("input", (e)=>{
+document.addEventListener("input", (e)=>{
   if(!e.target.matches('[contenteditable="true"]')) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(simpanTabel, 400);
+});
+namaPetugasEl.addEventListener("input", ()=>{
   clearTimeout(saveTimer);
   saveTimer = setTimeout(simpanTabel, 400);
 });
 
 bulanSelect.addEventListener("change", muatTabel);
 tahunSelect.addEventListener("change", muatTabel);
+
+/* =========================================================
+   DOWNLOAD PDF — digambar manual pakai primitive jsPDF
+   (sama seperti pola dipakai di catatan-span.html / catatan.html)
+========================================================= */
+function downloadPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+  const bulanLabel = NAMA_BULAN[bulanSelect.value] + " " + tahunSelect.value;
+  const petugas = namaPetugasEl.value.trim() || "-";
+
+  // ── Judul & info ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("JADWAL", 148.5, 15, { align: "center" });
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Bulan", 15, 24);
+  doc.text(": " + bulanLabel, 32, 24);
+  doc.text("Nama Petugas", 15, 30);
+  doc.text(": " + petugas, 32, 30);
+
+  // ── Ukuran grid ──
+  const startX = 15, startY = 36;
+  const colTgl = 12, colHari = 30, colKecil = 19;
+  const rowH = 5.6, headH = 7;
+  const totalW = colTgl + colHari + colKecil * JUMLAH_KOLOM;
+
+  // Header kolom
+  doc.setFillColor(21, 101, 192);
+  doc.setTextColor(255, 255, 255);
+  doc.setDrawColor(120, 120, 120);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+
+  let x = startX;
+  const headerLabels = ["Tgl", "Hari"];
+  for(let k = 1; k <= JUMLAH_KOLOM; k++) headerLabels.push(String(k));
+  const widths = [colTgl, colHari, ...Array(JUMLAH_KOLOM).fill(colKecil)];
+
+  headerLabels.forEach((label, i)=>{
+    doc.rect(x, startY, widths[i], headH, "FD");
+    doc.text(label, x + widths[i]/2, startY + headH/2 + 1.3, { align: "center" });
+    x += widths[i];
+  });
+
+  // Baris data
+  doc.setFont("helvetica", "normal");
+  const rows = tbody.querySelectorAll("tr");
+  let y = startY + headH;
+
+  rows.forEach(tr=>{
+    const isLibur = tr.classList.contains("row-libur");
+    const tanggal = tr.querySelector(".tanggal-cell").textContent.trim();
+    const hari    = tr.querySelector('[data-col="hari"]').textContent.trim();
+    const cells   = [];
+    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+      cells.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
+    }
+    const values = [tanggal, hari, ...cells];
+
+    x = startX;
+    values.forEach((val, i)=>{
+      if(isLibur){
+        doc.setFillColor(255, 205, 210);
+        doc.setTextColor(198, 40, 40);
+        doc.rect(x, y, widths[i], rowH, "FD");
+      } else {
+        doc.setTextColor(0, 0, 0);
+        doc.rect(x, y, widths[i], rowH);
+      }
+      if(val) doc.text(String(val), x + widths[i]/2, y + rowH/2 + 1.2, { align: "center" });
+      x += widths[i];
+    });
+
+    y += rowH;
+
+    // Pindah ke halaman baru kalau tabel kepanjangan (jaga-jaga)
+    if(y > 200 && tanggal != JUMLAH_TANGGAL){
+      doc.addPage("a4", "landscape");
+      y = 20;
+    }
+  });
+
+  const namaFile = "Jadwal_" + bulanLabel.replace(" ", "_") + ".pdf";
+  doc.save(namaFile);
+  saveInfo.textContent = "PDF diunduh: " + namaFile;
+}
 
 muatTabel();
 </script>
