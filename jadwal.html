@@ -485,12 +485,19 @@ function downloadPDF(){
   doc.text("Hari", x + colHari/2, startY + headH/2 + 1.4, { align: "center" });
   x += colHari;
 
-  doc.setFontSize(towerFontSize);
-  for(let k = 1; k <= jumlahKolomPdf; k++){
-    doc.rect(x, startY, colKecil, headH, "S");
-    doc.text("Tower " + k, x + colKecil/2, startY + headH/2 + 1.3, { align: "center" });
-    x += colKecil;
+  // Kolom Tower: satu sel gabungan dengan label "TOWER" saja (bukan per-kolom
+  // "Tower 1", "Tower 2", ...), tapi garis pemisah antar kolom tetap digambar
+  // tipis di dalamnya supaya kolom data di bawahnya tetap kelihatan jelas.
+  const towerHeaderW = colKecil * jumlahKolomPdf;
+  doc.setFontSize(10);
+  doc.rect(x, startY, towerHeaderW, headH, "S");
+  doc.text("TOWER", x + towerHeaderW/2, startY + headH/2 + 1.4, { align: "center" });
+  let xDiv = x + colKecil;
+  for(let k = 1; k < jumlahKolomPdf; k++){
+    doc.line(xDiv, startY, xDiv, startY + headH);
+    xDiv += colKecil;
   }
+  x += towerHeaderW;
 
   // ── Baris data ──
   doc.setFont("helvetica", "normal");
@@ -539,7 +546,7 @@ function downloadPDF(){
   doc.setFontSize(7);
   doc.setTextColor(160, 160, 160);
   doc.setFont("helvetica", "normal");
-  doc.text("v5 - header polos (border+teks hitam, tanpa fill warna)", startX, 205);
+  doc.text("v6 - header tower digabung jadi satu label TOWER", startX, 205);
   doc.save(namaFile);
   saveInfo.textContent = "PDF diunduh: " + namaFile;
 }
