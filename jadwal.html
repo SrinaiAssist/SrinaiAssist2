@@ -466,29 +466,28 @@ function downloadPDF(){
   // ── Header: SATU baris saja, SATU teks per sel, ukuran font normal
   //    (tanpa gabung/rowspan, tanpa teks kecil bertumpuk) supaya judul
   //    "Hari" dan "Tower" tercetak jelas & tidak hilang saat dibuka/dikonversi.
-  //    PENTING: teks header pakai warna GELAP (bukan putih) — kalau file
-  //    di-convert ke Word/dibuka di app lain yang membuang warna fill,
-  //    teks putih-di-atas-putih akan hilang total. Teks gelap tetap
-  //    terbaca walau fill background-nya hilang. ──
-  doc.setFillColor(244, 197, 66);   // gold terang, cukup kontras tapi tidak gelap
-  doc.setTextColor(20, 20, 20);     // teks gelap, tetap kebaca tanpa fill
-  doc.setDrawColor(120, 120, 120);
+  //    PENTING: header TANPA warna fill sama sekali (cuma border + teks
+  //    hitam tebal). Kalau pakai warna fill, app pihak ketiga (CamScanner,
+  //    convert-to-Word, dll) bisa menimpa dengan warna lain saat render/
+  //    convert ulang — border+teks polos aman di app apa pun. ──
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
 
   let x = startX;
 
   doc.setFontSize(10);
-  doc.rect(x, startY, colTgl, headH, "FD");
+  doc.rect(x, startY, colTgl, headH, "S");
   doc.text("Tgl", x + colTgl/2, startY + headH/2 + 1.4, { align: "center" });
   x += colTgl;
 
-  doc.rect(x, startY, colHari, headH, "FD");
+  doc.rect(x, startY, colHari, headH, "S");
   doc.text("Hari", x + colHari/2, startY + headH/2 + 1.4, { align: "center" });
   x += colHari;
 
   doc.setFontSize(towerFontSize);
   for(let k = 1; k <= jumlahKolomPdf; k++){
-    doc.rect(x, startY, colKecil, headH, "FD");
+    doc.rect(x, startY, colKecil, headH, "S");
     doc.text("Tower " + k, x + colKecil/2, startY + headH/2 + 1.3, { align: "center" });
     x += colKecil;
   }
@@ -540,7 +539,7 @@ function downloadPDF(){
   doc.setFontSize(7);
   doc.setTextColor(160, 160, 160);
   doc.setFont("helvetica", "normal");
-  doc.text("v4 - header teks gelap, tinggi normal (aman utk convert ke Word)", startX, 205);
+  doc.text("v5 - header polos (border+teks hitam, tanpa fill warna)", startX, 205);
   doc.save(namaFile);
   saveInfo.textContent = "PDF diunduh: " + namaFile;
 }
