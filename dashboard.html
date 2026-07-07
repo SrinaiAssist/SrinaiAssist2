@@ -771,8 +771,6 @@ body{
 </head>
 <body>
 
-<audio id="bgMusic" src="assets/audio/kopi-hitam-masih.mp3" loop preload="auto"></audio>
-
 <div class="bg-glow"></div>
 
 <div class="container">
@@ -2079,67 +2077,6 @@ function animateCountUp(elementId, target, duration){
   }
   requestAnimationFrame(tick);
 }
-
-// =========================================================
-// MUSIK LATAR (file statis, TIDAK disimpan di database — hanya
-// diputar dari file mp3 di /assets/audio, jadi tidak memakan
-// storage Neon Postgres). Autoplay setelah masuk dashboard,
-// bisa dihentikan/diputar lagi lewat tombol musik di topbar.
-// =========================================================
-(function musikLatarInit(){
-  const bgMusic = document.getElementById("bgMusic");
-  const btn = document.getElementById("musicBtn");
-  const iconOn = document.getElementById("musicIconOn");
-  const iconOff = document.getElementById("musicIconOff");
-  if(!bgMusic || !btn) return;
-
-  const MUSIC_KEY = "srinaiMusicOn";
-
-  function setIcon(playing){
-    iconOn.style.display = playing ? "block" : "none";
-    iconOff.style.display = playing ? "none" : "block";
-    btn.classList.toggle("music-active", playing);
-  }
-
-  function tryAutoplay(){
-    bgMusic.volume = 0.5;
-    const p = bgMusic.play();
-    if(p !== undefined){
-      p.then(()=> setIcon(true)).catch(()=>{
-        // Browser mobile umumnya memblokir autoplay bersuara tanpa
-        // interaksi user dulu — begitu user tap di mana saja pada
-        // halaman, musik langsung otomatis lanjut diputar.
-        setIcon(false);
-        const resumeOnce = ()=>{
-          bgMusic.play().then(()=> setIcon(true)).catch(()=>{});
-        };
-        document.addEventListener("click", resumeOnce, { once:true });
-        document.addEventListener("touchstart", resumeOnce, { once:true });
-      });
-    }
-  }
-
-  // Kalau user pernah mematikan musik secara manual, hormati pilihan itu
-  // dan jangan autoplay lagi di kunjungan berikutnya.
-  if(localStorage.getItem(MUSIC_KEY) === "0"){
-    setIcon(false);
-  }else{
-    tryAutoplay();
-  }
-
-  window.toggleMusic = function(){
-    if(bgMusic.paused){
-      bgMusic.play().then(()=>{
-        setIcon(true);
-        localStorage.setItem(MUSIC_KEY, "1");
-      }).catch(()=>{});
-    }else{
-      bgMusic.pause();
-      setIcon(false);
-      localStorage.setItem(MUSIC_KEY, "0");
-    }
-  };
-})();
 
 </script>
 
