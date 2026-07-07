@@ -59,8 +59,14 @@ body{
 }
 .back-btn:active{background:rgba(255,255,255,0.1);}
 .topbar-title{flex:1;min-width:0;}
-.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
-.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+.notice-banner{
+  position:relative;z-index:2;margin:14px 20px 0;padding:14px 16px;
+  border-radius:14px;background:rgba(57,255,20,0.10);
+  border:1px solid rgba(57,255,20,0.45);
+  color:#39FF14;font-size:15px;font-weight:800;line-height:1.45;
+  text-align:center;letter-spacing:0.2px;
+  text-shadow:0 0 12px rgba(57,255,20,0.55);
+}
 
 .card{
   position:relative;z-index:2;
@@ -163,6 +169,10 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
       <h1>Jadwal Inspeksi</h1>
       <p id="userInfo"></p>
     </div>
+  </div>
+
+  <div class="notice-banner">
+    JADWAL YANG SUDAH TERISI HARAP DISIMPAN DAN DIUNDUH, LALU KIRIM JADWAL TERSEBUT KE KOORDINATOR SEBAGAI REQUES JADWAL YANG ANDA INGINKAN.  CEMUNGUT...💪
   </div>
 
   <div class="card">
