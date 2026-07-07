@@ -55,6 +55,7 @@ async function loginUser(username, password) {
 }
 
 function logoutUser() {
+    stopBackgroundMusic();
     localStorage.removeItem("srinaiUser");
     localStorage.removeItem("srinaiRole");
     localStorage.removeItem("loginTime");
@@ -672,4 +673,118 @@ async function clearAllChatMessages() {
     return await apiRequest("/api/chat?all=1", {
         method: "DELETE"
     });
+}
+
+/* =========================================================
+   MUSIK LATAR — file statis di /assets/audio (BUKAN disimpan
+   di database, jadi tidak makan storage Neon). Logic ini
+   dipusatkan di sini (auth.js) karena file ini di-load di
+   SEMUA halaman, supaya musik "lanjut" saat user pindah
+   halaman, bukan cuma di dashboard.
+
+   Karena app ini multi-page (bukan SPA), setiap pindah halaman
+   tetap full reload dokumen — jadi audionya secara teknis
+   berhenti sepersekian detik lalu langsung lanjut lagi dari
+   posisi (detik) terakhir yang tersimpan, sehingga terasa
+   nyaris tanpa putus. Berhenti total hanya saat user tekan
+   tombol musik (matikan manual) atau saat logout.
+========================================================= */
+const MUSIC_SRC     = "assets/audio/kopi-hitam-masih.mp3";
+const MUSIC_ON_KEY  = "srinaiMusicOn";
+const MUSIC_TIME_KEY = "srinaiMusicTime";
+let __bgMusicEl = null;
+
+function __isLoginPage() {
+    const path = location.pathname;
+    return path === "/" || /\/?index\.html$/.test(path);
+}
+
+function stopBackgroundMusic() {
+    if (__bgMusicEl) {
+        try { __bgMusicEl.pause(); } catch (e) { /* noop */ }
+    }
+    localStorage.removeItem(MUSIC_ON_KEY);
+    localStorage.removeItem(MUSIC_TIME_KEY);
+}
+
+function __setMusicIcon(playing) {
+    const iconOn  = document.getElementById("musicIconOn");
+    const iconOff = document.getElementById("musicIconOff");
+    const btn     = document.getElementById("musicBtn");
+    if (iconOn)  iconOn.style.display  = playing ? "block" : "none";
+    if (iconOff) iconOff.style.display = playing ? "none"  : "block";
+    if (btn)     btn.classList.toggle("music-active", playing);
+}
+
+function initBackgroundMusic() {
+    // Jangan putar musik di halaman login, atau kalau belum login sama sekali
+    if (__isLoginPage() || !getCurrentUser()) return;
+
+    const audio = document.createElement("audio");
+    audio.id = "bgMusic";
+    audio.src = MUSIC_SRC;
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.volume = 0.5;
+    audio.style.display = "none";
+    document.body.appendChild(audio);
+    __bgMusicEl = audio;
+
+    // Lanjutkan dari posisi (detik) terakhir sebelum pindah halaman
+    const savedTime = parseFloat(localStorage.getItem(MUSIC_TIME_KEY) || "0");
+    if (savedTime > 0 && isFinite(savedTime)) {
+        audio.addEventListener("loadedmetadata", () => {
+            if (savedTime < audio.duration) audio.currentTime = savedTime;
+        }, { once: true });
+    }
+
+    function tryAutoplay() {
+        const p = audio.play();
+        if (p !== undefined) {
+            p.then(() => __setMusicIcon(true)).catch(() => {
+                // Browser blokir autoplay bersuara tanpa gesture di halaman ini —
+                // begitu user tap di mana saja, otomatis lanjut diputar.
+                __setMusicIcon(false);
+                const resumeOnce = () => {
+                    audio.play().then(() => __setMusicIcon(true)).catch(() => {});
+                };
+                document.addEventListener("click", resumeOnce, { once: true });
+                document.addEventListener("touchstart", resumeOnce, { once: true });
+            });
+        }
+    }
+
+    // Hormati pilihan terakhir user: kalau dimatikan manual, jangan autoplay lagi
+    if (localStorage.getItem(MUSIC_ON_KEY) === "0") {
+        __setMusicIcon(false);
+    } else {
+        tryAutoplay();
+    }
+
+    audio.addEventListener("timeupdate", () => {
+        localStorage.setItem(MUSIC_TIME_KEY, String(audio.currentTime));
+    });
+    window.addEventListener("pagehide", () => {
+        localStorage.setItem(MUSIC_TIME_KEY, String(audio.currentTime));
+        localStorage.setItem(MUSIC_ON_KEY, audio.paused ? "0" : "1");
+    });
+
+    window.toggleMusic = function () {
+        if (audio.paused) {
+            audio.play().then(() => {
+                __setMusicIcon(true);
+                localStorage.setItem(MUSIC_ON_KEY, "1");
+            }).catch(() => {});
+        } else {
+            audio.pause();
+            __setMusicIcon(false);
+            localStorage.setItem(MUSIC_ON_KEY, "0");
+        }
+    };
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initBackgroundMusic);
+} else {
+    initBackgroundMusic();
 }
