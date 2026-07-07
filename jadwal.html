@@ -75,6 +75,9 @@ body{
   width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;
   padding:11px 12px;color:var(--ink);font-size:13.5px;font-family:inherit;
 }
+.field select:disabled{
+  opacity:.75;cursor:not-allowed;color:var(--ink-2);-webkit-text-fill-color:var(--ink-2);
+}
 .row2{display:flex;gap:10px;}
 .row2 .field{flex:1;}
 
@@ -257,17 +260,38 @@ const saveInfo      = document.getElementById("saveInfo");
 const namaPetugasEl = document.getElementById("namaPetugas");
 const g1r1El        = document.getElementById("g1r1Input");
 
-// Isi dropdown Nama Petugas dari daftar akun aktif (biar konsisten & tidak typo,
-// karena tower yang diisi otomatis diambil dari data tower akun ybs).
+// Isi dropdown Nama Petugas dari daftar akun aktif ber-role LW saja (biar
+// konsisten & tidak typo, karena tower yang diisi otomatis diambil dari data
+// tower akun ybs). Akun admin, KLW (koordinator), dan monitor tidak relevan
+// sebagai "petugas lapangan" sehingga tidak dimunculkan di field ini.
+//
+// Khusus akun ber-role LW: field ini dikunci ke akun dia sendiri saja
+// (tidak bisa memilih nama petugas lain).
 async function muatDropdownPetugas(){
+  if(getCurrentRole() === "lw"){
+    namaPetugasEl.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = currentUser;
+    opt.textContent = currentUser;
+    namaPetugasEl.appendChild(opt);
+    namaPetugasEl.value = currentUser;
+    namaPetugasEl.disabled = true;
+    namaPetugasEl.dispatchEvent(new Event("change"));
+    return;
+  }
+
   try{
-    const usernames = await getActiveUsernames();
-    usernames.forEach(u=>{
-      const opt = document.createElement("option");
-      opt.value = u;
-      opt.textContent = u;
-      namaPetugasEl.appendChild(opt);
-    });
+    const accounts = await getAllAccountsFull();
+    accounts
+      .filter(a => a.status === "Aktif" && a.role === "lw")
+      .map(a => a.username)
+      .sort()
+      .forEach(u=>{
+        const opt = document.createElement("option");
+        opt.value = u;
+        opt.textContent = u;
+        namaPetugasEl.appendChild(opt);
+      });
   }catch(e){ /* offline / gagal fetch akun, biarkan dropdown cuma placeholder */ }
 }
 
