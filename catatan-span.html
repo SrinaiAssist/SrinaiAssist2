@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="js/bastliga-font.js"></script>
+<script src="js/choco-font.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1252,6 +1253,19 @@ function registerBastligaFont(doc){
   }
 }
 
+/* Daftarkan font Choco Cooky ke instance jsPDF tertentu.
+   Dipakai HANYA untuk isian data BA (nama, tanggal, alamat, dll),
+   bukan untuk judul/kop surat, TTD (gambar tanda tangan), maupun
+   ceklis/checkbox (tetap pakai ZapfDingbats). */
+function registerChocoFont(doc){
+  try{
+    doc.addFileToVFS("Chococooky.ttf", CHOCO_COOKY_FONT_BASE64);
+    doc.addFont("Chococooky.ttf", "ChocoCooky", "normal");
+  }catch(e){
+    console.error("Gagal memuat font Choco Cooky, isian BA fallback ke Helvetica.", e);
+  }
+}
+
 /* =========================================================
    TTD ke PDF — deteksi format gambar dari data URL, JANGAN
    asal tebak dari ttdType ("foto" tidak selalu JPEG — foto dari
@@ -1309,6 +1323,7 @@ async function generateBA(selectedTegakan, ownerRef){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:"mm", format:"a4" });
   registerBastligaFont(doc);
+  registerChocoFont(doc);
   const pageW = 210;
   const pageH = 297;
 
@@ -1390,7 +1405,7 @@ async function generateBA(selectedTegakan, ownerRef){
       const pos = posFor(key);
       if(!pos || !value) return;
       try{
-        doc.setFont("BastligaOne", "normal");
+        doc.setFont("ChocoCooky", "normal");
       }catch(e){
         doc.setFont("helvetica", pos.bold ? "bold" : "normal");
       }
@@ -1419,7 +1434,7 @@ async function generateBA(selectedTegakan, ownerRef){
     writeField("tahun", String(tahun));
 
     /* ---- Jenis Saluran: centang SUTT 150kV ---- */
-    // writeField tidak dipakai di sini karena BastligaOne tidak punya glyph ✓.
+    // writeField tidak dipakai di sini karena ChocoCooky tidak punya glyph ✓.
     // Pakai ZapfDingbats (font built-in jsPDF) persis seperti mode template:
     // charCode 52 = centang tebal (heavy check mark).
     (function(){
@@ -1511,7 +1526,7 @@ async function generateBA(selectedTegakan, ownerRef){
       doc.setFontSize(10);
       doc.text("•  " + label, 18, y);
       doc.text(":", 70, y);
-      try{ doc.setFont("BastligaOne","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
+      try{ doc.setFont("ChocoCooky","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
       doc.setFontSize(11);
       const lines = doc.splitTextToSize(String(value || "-"), pageW-95);
       doc.text(lines, 73, y);
@@ -1553,7 +1568,7 @@ async function generateBA(selectedTegakan, ownerRef){
     doc.text("dengan sebenarnya.", 15, y);
 
     y += 12;
-    try{ doc.setFont("BastligaOne","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
+    try{ doc.setFont("ChocoCooky","normal"); }catch(e){ doc.setFont("helvetica","normal"); }
     doc.text("Sukabumi, " + tgl + " " + bulan + " " + tahun, pageW-20, y, {align:"right"});
     doc.setFont("helvetica","normal");
 
@@ -1593,7 +1608,7 @@ async function generateBA(selectedTegakan, ownerRef){
     y += 22;
     doc.setFont("helvetica","normal");
     doc.setFontSize(10);
-    try{ doc.setFont("BastligaOne","normal"); }catch(e){}
+    try{ doc.setFont("ChocoCooky","normal"); }catch(e){}
     doc.setFontSize(11);
     doc.text("(" + namaLW + ")", col2, y, {align:"center"});
     doc.text("(" + (ownerRef.pemilikNama || "......................") + ")", col3, y, {align:"center"});
@@ -1679,6 +1694,7 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:"mm", format:"a4" });
   registerBastligaFont(doc);
+  registerChocoFont(doc);
   const pageW = 210;
   const mL = 20, mR = 20;
   const cW = pageW - mL - mR; // 170mm lebar konten
@@ -1686,9 +1702,9 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
   // ── Font helper ──────────────────────────────────────────
   function txt(text, x, y, opts){ doc.text(text, x, y, opts||{}); }
   function setF(style, size){ doc.setFont("helvetica", style); doc.setFontSize(size); }
-  // setFBastliga: khusus untuk ISIAN DATA (nama, tanggal, alamat, dll),
+  // setFChoco: khusus untuk ISIAN DATA (nama, tanggal, alamat, dll),
   // bukan untuk judul/label/teks baku formulir.
-  function setFBastliga(size){ doc.setFont("BastligaOne", "normal"); doc.setFontSize(size); }
+  function setFChoco(size){ doc.setFont("ChocoCooky", "normal"); doc.setFontSize(size); }
 
   // ── Warna tinta ──────────────────────────────────────────
   doc.setTextColor(0,0,0);
@@ -1784,7 +1800,7 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
     setF("normal", 10);
     txt(bullet + label, mL, y);
     txt(":", colonX, y);
-    setFBastliga(11);
+    setFChoco(11);
     const lines = doc.splitTextToSize(value || "-", valW);
     lines.forEach((l, i)=>{
       txt(l, valX, y + i * 5.5);
@@ -1878,7 +1894,7 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
 
   /* ===================== KOTA + TANGGAL ===================== */
   y += 6;
-  setFBastliga(10);
+  setFChoco(10);
   txt(kota, pageW - mR, y, {align:"right"});
   setF("normal", 10);
 
@@ -1918,7 +1934,7 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
 
   y += sigH + 6;
   setF("normal", 10);
-  setFBastliga(11);
+  setFChoco(11);
 
   // Samakan posisi kurung: hitung setengah lebar nama terpanjang,
   // lalu gambar "(" dan ")" di offset fixed dari tengah kolom masing-masing.
