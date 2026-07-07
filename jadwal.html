@@ -86,6 +86,8 @@ body{
 .tbtn svg{width:14px;height:14px;flex-shrink:0;}
 .btn-auto{background:rgba(74,142,245,0.15);color:var(--blue);}
 .btn-auto:active{background:rgba(74,142,245,0.28);}
+.btn-jadwal{background:rgba(56,191,160,0.18);color:var(--teal);}
+.btn-jadwal:active{background:rgba(56,191,160,0.32);}
 .btn-pdf{background:var(--gold);color:#1A1200;}
 .btn-pdf:active{transform:scale(0.98);}
 .btn-clear{background:var(--red-bg);color:var(--red);}
@@ -115,6 +117,7 @@ table#jadwalTable th{
 }
 .col-tanggal{width:38px;min-width:38px;}
 .col-hari{width:76px;min-width:76px;}
+.col-g1r1{width:90px;min-width:90px;}
 .col-cell{width:30px;min-width:30px;}
 
 td.tanggal-cell{font-weight:800;background:rgba(244,197,66,0.08);color:var(--gold);cursor:pointer;user-select:none;}
@@ -126,16 +129,19 @@ td[contenteditable="true"]{
   cursor:text;
 }
 td.hari-cell:empty::before{content:"-";color:var(--ink-3);}
+td.g1r1-cell{color:var(--teal);font-weight:700;font-size:11px;}
 td[contenteditable="true"]:focus{background:rgba(244,197,66,0.18);}
 
 /* Baris Minggu — otomatis merah (masih bisa diisi) */
 tr.row-minggu td.tanggal-cell{background:rgba(242,107,107,0.22);color:var(--red);}
 tr.row-minggu td.hari-cell,
+tr.row-minggu td.g1r1-cell,
 tr.row-minggu td.cell-num{background:rgba(242,107,107,0.1);color:var(--red);}
 
 /* Tanggal merah / libur manual: ketuk sel tanggal — dikunci & kosong */
 tr.row-libur td.tanggal-cell{background:var(--red);color:#fff;}
 tr.row-libur td.hari-cell,
+tr.row-libur td.g1r1-cell,
 tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-events:none;opacity:.65;}
 
 #saveInfo{color:var(--ink-3);text-align:center;font-size:11px;margin-top:10px;}
@@ -161,7 +167,14 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
 
     <div class="field">
       <label>Nama Petugas</label>
-      <input type="text" id="namaPetugas" placeholder="Nama petugas...">
+      <select id="namaPetugas">
+        <option value="">— Pilih Petugas —</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>G1R1 (Tower Khusus, pisahkan koma)</label>
+      <input type="text" id="g1r1Input" placeholder="Contoh: 27,28,31,39,40">
     </div>
 
     <div class="row2">
@@ -180,6 +193,10 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
         Isi Hari Otomatis
       </button>
+      <button class="tbtn btn-jadwal" onclick="isiJadwalOtomatis()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        Isi Jadwal Otomatis
+      </button>
       <button class="tbtn btn-pdf" onclick="downloadPDF()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
         Download PDF
@@ -190,11 +207,12 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
       </button>
     </div>
 
-    <div class="hint">"Isi Hari Otomatis" mengisi nama hari sesuai bulan/tahun terpilih dan otomatis menandai hari Minggu berwarna merah. Ketuk angka pada kolom Tgl untuk menandai tanggal libur manual (sel terkunci &amp; kosong). Semua tersimpan otomatis per bulan.</div>
+    <div class="hint">"Isi Hari Otomatis" hanya mengisi nama hari. "Isi Jadwal Otomatis" mengisi nama hari + nomor tower (rata-rata 5 tower/hari, sesuai tower milik Nama Petugas yang dipilih) + kolom G1R1. G1R1 selalu jatuh di hari kerja ke-1 dan ke-4 pada tiap blok 7 hari (mengikuti tanggal, bukan patokan Senin/Kamis tetap), supaya tidak berdempetan. Hari itu G1R1 TIDAK dobel dengan tower biasa. Pola 1 minggu ini otomatis diulang sama setiap minggu dalam bulan tsb. Hari Minggu tidak diisi. Semua hasil isian tetap bisa diedit manual. Ketuk angka pada kolom Tgl untuk menandai tanggal libur (sel terkunci &amp; kosong).</div>
 
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:rgba(242,107,107,0.35);"></span>Hari Minggu (otomatis)</div>
       <div class="legend-item"><span class="legend-dot" style="background:#F26B6B;"></span>Libur manual (terkunci)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--teal);"></span>G1R1 (hari kerja ke-1 &amp; ke-4/minggu)</div>
     </div>
   </div>
 
@@ -204,6 +222,7 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
         <tr>
           <th class="col-tanggal">Tgl</th>
           <th class="col-hari">Hari</th>
+          <th class="col-g1r1">G1R1</th>
           <th class="col-cell">1</th><th class="col-cell">2</th><th class="col-cell">3</th>
           <th class="col-cell">4</th><th class="col-cell">5</th><th class="col-cell">6</th>
           <th class="col-cell">7</th><th class="col-cell">8</th><th class="col-cell">9</th>
@@ -236,6 +255,25 @@ const tahunSelect  = document.getElementById("tahunSelect");
 const tbody        = document.getElementById("jadwalTableBody");
 const saveInfo      = document.getElementById("saveInfo");
 const namaPetugasEl = document.getElementById("namaPetugas");
+const g1r1El        = document.getElementById("g1r1Input");
+
+// Isi dropdown Nama Petugas dari daftar akun aktif (biar konsisten & tidak typo,
+// karena tower yang diisi otomatis diambil dari data tower akun ybs).
+async function muatDropdownPetugas(){
+  try{
+    const usernames = await getActiveUsernames();
+    usernames.forEach(u=>{
+      const opt = document.createElement("option");
+      opt.value = u;
+      opt.textContent = u;
+      namaPetugasEl.appendChild(opt);
+    });
+  }catch(e){ /* offline / gagal fetch akun, biarkan dropdown cuma placeholder */ }
+}
+
+function g1r1DefaultKey(nama){
+  return "jadwalG1R1Default_" + (nama || "").trim().toLowerCase();
+}
 
 // Isi dropdown bulan & tahun
 NAMA_BULAN.forEach((nama, i)=>{
@@ -279,6 +317,12 @@ function buildTable(){
     tdHari.dataset.col = "hari";
     tr.appendChild(tdHari);
 
+    const tdG1r1 = document.createElement("td");
+    tdG1r1.className = "g1r1-cell";
+    tdG1r1.setAttribute("contenteditable", "true");
+    tdG1r1.dataset.col = "g1r1";
+    tr.appendChild(tdG1r1);
+
     for(let k = 1; k <= JUMLAH_KOLOM; k++){
       const tdCell = document.createElement("td");
       tdCell.className = "cell-num";
@@ -303,6 +347,10 @@ function toggleLibur(tr){
     tdHari.textContent = "";
     tr.classList.remove("row-minggu");
   }
+
+  const tdG1r1 = tr.querySelector('[data-col="g1r1"]');
+  tdG1r1.setAttribute("contenteditable", jadiLibur ? "false" : "true");
+  if(jadiLibur) tdG1r1.textContent = "";
 
   for(let k = 1; k <= JUMLAH_KOLOM; k++){
     const tdCell = tr.querySelector('[data-col="c'+k+'"]');
@@ -337,11 +385,154 @@ function isiHariOtomatis(){
   saveInfo.textContent = "Kolom Hari terisi otomatis.";
 }
 
+const TOWER_PER_HARI = 5;
+const HARI_PER_BLOK  = 7; // 1 blok = 1 "minggu jadwal" (7 tanggal berurutan, ikut kalender, bukan patokan Senin-Minggu)
+
+// Ambil daftar nomor tower milik petugas (dari akun terdaftar), diurutkan naik.
+// Mendukung 2 skema data akun: assignment baru (tower_ids) atau lama (tower_awal..tower_akhir).
+async function ambilPoolTowerPetugas(namaPetugas){
+  const accounts = await getAllAccountsFull();
+  const akun = accounts.find(a => a.username.trim().toLowerCase() === namaPetugas.trim().toLowerCase());
+  if(!akun) return { error: `Akun petugas "${namaPetugas}" tidak ditemukan. Pastikan nama sesuai username akun.` };
+
+  const towerIds = akun.tower_ids || [];
+  if(towerIds.length > 0){
+    const towerMaster = await getTowerMasterList(akun.jalur_id);
+    const nums = towerMaster.filter(t => towerIds.includes(t.id)).map(t => t.nomor).sort((a,b)=>a-b);
+    if(nums.length === 0) return { error: `Tower milik "${namaPetugas}" belum ditemukan di master tower.` };
+    return { pool: nums };
+  }
+
+  const awal  = akun.tower_awal  != null ? akun.tower_awal  : 1;
+  const akhir = akun.tower_akhir != null ? akun.tower_akhir : 1;
+  if(akhir < awal) return { error: `Rentang tower "${namaPetugas}" tidak valid (${awal}-${akhir}).` };
+  const nums = [];
+  for(let n = awal; n <= akhir; n++) nums.push(n);
+  return { pool: nums };
+}
+
+// Bagi rata array `arr` ke `jumlahBagian` bagian berurutan (tanpa duplikat,
+// tanpa sisa terbuang) — bagian paling depan dapat 1 ekstra kalau tak habis
+// bagi rata. Contoh: 19 tower / 4 hari -> [5,5,5,4].
+function bagiRataBerurutan(arr, jumlahBagian){
+  if(jumlahBagian <= 0) return [];
+  const n = arr.length;
+  const base = Math.floor(n / jumlahBagian);
+  const sisa = n % jumlahBagian;
+  const bagian = [];
+  let idx = 0;
+  for(let i = 0; i < jumlahBagian; i++){
+    const ukuran = base + (i < sisa ? 1 : 0);
+    bagian.push(arr.slice(idx, idx + ukuran));
+    idx += ukuran;
+  }
+  return bagian;
+}
+
+// Isi Jadwal Otomatis: isi kolom Hari (kalau belum), lalu isi nomor tower +
+// kolom G1R1 per BLOK 7 tanggal berurutan (1 blok = 1 "minggu jadwal").
+// Dalam tiap blok: G1R1 selalu jatuh di hari KERJA ke-1 dan ke-4 (dihitung
+// dari tanggal yang sebenarnya, bukan patokan Senin/Kamis tetap — supaya
+// tetap benar walau bulan tidak mulai hari Senin). Hari G1R1 TIDAK diisi
+// tower biasa (tidak ada dobel jadwal). Sisa tower petugas (di luar daftar
+// G1R1) dibagi rata ke hari-hari kerja lain di blok yang sama, rata-rata
+// TOWER_PER_HARI per hari. Pola tiap blok dihitung ulang dari awal pool
+// (tidak melanjutkan/berputar dari blok sebelumnya) sehingga polanya sama
+// persis tiap minggu, sesuai jadwal yang berulang. Semua hasilnya tetap
+// bisa diedit manual sesudahnya.
+async function isiJadwalOtomatis(){
+  const namaPetugas = namaPetugasEl.value.trim();
+  if(!namaPetugas){
+    alert("Pilih Nama Petugas dahulu supaya sistem tahu tower siapa yang dijadwalkan.");
+    return;
+  }
+
+  saveInfo.textContent = "Memuat data tower petugas...";
+  let hasil;
+  try{
+    hasil = await ambilPoolTowerPetugas(namaPetugas);
+  }catch(e){
+    saveInfo.textContent = "Gagal memuat data akun/tower.";
+    alert("Gagal memuat data akun/tower. Periksa koneksi internet lalu coba lagi.");
+    return;
+  }
+  if(hasil.error){
+    saveInfo.textContent = hasil.error;
+    alert(hasil.error);
+    return;
+  }
+  const poolSemua = hasil.pool;
+
+  // Daftar nomor G1R1 (dari field, dukung pemisah koma/titik/spasi)
+  const g1r1Nomor = g1r1El.value
+    .split(/[,.\s]+/)
+    .map(s => parseInt(s, 10))
+    .filter(n => !isNaN(n));
+  const g1r1Set = new Set(g1r1Nomor);
+  const g1r1Label = g1r1Nomor.join(",");
+
+  // Pool "normal" = seluruh tower petugas TANPA nomor G1R1 (supaya tidak dobel)
+  const poolNormal = poolSemua.filter(n => !g1r1Set.has(n));
+
+  // Pastikan kolom Hari terisi dulu (baris libur otomatis dilewati di dalamnya)
+  isiHariOtomatis();
+
+  const rows = tbody.querySelectorAll("tr");
+
+  // Proses per blok 7 tanggal berurutan (blok baru dihitung ulang dari awal
+  // pool supaya pola berulang sama tiap minggu)
+  for(let awalBlok = 0; awalBlok < rows.length; awalBlok += HARI_PER_BLOK){
+    const rowsBlok = Array.from(rows).slice(awalBlok, awalBlok + HARI_PER_BLOK);
+
+    // Kosongkan dulu semua sel tower & G1R1 di blok ini
+    rowsBlok.forEach(tr=>{
+      for(let k = 1; k <= JUMLAH_KOLOM; k++){
+        tr.querySelector('[data-col="c'+k+'"]').textContent = "";
+      }
+      tr.querySelector('[data-col="g1r1"]').textContent = "";
+    });
+
+    // Hari kerja dalam blok ini = bukan Minggu & bukan tanggal libur manual
+    const hariKerja = rowsBlok.filter(tr=>{
+      if(tr.classList.contains("row-libur")) return false;
+      const namaHari = tr.querySelector('[data-col="hari"]').textContent.trim().toLowerCase();
+      return namaHari && namaHari !== "minggu";
+    });
+
+    if(hariKerja.length === 0) continue;
+
+    // Tentukan indeks hari kerja ke-1 & ke-4 (0-based: 0 dan 3) untuk G1R1
+    const idxG1R1 = [0];
+    if(hariKerja.length >= 4) idxG1R1.push(3);
+
+    if(g1r1Label){
+      idxG1R1.forEach(idx=>{
+        hariKerja[idx].querySelector('[data-col="g1r1"]').textContent = g1r1Label;
+      });
+    }
+
+    // Sisa hari kerja (di luar hari G1R1) diisi tower normal, dibagi rata
+    const hariNormal = hariKerja.filter((tr, idx)=> !idxG1R1.includes(idx));
+    const bagianTower = bagiRataBerurutan(poolNormal, hariNormal.length);
+
+    hariNormal.forEach((tr, i)=>{
+      const towerHariIni = bagianTower[i] || [];
+      towerHariIni.slice(0, JUMLAH_KOLOM).forEach((nomor, k)=>{
+        tr.querySelector('[data-col="c'+(k+1)+'"]').textContent = nomor;
+      });
+    });
+  }
+
+  simpanTabel();
+  saveInfo.textContent = "Jadwal otomatis terisi (tetap bisa diedit manual).";
+}
+
 // Simpan seluruh isi tabel + nama petugas bulan yang sedang aktif ke localStorage
 function simpanTabel(){
-  const data = { petugas: namaPetugasEl.value.trim(), hari: [], cells: [], libur: [] };
+  const data = { petugas: namaPetugasEl.value.trim(), g1r1Field: g1r1El.value.trim(), hari: [], g1r1: [], cells: [], libur: [] };
   tbody.querySelectorAll("tr").forEach(tr=>{
     data.hari.push(tr.querySelector('[data-col="hari"]').textContent.trim());
+    data.g1r1.push(tr.querySelector('[data-col="g1r1"]').textContent.trim());
     data.libur.push(tr.classList.contains("row-libur"));
     const baris = [];
     for(let k = 1; k <= JUMLAH_KOLOM; k++){
@@ -350,6 +541,7 @@ function simpanTabel(){
     data.cells.push(baris);
   });
   localStorage.setItem(storageKey(), JSON.stringify(data));
+  if(data.g1r1Field) localStorage.setItem(g1r1DefaultKey(data.petugas), data.g1r1Field);
   saveInfo.textContent = "Tersimpan " + new Date().toLocaleTimeString("id-ID");
 }
 
@@ -357,11 +549,13 @@ function simpanTabel(){
 function muatTabel(){
   buildTable();
   namaPetugasEl.value = "";
+  g1r1El.value = "";
   const raw = localStorage.getItem(storageKey());
   if(raw){
     try{
       const data = JSON.parse(raw);
       namaPetugasEl.value = data.petugas || "";
+      g1r1El.value = data.g1r1Field || localStorage.getItem(g1r1DefaultKey(data.petugas)) || "";
       const rows = tbody.querySelectorAll("tr");
       rows.forEach((tr, i)=>{
         if(data.libur && data.libur[i]){
@@ -371,6 +565,9 @@ function muatTabel(){
         if(data.hari && data.hari[i]){
           tr.querySelector('[data-col="hari"]').textContent = data.hari[i];
           terapkanGayaMinggu(tr, data.hari[i]);
+        }
+        if(data.g1r1 && data.g1r1[i]){
+          tr.querySelector('[data-col="g1r1"]').textContent = data.g1r1[i];
         }
         for(let k = 1; k <= JUMLAH_KOLOM; k++){
           const val = data.cells && data.cells[i] ? data.cells[i][k-1] : "";
@@ -403,6 +600,20 @@ document.addEventListener("input", (e)=>{
   saveTimer = setTimeout(simpanTabel, 400);
 });
 namaPetugasEl.addEventListener("input", ()=>{
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(simpanTabel, 400);
+});
+// Saat petugas dipilih dari dropdown: simpan, dan kalau field G1R1 masih
+// kosong coba ambilkan default G1R1 yang pernah disimpan untuk petugas tsb.
+namaPetugasEl.addEventListener("change", ()=>{
+  if(!g1r1El.value.trim()){
+    const def = localStorage.getItem(g1r1DefaultKey(namaPetugasEl.value));
+    if(def) g1r1El.value = def;
+  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(simpanTabel, 400);
+});
+g1r1El.addEventListener("input", ()=>{
   clearTimeout(saveTimer);
   saveTimer = setTimeout(simpanTabel, 400);
 });
@@ -452,16 +663,16 @@ function downloadPDF(){
 
   // ── Ukuran grid ──
   const startX = 15, startY = 36;
-  const colTgl = 14, colHari = 32;
+  const colTgl = 14, colHari = 32, colG1R1 = 26;
   const marginRight = 15;
-  const availW = 297 - startX - marginRight; // lebar A4 landscape dikurangi margin
+  const availW = 297 - startX - marginRight - colG1R1; // lebar A4 landscape dikurangi margin & kolom G1R1
   let colKecil = 24;
   if(colTgl + colHari + colKecil * jumlahKolomPdf > availW){
     colKecil = Math.max(14, (availW - colTgl - colHari) / jumlahKolomPdf);
   }
   const towerFontSize = colKecil < 18 ? 7 : 8.5;
   const headH = 7.5, rowH = 6.2;
-  const widths = [colTgl, colHari, ...Array(jumlahKolomPdf).fill(colKecil)];
+  const widths = [colTgl, colHari, colG1R1, ...Array(jumlahKolomPdf).fill(colKecil)];
 
   // ── Header: SATU baris saja, SATU teks per sel, ukuran font normal
   //    (tanpa gabung/rowspan, tanpa teks kecil bertumpuk) supaya judul
@@ -484,6 +695,10 @@ function downloadPDF(){
   doc.rect(x, startY, colHari, headH, "S");
   doc.text("Hari", x + colHari/2, startY + headH/2 + 1.4, { align: "center" });
   x += colHari;
+
+  doc.rect(x, startY, colG1R1, headH, "S");
+  doc.text("G1R1", x + colG1R1/2, startY + headH/2 + 1.4, { align: "center" });
+  x += colG1R1;
 
   // Kolom Tower: satu sel gabungan dengan label "TOWER" saja (bukan per-kolom
   // "Tower 1", "Tower 2", ...), tapi garis pemisah antar kolom tetap digambar
@@ -508,12 +723,13 @@ function downloadPDF(){
     const isLibur  = tr.classList.contains("row-libur");
     const tanggal  = tr.querySelector(".tanggal-cell").textContent.trim();
     const hari     = tr.querySelector('[data-col="hari"]').textContent.trim();
+    const g1r1Val  = tr.querySelector('[data-col="g1r1"]').textContent.trim();
     const isMinggu = !isLibur && hari.toLowerCase() === "minggu";
     const cells    = [];
     for(let k = 1; k <= jumlahKolomPdf; k++){
       cells.push(tr.querySelector('[data-col="c'+k+'"]').textContent.trim());
     }
-    const values = [tanggal, hari, ...cells];
+    const values = [tanggal, hari, g1r1Val, ...cells];
 
     x = startX;
     values.forEach((val, i)=>{
@@ -551,7 +767,10 @@ function downloadPDF(){
   saveInfo.textContent = "PDF diunduh: " + namaFile;
 }
 
-muatTabel();
+(async function initHalaman(){
+  await muatDropdownPetugas();
+  muatTabel();
+})();
 </script>
 
 </body>
