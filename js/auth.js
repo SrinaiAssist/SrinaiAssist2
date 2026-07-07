@@ -689,9 +689,13 @@ async function clearAllChatMessages() {
    nyaris tanpa putus. Berhenti total hanya saat user tekan
    tombol musik (matikan manual) atau saat logout.
 ========================================================= */
-const MUSIC_SRC     = "assets/audio/kopi-hitam-masih.mp3";
-const MUSIC_ON_KEY  = "srinaiMusicOn";
+const MUSIC_PLAYLIST = [
+    "assets/audio/kopi-hitam-masih.mp3",
+    "assets/audio/ground-patrol.mp3"
+];
+const MUSIC_ON_KEY   = "srinaiMusicOn";
 const MUSIC_TIME_KEY = "srinaiMusicTime";
+const MUSIC_TRACK_KEY = "srinaiMusicTrack";
 let __bgMusicEl = null;
 
 function __isLoginPage() {
@@ -705,6 +709,7 @@ function stopBackgroundMusic() {
     }
     localStorage.removeItem(MUSIC_ON_KEY);
     localStorage.removeItem(MUSIC_TIME_KEY);
+    localStorage.removeItem(MUSIC_TRACK_KEY);
 }
 
 function __setMusicIcon(playing) {
@@ -720,10 +725,16 @@ function initBackgroundMusic() {
     // Jangan putar musik di halaman login, atau kalau belum login sama sekali
     if (__isLoginPage() || !getCurrentUser()) return;
 
+    // Track lagu mana yang sedang aktif di playlist (index array)
+    let trackIndex = parseInt(localStorage.getItem(MUSIC_TRACK_KEY) || "0", 10);
+    if (isNaN(trackIndex) || trackIndex < 0 || trackIndex >= MUSIC_PLAYLIST.length) {
+        trackIndex = 0;
+    }
+
     const audio = document.createElement("audio");
     audio.id = "bgMusic";
-    audio.src = MUSIC_SRC;
-    audio.loop = true;
+    audio.src = MUSIC_PLAYLIST[trackIndex];
+    audio.loop = false; // loop dimatikan; lanjut ke lagu berikutnya via event "ended"
     audio.preload = "auto";
     audio.volume = 0.5;
     audio.style.display = "none";
@@ -737,6 +748,17 @@ function initBackgroundMusic() {
             if (savedTime < audio.duration) audio.currentTime = savedTime;
         }, { once: true });
     }
+
+    // Begitu satu lagu habis, otomatis lanjut ke lagu berikutnya di playlist
+    // (kembali ke lagu pertama lagi setelah lagu terakhir habis)
+    audio.addEventListener("ended", () => {
+        trackIndex = (trackIndex + 1) % MUSIC_PLAYLIST.length;
+        localStorage.setItem(MUSIC_TRACK_KEY, String(trackIndex));
+        localStorage.setItem(MUSIC_TIME_KEY, "0");
+        audio.src = MUSIC_PLAYLIST[trackIndex];
+        audio.currentTime = 0;
+        audio.play().then(() => __setMusicIcon(true)).catch(() => {});
+    });
 
     function tryAutoplay() {
         const p = audio.play();
@@ -766,6 +788,7 @@ function initBackgroundMusic() {
     });
     window.addEventListener("pagehide", () => {
         localStorage.setItem(MUSIC_TIME_KEY, String(audio.currentTime));
+        localStorage.setItem(MUSIC_TRACK_KEY, String(trackIndex));
         localStorage.setItem(MUSIC_ON_KEY, audio.paused ? "0" : "1");
     });
 
