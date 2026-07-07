@@ -108,6 +108,16 @@ body{
   width:7px;height:7px;border-radius:50%;
   background:var(--red);border:1.5px solid var(--bg-deep);
 }
+.icon-btn.music-active{
+  background:rgba(45,212,160,0.16);border-color:rgba(45,212,160,0.55);
+}
+.icon-btn.music-active svg{stroke:var(--teal,#38BFA0);}
+@keyframes musicPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.music-dot{display:none;}
+.icon-btn.music-active .music-dot{
+  display:block;position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;
+  background:var(--teal,#38BFA0);animation:musicPulse 1.4s ease-in-out infinite;
+}
 
 /* =========================================================
    GREETING + DATETIME
@@ -761,6 +771,8 @@ body{
 </head>
 <body>
 
+<audio id="bgMusic" src="assets/audio/kopi-hitam-masih.mp3" loop preload="auto"></audio>
+
 <div class="bg-glow"></div>
 
 <div class="container">
@@ -775,6 +787,11 @@ body{
       </div>
     </div>
     <div class="topbar-right">
+      <div class="icon-btn" id="musicBtn" onclick="toggleMusic()" title="Musik">
+        <svg id="musicIconOn" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <svg id="musicIconOff" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17" style="display:none;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+        <span class="music-dot" id="musicDot"></span>
+      </div>
       <div class="icon-btn" onclick="location.href='pengaturan.html'">
         <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
         <div class="notif-dot" id="noticeDot" style="display:none;"></div>
@@ -2062,6 +2079,67 @@ function animateCountUp(elementId, target, duration){
   }
   requestAnimationFrame(tick);
 }
+
+// =========================================================
+// MUSIK LATAR (file statis, TIDAK disimpan di database — hanya
+// diputar dari file mp3 di /assets/audio, jadi tidak memakan
+// storage Neon Postgres). Autoplay setelah masuk dashboard,
+// bisa dihentikan/diputar lagi lewat tombol musik di topbar.
+// =========================================================
+(function musikLatarInit(){
+  const bgMusic = document.getElementById("bgMusic");
+  const btn = document.getElementById("musicBtn");
+  const iconOn = document.getElementById("musicIconOn");
+  const iconOff = document.getElementById("musicIconOff");
+  if(!bgMusic || !btn) return;
+
+  const MUSIC_KEY = "srinaiMusicOn";
+
+  function setIcon(playing){
+    iconOn.style.display = playing ? "block" : "none";
+    iconOff.style.display = playing ? "none" : "block";
+    btn.classList.toggle("music-active", playing);
+  }
+
+  function tryAutoplay(){
+    bgMusic.volume = 0.5;
+    const p = bgMusic.play();
+    if(p !== undefined){
+      p.then(()=> setIcon(true)).catch(()=>{
+        // Browser mobile umumnya memblokir autoplay bersuara tanpa
+        // interaksi user dulu — begitu user tap di mana saja pada
+        // halaman, musik langsung otomatis lanjut diputar.
+        setIcon(false);
+        const resumeOnce = ()=>{
+          bgMusic.play().then(()=> setIcon(true)).catch(()=>{});
+        };
+        document.addEventListener("click", resumeOnce, { once:true });
+        document.addEventListener("touchstart", resumeOnce, { once:true });
+      });
+    }
+  }
+
+  // Kalau user pernah mematikan musik secara manual, hormati pilihan itu
+  // dan jangan autoplay lagi di kunjungan berikutnya.
+  if(localStorage.getItem(MUSIC_KEY) === "0"){
+    setIcon(false);
+  }else{
+    tryAutoplay();
+  }
+
+  window.toggleMusic = function(){
+    if(bgMusic.paused){
+      bgMusic.play().then(()=>{
+        setIcon(true);
+        localStorage.setItem(MUSIC_KEY, "1");
+      }).catch(()=>{});
+    }else{
+      bgMusic.pause();
+      setIcon(false);
+      localStorage.setItem(MUSIC_KEY, "0");
+    }
+  };
+})();
 
 </script>
 
