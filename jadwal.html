@@ -572,13 +572,16 @@ function simpanTabel(){
 // Muat isi tabel + nama petugas bulan yang sedang aktif dari localStorage
 function muatTabel(){
   buildTable();
-  namaPetugasEl.value = "";
+  // Untuk role LW field Nama Petugas selalu dikunci ke akun sendiri —
+  // jangan sampai ditimpa data lama/kosong dari penyimpanan bulan lain.
+  const petugasTerkunci = (getCurrentRole() === "lw") ? currentUser : "";
+  namaPetugasEl.value = petugasTerkunci;
   g1r1El.value = "";
   const raw = localStorage.getItem(storageKey());
   if(raw){
     try{
       const data = JSON.parse(raw);
-      namaPetugasEl.value = data.petugas || "";
+      namaPetugasEl.value = petugasTerkunci || (data.petugas || "");
       g1r1El.value = data.g1r1Field || localStorage.getItem(g1r1DefaultKey(data.petugas)) || "";
       const rows = tbody.querySelectorAll("tr");
       rows.forEach((tr, i)=>{
