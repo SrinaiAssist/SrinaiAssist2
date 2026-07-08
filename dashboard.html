@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   /* Dark palette */
@@ -332,6 +333,22 @@ body{
 .quick-item{
   display:flex;flex-direction:column;align-items:center;gap:7px;
   cursor:pointer;
+  opacity:0;
+  animation:quickItemPop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.quick-item:nth-child(1){animation-delay:.28s;}
+.quick-item:nth-child(2){animation-delay:.33s;}
+.quick-item:nth-child(3){animation-delay:.38s;}
+.quick-item:nth-child(4){animation-delay:.43s;}
+.quick-item:nth-child(5){animation-delay:.48s;}
+.quick-item:nth-child(6){animation-delay:.53s;}
+.quick-item:nth-child(7){animation-delay:.58s;}
+.quick-item:nth-child(8){animation-delay:.63s;}
+.quick-item:nth-child(9){animation-delay:.68s;}
+.quick-item:nth-child(10){animation-delay:.73s;}
+@keyframes quickItemPop{
+  from{opacity:0;transform:translateY(12px) scale(.8);}
+  to{opacity:1;transform:translateY(0) scale(1);}
 }
 .quick-icon{
   width:52px;height:52px;border-radius:15px;
@@ -339,12 +356,19 @@ body{
   border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;
   transition:transform .15s ease, background .15s ease;
+  animation:iconBreathe 3.6s ease-in-out infinite;
+  animation-delay:inherit;
 }
 .quick-item:active .quick-icon{
   transform:scale(0.9);
   background:rgba(255,255,255,0.1);
 }
-.quick-icon svg{width:21px;height:21px;}
+.quick-icon svg{width:21px;height:21px;transition:transform .2s ease;}
+.quick-item:hover .quick-icon svg{transform:scale(1.12) rotate(-4deg);}
+@keyframes iconBreathe{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-3px);}
+}
 .quick-label{
   font-size:10px;font-weight:600;color:var(--ink-2);
   text-align:center;line-height:1.25;
@@ -361,6 +385,7 @@ body{
 .qi-master  .quick-icon{background:rgba(74,142,245,0.12);border-color:rgba(74,142,245,0.22);}
 .qi-akun    .quick-icon{background:rgba(244,197,66,0.12);border-color:rgba(244,197,66,0.22);}
 .qi-eviden  .quick-icon{background:rgba(242,107,107,0.13);border-color:rgba(242,107,107,0.24);}
+.qi-qrcetak .quick-icon{background:rgba(56,191,160,0.12);border-color:rgba(56,191,160,0.22);}
 
 /* =========================================================
    PENGATURAN BA PANEL
@@ -718,6 +743,27 @@ body{
 .qi-master:hover .quick-icon{box-shadow:0 6px 18px rgba(74,142,245,0.3);}
 .qi-akun:hover   .quick-icon{box-shadow:0 6px 18px rgba(244,197,66,0.3);}
 .qi-eviden:hover .quick-icon{box-shadow:0 6px 18px rgba(242,107,107,0.32);}
+.qi-qrcetak:hover .quick-icon{box-shadow:0 6px 18px rgba(56,191,160,0.3);}
+
+/* Printable QR sheet (hidden on screen, shown only when printing) */
+.print-sheet{display:none;}
+.print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.print-card{
+  border:1px dashed #999;border-radius:8px;padding:12px 6px;
+  text-align:center;break-inside:avoid;
+}
+.print-card canvas, .print-card img{margin:0 auto;}
+.print-label{font-size:11px;font-weight:700;margin-top:6px;color:#000;}
+.print-sheet-title{font-size:14px;font-weight:800;color:#000;margin-bottom:14px;}
+
+@media print{
+  body *{visibility:hidden;}
+  .print-sheet, .print-sheet *{visibility:visible;}
+  .print-sheet{
+    display:block;position:absolute;top:0;left:0;width:100%;
+    background:#fff;padding:20px;
+  }
+}
 .qi-profil:hover .quick-icon,
 .qi-setting:hover .quick-icon{box-shadow:0 6px 18px rgba(255,255,255,0.1);}
 
@@ -917,6 +963,12 @@ body{
           <span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#F26B6B;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-card);">!</span>
         </div>
         <div class="quick-label">Foto<br>Eviden</div>
+      </div>
+      <div class="quick-item qi-qrcetak" id="qrCetakBtn" onclick="printAllQrDashboard()">
+        <div class="quick-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
+        </div>
+        <div class="quick-label">Cetak<br>QR</div>
       </div>
       <div class="quick-item qi-master" id="masterDataQuick" onclick="location.href='master-jalur.html'" style="display:none;">
         <div class="quick-icon">
@@ -2078,7 +2130,112 @@ function animateCountUp(elementId, target, duration){
   requestAnimationFrame(tick);
 }
 
+/* ===================== CETAK QR MASSAL (Tower + Span) ===================== */
+async function printAllQrDashboard(){
+  const btn = document.getElementById("qrCetakBtn");
+  const label = btn ? btn.querySelector(".quick-label") : null;
+  const originalLabel = label ? label.innerHTML : null;
+  if(label) label.innerHTML = "Menyiapkan...";
+
+  try{
+    const currentUser = getCurrentUser();
+    const profile = await cachedGetFullProfile(currentUser);
+    if(!profile){ alert("Akun tidak dikenali."); return; }
+
+    const jalurList = await cachedGetJalurMasterList();
+    const myJalur = jalurList.find(j => j.id === profile.jalurId)
+      || jalurList.find(j => j.aktif)
+      || jalurList[0];
+    if(!myJalur){ alert("Jalur belum dikonfigurasi."); return; }
+
+    const isFullAccess = (typeof isAdmin === "function" && isAdmin())
+      || (typeof isKLW === "function" && isKLW())
+      || (typeof isMonitor === "function" && isMonitor());
+
+    let towers = await cachedGetTowerMasterList(myJalur.id);
+    let spans  = await cachedGetSpanMasterList(myJalur.id);
+
+    if(!isFullAccess){
+      if(profile.hasNewAssignment){
+        towers = towers.filter(t => (profile.towerIds || []).includes(t.id));
+        spans  = spans.filter(s => (profile.spanIds  || []).includes(s.id));
+      } else {
+        towers = towers.filter(t => t.nomor >= profile.towerAwal && t.nomor <= profile.towerAkhir);
+        const spanEnd = Math.max(profile.towerAkhir - 1, profile.towerAwal);
+        spans = spans.filter(s => s.nomor >= profile.towerAwal && s.nomor <= spanEnd);
+      }
+    }
+
+    if(!towers.length){
+      alert("Tidak ada tower yang bisa dicetak untuk akses Anda.");
+      return;
+    }
+
+    towers.sort((a,b) => a.nomor - b.nomor);
+    const spanByNomor = {};
+    spans.forEach(s => { spanByNomor[s.nomor] = s; });
+
+    const grid = document.getElementById("printGridDash");
+    grid.innerHTML = "";
+    document.getElementById("printSheetTitleDash").innerText =
+      `QR Tower & Span — ${myJalur.code} (${towers.length} tower)`;
+
+    towers.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "print-card";
+
+      const pairWrap = document.createElement("div");
+      pairWrap.style.display = "flex";
+      pairWrap.style.gap = "8px";
+      pairWrap.style.justifyContent = "center";
+      card.appendChild(pairWrap);
+
+      const towerQrHolder = document.createElement("div");
+      pairWrap.appendChild(towerQrHolder);
+      new QRCode(towerQrHolder, {
+        text: location.origin + "/catatan-tower.html?tower=" + t.id,
+        width: 92, height: 92,
+        colorDark: "#000000", colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      const s = spanByNomor[t.nomor];
+      if(s){
+        const spanQrHolder = document.createElement("div");
+        pairWrap.appendChild(spanQrHolder);
+        new QRCode(spanQrHolder, {
+          text: location.origin + "/catatan-span.html?span=" + s.id,
+          width: 92, height: 92,
+          colorDark: "#000000", colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      const towerCode = assetCodeTower(myJalur.code, t.nomor);
+      const lbl = document.createElement("div");
+      lbl.className = "print-label";
+      lbl.innerText = s
+        ? `${towerCode} + Span ${String(s.nomor).padStart(3,"0")}`
+        : `${towerCode} (tanpa span)`;
+      card.appendChild(lbl);
+
+      grid.appendChild(card);
+    });
+
+    // Beri waktu render QR sebelum memicu dialog print
+    setTimeout(() => window.print(), 400);
+  } finally {
+    if(label && originalLabel !== null) label.innerHTML = originalLabel;
+  }
+}
+
 </script>
+
+<!-- Printable QR Sheet: Tower + Span berpasangan (hanya tampil saat print) -->
+<div class="print-sheet" id="printSheetDash">
+  <div class="print-sheet-title" id="printSheetTitleDash">QR Tower & Span</div>
+  <div class="print-grid" id="printGridDash"></div>
+</div>
 
 </body>
   </html>
