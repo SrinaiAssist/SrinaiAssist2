@@ -9,6 +9,8 @@
 // PENTING (perbaikan kuota transfer Neon): 5 key berikut berisi gambar yang
 // bisa cukup besar (logo/background/contoh layout BA & halaman login):
 //   baLogo, baBackground, baContohLayout, loginLogo, loginBackground
+// PLUS: key apa pun berawalan "qr:" (mis. qr:tower:<id>, qr:span:<id>) --
+// dipakai untuk cache QR Code Tower/Span (dashboard.html, tower.html).
 // Sebelumnya SEMUA disimpan sebagai base64 mentah langsung di kolom `value`
 // Postgres. Sekarang kalau value untuk salah satu key di atas berupa data
 // URL base64, file diupload dulu ke Google Drive (lib/googleDrive.js) dan
@@ -35,17 +37,32 @@ const IMAGE_SETTING_KEYS = new Set([
   'baLogo', 'baBackground', 'baContohLayout', 'loginLogo', 'loginBackground',
 ]);
 
+// Selain 5 key tetap di atas, key apa pun berawalan "qr:" (contoh:
+// "qr:tower:<id>", "qr:span:<id>") JUGA diperlakukan sebagai gambar dan
+// disimpan ke Drive. Dipakai untuk cache QR Code Tower/Span (generate
+// sekali di browser, upload sekali, GET berikutnya tinggal ambil dari Drive
+// -- tidak generate ulang & tidak upload ulang).
+function isImageKey(key) {
+  return IMAGE_SETTING_KEYS.has(key) || (typeof key === 'string' && key.startsWith('qr:'));
+}
+
+// QR disimpan sebagai PNG (canvas.toDataURL("image/png")), 5 key lama tetap JPEG.
+function mimeForKey(key) {
+  return (typeof key === 'string' && key.startsWith('qr:')) ? 'image/png' : 'image/jpeg';
+}
+
 // Upload value (data URL base64) ke Drive kalau key-nya termasuk gambar.
 // Return: { toSave, warning }
 async function resolveValueForSave(key, value) {
-  if (!IMAGE_SETTING_KEYS.has(key)) {
+  if (!isImageKey(key)) {
     return { toSave: value ?? null, warning: null }; // key non-gambar, simpan apa adanya
   }
   if (!value || typeof value !== 'string' || !value.startsWith('data:')) {
     return { toSave: value ?? null, warning: null }; // kosong / sudah referensi Drive lama
   }
   try {
-    const uploaded = await uploadPhotoToDrive(value, `${key}-${Date.now()}.jpg`);
+    const ext = mimeForKey(key) === 'image/png' ? 'png' : 'jpg';
+    const uploaded = await uploadPhotoToDrive(value, `${key.replace(/[:]/g, '-')}-${Date.now()}.${ext}`);
     return { toSave: `${DRIVE_PREFIX}${uploaded.fileId}`, warning: null };
   } catch (driveErr) {
     console.error(`Upload setting "${key}" ke Drive gagal, fallback simpan base64:`, driveErr.message);
@@ -56,13 +73,13 @@ async function resolveValueForSave(key, value) {
 // Baca value dari DB dan ubah jadi base64 data URL kalau berupa referensi
 // Drive. Key non-gambar / value bukan referensi Drive dikembalikan apa adanya.
 async function resolveValueForRead(key, valueRaw) {
-  if (!IMAGE_SETTING_KEYS.has(key)) return valueRaw;
+  if (!isImageKey(key)) return valueRaw;
   if (!valueRaw || typeof valueRaw !== 'string' || !valueRaw.startsWith(DRIVE_PREFIX)) {
     return valueRaw;
   }
   const fileId = valueRaw.slice(DRIVE_PREFIX.length);
   try {
-    return await downloadFileAsDataUrl(fileId, 'image/jpeg');
+    return await downloadFileAsDataUrl(fileId, mimeForKey(key));
   } catch (err) {
     console.error(`Download setting "${key}" dari Drive gagal:`, err.message);
     return null; // biar frontend anggap belum ada gambar, daripada error total
