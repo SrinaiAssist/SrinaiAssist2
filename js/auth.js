@@ -151,6 +151,61 @@ function assetCodeSpan(jalurCode, nomor) {
     return jalurCode + "-S" + String(nomor).padStart(3, "0");
 }
 
+// ===================== QR CODE (cache-first via Google Drive) =====================
+// key contoh: "qr:tower:<id>" atau "qr:span:<id>"
+// url        : isi/link yang di-encode ke QR
+// Cek dulu ke /api/settings (Drive), kalau belum ada baru generate di browser
+// pakai QRCode.js lalu upload sekali supaya panggilan berikutnya tinggal ambil.
+// Butuh QRCode.js (qrcodejs) sudah termuat di halaman pemanggil.
+async function getOrCreateQrDataUrl(key, url, size) {
+    size = size || 220;
+
+    // 1) Coba ambil dari cache Drive dulu
+    try {
+        const res = await apiRequest(`/api/settings?key=${encodeURIComponent(key)}`);
+        if (res && res.success && res.value) {
+            return res.value; // sudah berupa data:image/png;base64,...
+        }
+    } catch (e) {
+        console.warn("Cek cache QR gagal, lanjut generate baru:", e.message);
+    }
+
+    // 2) Belum ada -> generate di browser pakai canvas sementara
+    const tempDiv = document.createElement("div");
+    tempDiv.style.display = "none";
+    document.body.appendChild(tempDiv);
+
+    new QRCode(tempDiv, {
+        text: url,
+        width: size,
+        height: size,
+        colorDark: "#0A1E3D",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // QRCode.js menggambar async ke canvas; beri sedikit waktu render
+    await new Promise(r => setTimeout(r, 60));
+
+    const canvas = tempDiv.querySelector("canvas");
+    const dataUrl = canvas ? canvas.toDataURL("image/png") : null;
+    document.body.removeChild(tempDiv);
+
+    if (!dataUrl) return null;
+
+    // 3) Upload ke Drive supaya panggilan berikutnya tidak generate ulang
+    try {
+        await apiRequest("/api/settings", {
+            method: "POST",
+            body: JSON.stringify({ key, value: dataUrl })
+        });
+    } catch (e) {
+        console.warn("Simpan cache QR ke Drive gagal (QR tetap dipakai):", e.message);
+    }
+
+    return dataUrl;
+}
+
 async function getSpanOwner(spanId) {
     const accounts = await getAllAccountsFull();
     const owner = accounts.find(a => (a.span_ids || []).includes(spanId));
