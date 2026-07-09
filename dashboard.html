@@ -995,7 +995,7 @@ body{
         </div>
         <div class="quick-label">Foto<br>Eviden</div>
       </div>
-      <div class="quick-item qi-qrcetak" id="qrCetakBtn" onclick="printAllQrDashboard()">
+      <div class="quick-item qi-qrcetak" id="qrCetakBtn" onclick="printAllQrDashboard()" style="display:none;">
         <div class="quick-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
         </div>
@@ -1986,6 +1986,7 @@ async function initPage(){
   /* --- Role-based menu visibility --- */
   if(typeof isAdmin === "function" && isAdmin()){
     document.getElementById("kelolaAkunQuick").style.display = "flex";
+    document.getElementById("qrCetakBtn").style.display = "flex";
   }
   if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
     document.getElementById("masterDataQuick").style.display = "flex";
@@ -2169,6 +2170,11 @@ function animateCountUp(elementId, target, duration){
 
 /* ===================== CETAK QR MASSAL (Tower + Span) ===================== */
 async function printAllQrDashboard(){
+  if(!(typeof isAdmin === "function" && isAdmin())){
+    alert("Fitur cetak QR hanya tersedia untuk admin.");
+    return;
+  }
+
   const btn = document.getElementById("qrCetakBtn");
   const label = btn ? btn.querySelector(".quick-label") : null;
   const originalLabel = label ? label.innerHTML : null;
