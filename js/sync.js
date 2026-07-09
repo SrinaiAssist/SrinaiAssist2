@@ -132,18 +132,23 @@ async function cachedGetFullProfile(username) {
 
   let jumlahTower, jumlahSpan, towerLabel;
 
-  if (account.role === "admin") {
-    // Admin melihat semua data berdasarkan jalur miliknya
+  const isFullJalurRole = (account.role === "admin" || account.role === "klw");
+
+  if (isFullJalurRole) {
+    // Admin & KLW: akses SEMUA jalur, termasuk yang baru dibuat.
+    // cachedGetTowerMasterList()/cachedGetSpanMasterList() tanpa argumen
+    // (atau jalurId null/undefined) sudah otomatis mengembalikan data
+    // LINTAS SEMUA jalur (lihat definisi fungsinya di bawah).
     const [towerMaster, spanMaster] = await Promise.all([
-      cachedGetTowerMasterList(account.jalur_id),
-      cachedGetSpanMasterList(account.jalur_id)
+      cachedGetTowerMasterList(),
+      cachedGetSpanMasterList()
     ]);
     jumlahTower = towerMaster.length;
     jumlahSpan  = spanMaster.length;
     if (towerMaster.length > 0) {
       const nums = towerMaster.map(t => t.nomor);
       towerLabel = "T" + String(Math.min(...nums)).padStart(3,"0")
-                 + " – T" + String(Math.max(...nums)).padStart(3,"0");
+                 + " – T" + String(Math.max(...nums)).padStart(3,"0") + " (semua jalur)";
     } else {
       towerLabel = "Belum ada data";
     }
@@ -176,8 +181,9 @@ async function cachedGetFullProfile(username) {
     status      : account.status,
     jabatan     : account.jabatan || (account.role ? account.role.toUpperCase() : ""),
     jalur       : account.jalur || "lembursitu-cianjur",
-    jalurId     : account.jalur_id || null,
-    jalurLabel  : JALUR_LABEL_MAP[account.jalur] || account.jalur || "-",
+    jalurId     : isFullJalurRole ? null : (account.jalur_id || null),
+    jalurLabel  : isFullJalurRole ? "🌐 Semua Jalur" : (JALUR_LABEL_MAP[account.jalur] || account.jalur || "-"),
+    allJalurAccess: isFullJalurRole,
     towerAwal, towerAkhir, towerLabel,
     towerIds, spanIds,
     jumlahTower, jumlahSpan,
