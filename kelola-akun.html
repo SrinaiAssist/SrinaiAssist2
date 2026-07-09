@@ -230,7 +230,10 @@ body{
     </div>
     <div class="form-row" id="newJalurWrap">
       <label class="form-label">Jalur</label>
-      <select id="newJalur" class="form-select" onchange="renderNewPickers()"></select>
+      <div style="display:flex;gap:6px;">
+        <select id="newJalur" class="form-select" onchange="renderNewPickers()" style="flex:1;"></select>
+        <button type="button" onclick="refreshJalurDropdown()" title="Muat ulang daftar jalur" style="flex-shrink:0;width:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg-glass);color:var(--ink-2);font-size:15px;cursor:pointer;">🔄</button>
+      </div>
     </div>
     <div class="picker-count" id="newJalurNote" style="display:none;">🌐 Admin & KLW otomatis mengakses semua jalur, termasuk jalur baru yang dibuat nanti.</div>
     <div class="form-row" id="newTowerPickerWrap">
@@ -265,6 +268,24 @@ async function initPage(){
   onNewRoleChange();
   await loadAccountsList();
 }
+
+// Muat ulang daftar jalur secara manual (tombol 🔄) -- berguna kalau jalur
+// baru saja dibuat di master-jalur.html lalu balik ke halaman ini.
+async function refreshJalurDropdown(){
+  const currentVal = document.getElementById("newJalur").value;
+  await populateJalurSelect(document.getElementById("newJalur"), currentVal || null);
+  await renderNewPickers();
+}
+
+// Chrome (terutama mobile) kadang mengembalikan halaman ini dari bfcache
+// (tombol back) tanpa menjalankan ulang initPage(), sehingga dropdown jalur
+// jadi basi kalau jalur baru dibuat di tab/halaman lain. Deteksi itu dan
+// muat ulang daftar jalur otomatis.
+window.addEventListener("pageshow", (e) => {
+  if(e.persisted){
+    refreshJalurDropdown();
+  }
+});
 
 /* ── Helpers ── */
 async function getJalurList(){ return (await getJalurMasterList()).filter(j=>j.aktif); }
