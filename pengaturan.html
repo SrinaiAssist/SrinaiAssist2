@@ -226,8 +226,15 @@ textarea.field-input:focus{border-color:rgba(74,142,245,0.4);}
 
       <div class="card">
         <div class="card-title gold">💾 Backup Data</div>
-        <div class="card-desc">Menyimpan daftar akun dan pengaturan tampilan ke file cadangan. Data master tersimpan aman di server.</div>
-        <button class="btn btn-warning" onclick="backupData()">⬇ Backup Data</button>
+        <div class="card-desc">Mengunduh SELURUH data aplikasi (akun, profil, jalur, tower, span, tegakan, catatan, BA, tanda tangan, chat, dan pengaturan) ke satu file cadangan JSON.</div>
+        <button class="btn btn-warning" id="backupBtn" onclick="backupData()">⬇ Backup Semua Data</button>
+
+        <div class="restore-box">
+          <div class="card-desc" style="margin-top:14px;">Pulihkan data dari file cadangan JSON. Data yang ID/key-nya sama akan ditimpa; data lama yang tidak ada di file backup TIDAK dihapus.</div>
+          <input type="file" id="restoreInput" accept="application/json,.json">
+          <button class="btn btn-danger" id="restoreBtn" onclick="restoreData()" style="margin-top:8px;">⬆ Upload & Pulihkan Backup</button>
+          <div id="restoreResult" class="info-box hidden" style="margin-top:10px;"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -324,14 +331,83 @@ async function saveNotice(){
 }
 
 async function backupData(){
-  const settings = await getAppSettings(["baBackground","baLogo","baFieldLayout","baContohLayout","loginLogo","loginBackground","systemNotice"]);
-  const accounts = await getAllAccountsFull();
-  const data = { catatan:"Backup per "+new Date().toLocaleString("id-ID"), accounts, settings };
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "srinai-backup-" + new Date().toISOString().slice(0,10) + ".json";
-  a.click();
+  const btn = document.getElementById("backupBtn");
+  const originalLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = "⏳ Menyiapkan backup...";
+  try{
+    const result = await apiRequest("/api/settings?action=backup");
+    if(!result.success){
+      alert(result.message || "Gagal mengambil data backup dari server.");
+      return;
+    }
+    const data = {
+      catatan: "Backup SRINAI ASSIST per " + new Date().toLocaleString("id-ID"),
+      exportedAt: result.exportedAt,
+      version: result.version,
+      tables: result.tables
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "srinai-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+  } catch(err){
+    alert("Gagal membuat file backup.");
+  } finally {
+    btn.disabled = false; btn.textContent = originalLabel;
+  }
+}
+
+async function restoreData(){
+  const input = document.getElementById("restoreInput");
+  const resultBox = document.getElementById("restoreResult");
+  const file = input.files[0];
+  if(!file){ alert("Pilih file backup (.json) terlebih dahulu."); return; }
+
+  if(!confirm("Yakin ingin memulihkan data dari file ini? Data di server dengan ID/key yang sama akan DITIMPA.")) return;
+  if(!confirm("Konfirmasi sekali lagi: lanjutkan proses restore backup?")) return;
+
+  const btn = document.getElementById("restoreBtn");
+  const originalLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = "⏳ Memulihkan data...";
+  resultBox.classList.add("hidden");
+
+  try{
+    const text = await file.text();
+    let parsed;
+    try{ parsed = JSON.parse(text); }
+    catch(e){ alert("File bukan JSON yang valid."); return; }
+
+    const tables = parsed.tables || parsed;
+    if(!tables || typeof tables !== "object"){
+      alert("Format file backup tidak dikenali.");
+      return;
+    }
+
+    const res = await apiRequest("/api/settings?action=backup", {
+      method: "POST",
+      body: JSON.stringify({ tables })
+    });
+
+    if(!res.success){
+      alert(res.message || "Gagal memulihkan data.");
+      return;
+    }
+
+    const lines = Object.entries(res.summary || {}).map(([table, s]) => {
+      if(s.skipped) return `• ${table}: dilewati (tidak ada di file backup)`;
+      return `• ${table}: ${s.ok} berhasil${s.failed ? ", " + s.failed + " gagal" : ""} dari ${s.total} baris`;
+    });
+    resultBox.textContent = "✅ Restore selesai:\n" + lines.join("\n");
+    resultBox.style.whiteSpace = "pre-line";
+    resultBox.classList.remove("hidden");
+    alert("Restore backup selesai.");
+  } catch(err){
+    alert("Gagal memproses file backup.");
+  } finally {
+    btn.disabled = false; btn.textContent = originalLabel;
+    input.value = "";
+  }
 }
 
 function resetApplication(){
