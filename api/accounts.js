@@ -260,11 +260,17 @@ module.exports = async (req, res) => {
           fotoWarning = resolved.warning;
         }
 
+        // jalur_id butuh perlakuan khusus: COALESCE tidak bisa dipakai untuk
+        // MENGOSONGKAN nilai (set NULL), karena COALESCE(null, kolom_lama)
+        // akan selalu balik ke nilai lama. Admin & KLW sengaja punya
+        // jalur_id = NULL supaya otomatis akses SEMUA jalur (termasuk yang
+        // baru dibuat) -- lihat kelola-akun.html.
+        const jalurIdProvided = Object.prototype.hasOwnProperty.call(fields, 'jalurId');
+
         await sql`
           UPDATE profiles SET
             jabatan     = COALESCE(${fields.jabatan ?? null}, jabatan),
             jalur       = COALESCE(${fields.jalur ?? null}, jalur),
-            jalur_id    = COALESCE(${fields.jalurId ?? null}, jalur_id),
             tower_ids   = COALESCE(${fields.towerIds !== undefined ? JSON.stringify(fields.towerIds) : null}, tower_ids),
             span_ids    = COALESCE(${fields.spanIds !== undefined ? JSON.stringify(fields.spanIds) : null}, span_ids),
             tower_awal  = COALESCE(${fields.towerAwal ?? null}, tower_awal),
@@ -273,6 +279,11 @@ module.exports = async (req, res) => {
             foto        = COALESCE(${fotoToSave}, foto)
           WHERE username = ${username}
         `;
+
+        if (jalurIdProvided) {
+          // Set langsung (boleh NULL) -- dipanggil terpisah dari COALESCE di atas.
+          await sql`UPDATE profiles SET jalur_id = ${fields.jalurId ?? null} WHERE username = ${username}`;
+        }
 
         if (fotoWarning) {
           return res.status(200).json({ success: true, username, driveWarning: fotoWarning });
