@@ -348,6 +348,12 @@ body{
     </div>
   </div>
 
+  <!-- Jalur Switcher (khusus Admin & KLW, akses semua jalur) -->
+  <div id="jalurSwitchWrap" style="display:none;margin:0 16px 12px;">
+    <label style="font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">🌐 Pilih Jalur (Admin/KLW — akses semua jalur)</label>
+    <select id="jalurSwitchSelect" onchange="switchJalur(this.value)" class="form-select" style="width:100%;background:var(--bg-glass);border:1px solid var(--border);color:var(--ink);padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;font-family:inherit;"></select>
+  </div>
+
   <!-- Filter Bar -->
   <div class="filter-bar" id="filterBar">
     <div class="search-box">
@@ -514,6 +520,26 @@ async function initPage(){
   canEdit      = !isMonitor();
   isFullAccess = isAdmin() || isKLW() || isMonitor();
 
+  // Admin & KLW akses semua jalur -> tampilkan switcher jalur, dan pakai
+  // pilihan terakhir yang tersimpan (localStorage) kalau ada.
+  if(profile.allJalurAccess){
+    const savedJalurId = localStorage.getItem("srinai_active_jalur");
+    if(savedJalurId && jalurList.some(j => j.id === savedJalurId)){
+      myJalur = jalurList.find(j => j.id === savedJalurId);
+    }
+
+    const sel = document.getElementById("jalurSwitchSelect");
+    sel.innerHTML = "";
+    jalurList.forEach(j => {
+      const opt = document.createElement("option");
+      opt.value = j.id;
+      opt.textContent = j.code + " — " + j.label;
+      if(myJalur && j.id === myJalur.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    document.getElementById("jalurSwitchWrap").style.display = jalurList.length ? "block" : "none";
+  }
+
   document.getElementById("userInfo").innerHTML = currentUser + (myJalur ? " · " + myJalur.code : "");
 
   // Bangun map towerId → nama petugas (hanya untuk admin/klw/monitor)
@@ -562,6 +588,21 @@ function statusChipClass(status){
 
 function bukaCatatan(towerId){
   window.location.href = "catatan-tower.html?tower=" + towerId;
+}
+
+async function switchJalur(jalurId){
+  const j = jalurList.find(x => x.id === jalurId);
+  if(!j) return;
+  myJalur = j;
+  localStorage.setItem("srinai_active_jalur", jalurId);
+
+  spanListCache = await cachedGetSpanMasterList(myJalur.id);
+
+  document.getElementById("rangeInfo").innerHTML  = "Semua";
+  document.getElementById("jalurName").innerHTML  = myJalur.code + " — " + myJalur.label;
+  document.getElementById("userInfo").innerHTML   = currentUser + " · " + myJalur.code;
+
+  await loadTable();
 }
 
 async function loadTable(){

@@ -232,6 +232,7 @@ body{
       <label class="form-label">Jalur</label>
       <select id="newJalur" class="form-select" onchange="renderNewPickers()"></select>
     </div>
+    <div class="picker-count" id="newJalurNote" style="display:none;">🌐 Admin & KLW otomatis mengakses semua jalur, termasuk jalur baru yang dibuat nanti.</div>
     <div class="form-row" id="newTowerPickerWrap">
       <label class="form-label">Pilih Tower</label>
       <div class="picker-box" id="newTowerPicker"></div>
@@ -301,11 +302,15 @@ function renderPicker(containerEl, items, selectedIds, codeFn, onToggle){
   });
 }
 
+function isFullJalurRole(role){ return role==="admin" || role==="klw"; }
+
 function onNewRoleChange(){
   const role = document.getElementById("newRole").value;
   const show = (role==="lw");
   document.getElementById("newTowerPickerWrap").style.display = show?"block":"none";
   document.getElementById("newSpanPickerWrap").style.display  = show?"block":"none";
+  document.getElementById("newJalurWrap").style.display = isFullJalurRole(role)?"none":"block";
+  document.getElementById("newJalurNote").style.display = isFullJalurRole(role)?"block":"none";
 }
 
 /* ── Pickers tambah akun baru ── */
@@ -336,15 +341,23 @@ async function addNewAccount(){
   const password=document.getElementById("newPassword").value.trim();
   const role=document.getElementById("newRole").value;
   const jabatan=document.getElementById("newJabatan").value.trim();
-  const jalurId=document.getElementById("newJalur").value;
   const wilayah=document.getElementById("newWilayah").value.trim();
   if(!name||!password){ alert("Lengkapi nama dan password akun."); return; }
-  if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
-  const jalurList=await getJalurList();
-  const jalur=jalurList.find(j=>j.id===jalurId);
+
+  const fullJalur = isFullJalurRole(role);
+  let jalurId = null, jalur = "";
+
+  if(!fullJalur){
+    jalurId = document.getElementById("newJalur").value;
+    if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
+    const jalurList=await getJalurList();
+    const jalurObj=jalurList.find(j=>j.id===jalurId);
+    jalur = jalurObj?jalurObj.label:"";
+  }
+
   const result=await addAccount(name, password, role, {
     jabatan: jabatan||role.toUpperCase(),
-    jalur: jalur?jalur.label:"",
+    jalur,
     jalurId,
     towerIds: role==="lw"?[...newSelectedTowerIds]:[],
     spanIds:  role==="lw"?[...newSelectedSpanIds]:[],
@@ -369,20 +382,22 @@ async function buildProfileFromAccountRow(acc, jalurList, towerList, spanList){
   const spanIds    = acc.span_ids  || [];
   const hasNew     = towerIds.length>0 || spanIds.length>0;
 
-  let jumlahTower, jumlahSpan, towerLabel, warn=false;
+  let jumlahTower, jumlahSpan, towerLabel, warn=false, jalurLabelText;
 
-  if(acc.role==="admin"){
-    // Admin: tampilkan seluruh data jalur miliknya
-    const myTowers = towerList.filter(t=>t.jalurId===acc.jalur_id);
-    const mySpans  = spanList.filter(s=>s.jalurId===acc.jalur_id);
-    jumlahTower = myTowers.length;
-    jumlahSpan  = mySpans.length;
-    if(myTowers.length>0){
-      const nums = myTowers.map(t=>t.nomor);
-      towerLabel = "T"+String(Math.min(...nums)).padStart(3,"0")+" – T"+String(Math.max(...nums)).padStart(3,"0");
+  if(isFullJalurRole(acc.role)){
+    // Admin & KLW: akses SEMUA jalur (termasuk yang baru dibuat), tidak
+    // dibatasi jalur_id. Kalau jalur_id kosong (null) -> pakai seluruh
+    // towerList/spanList lintas jalur. Kalau (untuk akun lama) masih ada
+    // jalur_id tersimpan, tetap dianggap akses semua (bukan dibatasi).
+    jumlahTower = towerList.length;
+    jumlahSpan  = spanList.length;
+    if(towerList.length>0){
+      const nums = towerList.map(t=>t.nomor);
+      towerLabel = "T"+String(Math.min(...nums)).padStart(3,"0")+" – T"+String(Math.max(...nums)).padStart(3,"0")+" (semua jalur)";
     } else {
       towerLabel = "Belum ada data";
     }
+    jalurLabelText = "🌐 Semua Jalur";
   } else if(hasNew){
     const jalurMatch = jalurList.find(j=>j.id===acc.jalur_id);
     const allTowers  = towerList.filter(t=>towerIds.includes(t.id));
@@ -394,14 +409,17 @@ async function buildProfileFromAccountRow(acc, jalurList, towerList, spanList){
     } else {
       towerLabel = "Belum ada tower";
     }
+    jalurLabelText = jalurLabel(acc.jalur);
   } else {
     jumlahTower = 0;
     jumlahSpan  = 0;
     towerLabel  = "Belum di-assign";
     warn = (acc.role==="lw");
+    jalurLabelText = jalurLabel(acc.jalur);
   }
 
-  return { jabatan:acc.jabatan||(acc.role?acc.role.toUpperCase():""), jalurLabel:jalurLabel(acc.jalur),
+  return { jabatan:acc.jabatan||(acc.role?acc.role.toUpperCase():""), jalurLabel:jalurLabelText,
+           jalurId: acc.jalur_id||null,
            towerLabel, towerIds, spanIds, jumlahTower, jumlahSpan, hasNew, warn, wilayah:acc.wilayah||"" };
 }
 
@@ -510,10 +528,11 @@ async function renderEditBox(name, box){
       <label class="form-label">Jabatan</label>
       <input type="text" id="editJabatan-${id}" class="form-input">
     </div>
-    <div class="form-row">
+    <div class="form-row" id="editJalurWrap-${id}">
       <label class="form-label">Jalur</label>
       <select id="editJalur-${id}" class="form-select" onchange="renderEditPickers('${name}')"></select>
     </div>
+    <div class="picker-count" id="editJalurNote-${id}" style="display:none;">🌐 Admin & KLW otomatis mengakses semua jalur, termasuk jalur baru yang dibuat nanti.</div>
     <div class="form-row" id="editTowerWrap-${id}">
       <label class="form-label">Pilih Tower</label>
       <div class="picker-box" id="editTowerPicker-${id}"></div>
@@ -544,11 +563,15 @@ async function renderEditBox(name, box){
     const show=(r==="lw");
     document.getElementById("editTowerWrap-"+id).style.display=show?"block":"none";
     document.getElementById("editSpanWrap-"+id).style.display =show?"block":"none";
+    document.getElementById("editJalurWrap-"+id).style.display=isFullJalurRole(r)?"none":"block";
+    document.getElementById("editJalurNote-"+id).style.display=isFullJalurRole(r)?"block":"none";
   });
 
   const isLWRole=(acc.role==="lw");
   document.getElementById("editTowerWrap-"+id).style.display=isLWRole?"block":"none";
   document.getElementById("editSpanWrap-"+id).style.display =isLWRole?"block":"none";
+  document.getElementById("editJalurWrap-"+id).style.display=isFullJalurRole(acc.role)?"none":"block";
+  document.getElementById("editJalurNote-"+id).style.display=isFullJalurRole(acc.role)?"block":"none";
 
   if(jalurMatched) await renderEditPickers(name);
   else {
@@ -583,16 +606,23 @@ async function saveEdit(name){
   const namaBaru=document.getElementById("editNama-"+id).value.trim();
   const role   =document.getElementById("editRole-"+id).value;
   const jabatan=document.getElementById("editJabatan-"+id).value.trim();
-  const jalurId=document.getElementById("editJalur-"+id).value;
   const wilayah=document.getElementById("editWilayah-"+id).value.trim();
   if(!namaBaru){ alert("Nama akun tidak boleh kosong."); return; }
-  if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
-  const jalurList=await getJalurList();
-  const jalur=jalurList.find(j=>j.id===jalurId);
+
+  const fullJalur = isFullJalurRole(role);
+  let jalurId = null, jalur = "";
+
+  if(!fullJalur){
+    jalurId = document.getElementById("editJalur-"+id).value;
+    if(!jalurId){ alert("Pilih jalur terlebih dahulu."); return; }
+    const jalurList=await getJalurList();
+    const jalurObj=jalurList.find(j=>j.id===jalurId);
+    jalur = jalurObj?jalurObj.label:"";
+  }
 
   const fields={
     role, jabatan:jabatan||role.toUpperCase(),
-    jalur:jalur?jalur.label:"", jalurId,
+    jalur, jalurId,
     towerIds: role==="lw"?[...editSelectedTowerIds[name]]:[],
     spanIds:  role==="lw"?[...editSelectedSpanIds[name]]:[],
     wilayah
