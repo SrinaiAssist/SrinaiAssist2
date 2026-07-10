@@ -129,42 +129,53 @@ body{
 .sidebar-toggle-btn.active .bar:nth-child(3){top:18.5px;transform:rotate(-45deg);}
 
 .side-scrim{
-  position:absolute;inset:0;background:rgba(2,6,16,0.55);
+  position:absolute;inset:0;background:rgba(8,15,30,0.4);
   opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:60;
 }
 .side-scrim.open{opacity:1;pointer-events:auto;}
 
 .side-sheet{
   position:absolute;top:0;left:0;
-  width:74%;max-width:320px;
-  background:linear-gradient(180deg, #101c38 0%, #0b1730 100%);
+  width:58%;max-width:250px;
+  background:rgba(21,33,61,0.97);
+  backdrop-filter:blur(6px);
   border-right:1px solid var(--border);
-  border-bottom-right-radius:24px;
-  box-shadow:10px 12px 34px rgba(0,0,0,0.5);
+  border-bottom-right-radius:22px;
+  box-shadow:6px 8px 24px rgba(0,0,0,0.35);
   transform:translateY(-105%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   z-index:65;
-  padding:78px 18px 22px;
+  padding:70px 14px 20px;
   max-height:100vh;overflow-y:auto;
 }
 .side-sheet.open{transform:translateY(0);}
+.side-sheet-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
 .side-sheet-title{
   font-size:10px;font-weight:700;color:var(--ink-3);
-  text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.8px;
+}
+.side-close-btn{
+  width:28px;height:28px;border-radius:9px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
 .side-nav-item{
-  display:flex;align-items:center;gap:12px;
-  padding:13px 12px;border-radius:14px;
-  background:var(--bg-glass);border:1px solid var(--border);
-  margin-bottom:10px;cursor:pointer;text-decoration:none;
+  display:flex;align-items:center;gap:10px;
+  padding:11px 10px;border-radius:13px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  margin-bottom:9px;cursor:pointer;text-decoration:none;
 }
 .side-nav-item .icon{
-  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  width:30px;height:30px;border-radius:9px;flex-shrink:0;
   background:rgba(56,191,160,0.15);border:1px solid rgba(56,191,160,0.3);
-  display:flex;align-items:center;justify-content:center;font-size:16px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
 }
-.side-nav-item .label{font-size:13px;font-weight:700;color:var(--ink);}
-.side-nav-item .sub{font-size:10.5px;color:var(--ink-3);margin-top:1px;}
+.side-nav-item .label{font-size:12.5px;font-weight:700;color:var(--ink);}
+.side-nav-item .sub{font-size:10px;color:var(--ink-3);margin-top:1px;}
 .notif-dot{
   position:absolute;top:7px;right:8px;
   width:7px;height:7px;border-radius:50%;
@@ -1023,12 +1034,38 @@ body{
   <!-- SIDEBAR (Admin/KLW) -->
   <div class="side-scrim" id="sideScrim" onclick="closeSidebar()"></div>
   <div class="side-sheet" id="sideSheet">
-    <div class="side-sheet-title">Menu</div>
+    <div class="side-sheet-top">
+      <div class="side-sheet-title">Menu</div>
+      <div class="side-close-btn" id="sideCloseBtn" onclick="closeSidebar()" title="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
     <a class="side-nav-item" href="informasi-span.html">
       <div class="icon">📍</div>
       <div>
         <div class="label">Informasi Span</div>
         <div class="sub">Seluruh data span, semua jalur (read only)</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sideMasterData" href="master-jalur.html" style="display:none;">
+      <div class="icon">🗂️</div>
+      <div>
+        <div class="label">Master Data</div>
+        <div class="sub">Kelola jalur, tower, dan span</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sidePengaturanBa" href="pengaturan-ba.html" style="display:none;">
+      <div class="icon">📄</div>
+      <div>
+        <div class="label">Pengaturan BA</div>
+        <div class="sub">Background, contoh, dan logo BA</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sideKelolaAkun" href="kelola-akun.html" style="display:none;">
+      <div class="icon">👥</div>
+      <div>
+        <div class="label">Kelola Akun</div>
+        <div class="sub">Manajemen akun & role pengguna</div>
       </div>
     </a>
   </div>
@@ -1192,24 +1229,6 @@ body{
           <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4a1 1 0 011-1h3"/><path d="M17 3h3a1 1 0 011 1v3"/><path d="M21 17v3a1 1 0 01-1 1h-3"/><path d="M7 21H4a1 1 0 01-1-1v-3"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
         </div>
         <div class="quick-label">Scan<br>QR</div>
-      </div>
-      <div class="quick-item qi-master" id="masterDataQuick" onclick="location.href='master-jalur.html'" style="display:none;">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-        </div>
-        <div class="quick-label">Master<br>Data</div>
-      </div>
-      <div class="quick-item qi-ba-settings" id="pengaturanBaQuick" onclick="location.href='pengaturan-ba.html'" style="display:none;">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
-        </div>
-        <div class="quick-label">Pengaturan<br>BA</div>
-      </div>
-      <div class="quick-item qi-akun" id="kelolaAkunQuick" onclick="location.href='kelola-akun.html'" style="display:none;">
-        <div class="quick-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c1.2-3.4 3.4-5 6-5s4.8 1.6 6 5"/><path d="M17 11.5a2.6 2.6 0 100-5.2 2.6 2.6 0 000 5.2zM21 19c-.8-2.2-2-3.4-3.6-3.9"/></svg>
-        </div>
-        <div class="quick-label">Kelola<br>Akun</div>
       </div>
     </div>
   </div>
@@ -1379,12 +1398,12 @@ async function initPage(){
 
   /* --- Role-based menu visibility --- */
   if(typeof isAdmin === "function" && isAdmin()){
-    document.getElementById("kelolaAkunQuick").style.display = "flex";
     document.getElementById("qrCetakBtn").style.display = "flex";
+    document.getElementById("sideKelolaAkun").style.display = "flex";
   }
   if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
-    document.getElementById("masterDataQuick").style.display = "flex";
-    document.getElementById("pengaturanBaQuick").style.display = "flex";
+    document.getElementById("sideMasterData").style.display = "flex";
+    document.getElementById("sidePengaturanBa").style.display = "flex";
     document.getElementById("sidebarToggleBtn").style.display = "flex";
   }
 
