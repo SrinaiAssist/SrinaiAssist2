@@ -222,11 +222,15 @@ body{
    MENU CARD (Profile strip + Quickgrid)
 ========================================================= */
 /* =========================================================
-   GOLD SHIMMER — dipakai di semua kontainer kartu
+   GLOWING ANIMATED BORDER — dipakai di semua kontainer kartu
 ========================================================= */
-@keyframes goldShimmerSweep{
-  0%{transform:translateX(-120%) skewX(-18deg);}
-  55%,100%{transform:translateX(220%) skewX(-18deg);}
+@property --border-angle{
+  syntax:'<angle>';
+  inherits:false;
+  initial-value:0deg;
+}
+@keyframes borderGlowRotate{
+  to{ --border-angle:360deg; }
 }
 .menu-card, .stat-card, .list-card{
   position:relative;
@@ -235,21 +239,26 @@ body{
 .menu-card::before, .stat-card::before, .list-card::before{
   content:"";
   position:absolute;
-  top:0;left:0;
-  width:35%;height:100%;
-  background:linear-gradient(100deg,
+  inset:0;
+  border-radius:inherit;
+  padding:1.5px;
+  background:conic-gradient(from var(--border-angle),
     transparent 0%,
-    rgba(244,197,66,0) 30%,
-    rgba(244,197,66,0.16) 50%,
-    rgba(244,197,66,0) 70%,
+    transparent 70%,
+    rgba(244,197,66,0.95) 80%,
+    #fff8e0 85%,
+    rgba(244,197,66,0.95) 90%,
     transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask-composite:exclude;
   pointer-events:none;
   z-index:5;
-  animation:goldShimmerSweep 5s ease-in-out infinite;
+  animation:borderGlowRotate 3.2s linear infinite;
 }
 .stat-card.stat-tegakan::before{animation-delay:.6s;}
 .stat-card.stat-ba::before{animation-delay:1.3s;}
-.list-card::before{animation-delay:2s;}
+.list-card::before{animation-delay:1.2s;}
 
 .menu-card{
   position:relative;z-index:2;
