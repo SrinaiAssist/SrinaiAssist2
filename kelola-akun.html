@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kelola Akun - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -173,6 +174,24 @@ body{
 .act-edit{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);}
 .act-reset{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,212,160,0.2);}
 .act-del{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
+.act-qrspan{background:rgba(56,191,160,0.15);color:var(--teal);border:1px solid rgba(56,191,160,0.3);grid-column:1 / -1;}
+
+/* Modal QR Info Span */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal-box{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+  padding:22px;max-width:340px;width:100%;text-align:center;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
+.qr-box{
+  width:220px;height:220px;margin:0 auto 14px;border-radius:14px;overflow:hidden;
+  background:white;display:flex;align-items:center;justify-content:center;
+}
+.qr-box img, .qr-box canvas{display:block;width:100%;height:100%;}
+.qr-loading{font-size:11px;color:#0A1E3D;width:220px;height:220px;display:flex;align-items:center;justify-content:center;}
+.qr-label{font-size:12.5px;font-weight:800;color:var(--gold);margin-bottom:14px;}
 
 /* Edit box */
 .edit-box{
@@ -256,6 +275,18 @@ body{
   <div class="section-label">Daftar Akun</div>
   <div class="list-wrap" id="accountList"></div>
 
+</div>
+
+<!-- Modal QR Info Span -->
+<div class="modal-overlay" id="qrInfoSpanModal" onclick="if(event.target===this) closeQrInfoSpanModal()">
+  <div class="modal-box">
+    <div class="modal-title">QR Info Span</div>
+    <div class="modal-sub">Cetak/tempel QR ini agar petugas dapat memindainya untuk membuka data span miliknya (read only) di halaman Informasi Span.</div>
+    <div class="qr-label" id="qrInfoSpanLabel">—</div>
+    <div class="qr-box" id="qrInfoSpanBox"><div class="qr-loading">Memuat QR...</div></div>
+    <button class="btn-primary" onclick="downloadQrInfoSpan()">Unduh QR</button>
+    <button class="btn-secondary" onclick="closeQrInfoSpanModal()">Tutup</button>
+  </div>
 </div>
 
 <script>
@@ -494,6 +525,7 @@ async function loadAccountsList(){
         <button class="act-btn act-edit"   onclick="toggleEdit('${name}')">✏️ Edit Data</button>
         <button class="act-btn act-reset"  onclick="resetPasswordAccount('${name}')">🔑 Reset Password</button>
         <button class="act-btn act-del"    onclick="deleteAccountLocal('${name}')">🗑 Hapus</button>
+        ${profile.jumlahSpan > 0 ? `<button class="act-btn act-qrspan" onclick="showQrInfoSpan('${name}')">🔗 QR Info Span</button>` : ''}
       </div>
       <div class="edit-box" id="editBox-${cssId(name)}"></div>
     `;
@@ -684,6 +716,39 @@ async function deleteAccountLocal(name){
   if(!confirm("Hapus akun "+name+"?")) return;
   await deleteAccount(name);
   await loadAccountsList();
+}
+
+/* ===================== QR CODE INFO SPAN ===================== */
+function infoSpanDeepLink(username){
+  return location.origin + location.pathname.replace(/kelola-akun\.html$/, "")
+    + "informasi-span.html?owner=" + encodeURIComponent(username);
+}
+
+async function showQrInfoSpan(name){
+  document.getElementById("qrInfoSpanModal").classList.add("active");
+  document.getElementById("qrInfoSpanLabel").innerText = name;
+
+  const box = document.getElementById("qrInfoSpanBox");
+  box.innerHTML = `<div class="qr-loading">Memuat QR...</div>`;
+
+  const dataUrl = await getOrCreateQrDataUrl(`qr:infospan:${name}`, infoSpanDeepLink(name));
+  box.innerHTML = dataUrl
+    ? `<img src="${dataUrl}" alt="QR Info Span">`
+    : `<div class="qr-loading">Gagal memuat QR.</div>`;
+}
+
+function closeQrInfoSpanModal(){
+  document.getElementById("qrInfoSpanModal").classList.remove("active");
+}
+
+function downloadQrInfoSpan(){
+  const img = document.getElementById("qrInfoSpanBox").querySelector("img");
+  const label = document.getElementById("qrInfoSpanLabel").innerText || "info-span";
+  if(!img) return;
+  const a = document.createElement("a");
+  a.href = img.src;
+  a.download = `QR_InfoSpan_${label}.png`;
+  a.click();
 }
 
 initPage();

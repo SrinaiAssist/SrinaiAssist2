@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Informasi Span - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:60px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.topbar{
+  position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+.content{position:relative;z-index:2;padding:18px 20px 0;}
+
+.card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:18px;
+  padding:16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;
+  letter-spacing:.8px;display:flex;align-items:center;gap:6px;margin-bottom:10px;
+}
+.card-title::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+.card-title.red::before{background:var(--red);}
+.card-title.gold::before{background:var(--gold);}
+.card-title.teal::before{background:var(--teal);}
+.card-desc{font-size:12.5px;color:var(--ink-3);line-height:1.55;margin-bottom:2px;}
+
+.info-box{
+  background:var(--blue-glow);border-left:3px solid var(--blue);
+  padding:11px 13px;border-radius:10px;font-size:12.5px;color:var(--ink-2);
+  line-height:1.5;margin-bottom:12px;
+}
+.hidden{display:none !important;}
+.empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+.loading-msg{text-align:center;color:var(--ink-3);padding:24px 0;font-size:12.5px;}
+
+/* ── Access denied ── */
+.denied-box{text-align:center;padding:50px 20px;}
+.denied-emoji{font-size:44px;margin-bottom:14px;}
+.denied-title{font-size:16px;font-weight:800;margin-bottom:8px;}
+.denied-desc{font-size:12.5px;color:var(--ink-3);line-height:1.6;}
+.btn{
+  width:100%;padding:13px;border:none;border-radius:12px;font-family:inherit;
+  font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;
+}
+.btn-primary{background:var(--blue);color:white;}
+
+/* ── Owner accordion ── */
+.owner-section{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+  margin-bottom:10px;overflow:hidden;
+}
+.owner-section.highlight{border-color:rgba(244,197,66,0.55);box-shadow:0 0 0 1px rgba(244,197,66,0.25);}
+.owner-header{
+  display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;
+}
+.owner-code-badge{
+  font-size:13.5px;font-weight:800;color:var(--gold);
+  background:var(--gold-dim);padding:6px 10px;border-radius:10px;letter-spacing:.3px;
+}
+.owner-meta{flex:1;font-size:11.5px;color:var(--ink-3);}
+.owner-meta b{color:var(--ink-2);}
+.chevron{color:var(--ink-3);transition:transform .25s ease;font-size:12px;}
+.owner-section.open .chevron{transform:rotate(180deg);}
+.owner-body{display:none;padding:0 16px 14px;}
+.owner-section.open .owner-body{display:block;}
+
+.span-row{
+  background:var(--bg-card2);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;margin-bottom:8px;cursor:pointer;
+}
+.span-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.span-code{font-size:12.5px;font-weight:700;color:var(--ink);}
+.span-status{
+  font-size:9.5px;font-weight:700;padding:2.5px 8px;border-radius:20px;white-space:nowrap;
+  background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);
+}
+.span-status.baik{background:var(--green-bg);color:var(--green);}
+.span-status.rusak{background:var(--red-bg);color:var(--red);}
+.span-status.perhatian{background:var(--amber-bg);color:var(--amber);}
+.span-sub{font-size:11px;color:var(--ink-3);margin-top:4px;}
+.span-extra{display:none;margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;}
+.span-row.expanded .span-extra{display:block;}
+.span-extra-title{font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.tegakan-item, .catatan-item{
+  font-size:11.5px;color:var(--ink-2);line-height:1.6;padding:8px 10px;
+  background:var(--bg-glass);border-radius:9px;margin-bottom:6px;
+}
+.tegakan-item b, .catatan-item b{color:var(--ink);}
+.extra-empty{font-size:11px;color:var(--ink-3);font-style:italic;padding:2px 0 4px;}
+.span-extra-loading{font-size:11px;color:var(--ink-3);padding:4px 0;}
+
+.summary-bar{
+  display:flex;gap:8px;margin-bottom:14px;
+}
+.summary-chip{
+  flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+  padding:12px;text-align:center;
+}
+.summary-chip .n{font-size:18px;font-weight:800;color:var(--gold);}
+.summary-chip .l{font-size:10px;color:var(--ink-3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>📍 Informasi Span</h1>
+      <p id="topbarSub">Memuat...</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- AKSES DITOLAK -->
+    <div id="deniedBox" class="card hidden">
+      <div class="denied-box">
+        <div class="denied-emoji">🔒</div>
+        <div class="denied-title">Akses Dibatasi</div>
+        <div class="denied-desc">
+          Halaman ini hanya dapat diakses oleh peran tertentu, atau lewat pemindaian
+          QR Code resmi. Hubungi admin apabila Anda seharusnya memiliki akses.
+        </div>
+        <button class="btn btn-primary" onclick="location.href='index.html'">Ke Halaman Login</button>
+      </div>
+    </div>
+
+    <!-- KONTEN UTAMA (read-only) -->
+    <div id="mainBox" class="hidden">
+
+      <div class="info-box">
+        ℹ️ Data span pada halaman ini bersifat <b>hanya-baca (read only)</b>. Setiap kelompok
+        span dikelompokkan berdasarkan kode petugas pemilik, bukan nama asli.
+      </div>
+
+      <div class="summary-bar">
+        <div class="summary-chip"><div class="n" id="sumOwners">0</div><div class="l">Kelompok</div></div>
+        <div class="summary-chip"><div class="n" id="sumSpans">0</div><div class="l">Total Span</div></div>
+      </div>
+
+      <div id="loadingList" class="loading-msg">Memuat data span...</div>
+      <div id="ownerList"></div>
+      <div id="emptyList" class="empty-msg hidden">Belum ada span yang di-assign ke petugas manapun.</div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+let jalurById = {};
+let spanById  = {};
+let expandedCache = {}; // spanId -> { tegakan, catatan }
+
+function pad3(n){ return String(n).padStart(3,"0"); }
+
+function statusClass(status){
+  const s = (status||"").toLowerCase();
+  if(s.includes("baik")) return "baik";
+  if(s.includes("rusak")) return "rusak";
+  if(s.includes("perhatian")) return "perhatian";
+  return "";
+}
+
+async function checkAccess(){
+  let setting = null;
+  try{
+    const raw = await getAppSetting("infoSpanAccess");
+    setting = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+  }catch(e){ setting = null; }
+
+  const roles = (setting && Array.isArray(setting.roles)) ? setting.roles : ["admin","klw"];
+  const isPublic = !!(setting && setting.public);
+
+  if(isPublic) return true;
+
+  const username = getCurrentUser();
+  if(!username) return false;
+
+  const valid = await isLoggedIn();
+  if(!valid) return false;
+
+  if(isAdmin()) return true;
+
+  const role = getCurrentRole();
+  return roles.includes(role);
+}
+
+async function buildSections(){
+  const [accounts, jalurList, spanList] = await Promise.all([
+    getAllAccountsFull(),
+    getJalurMasterList(),
+    getSpanMasterList()
+  ]);
+
+  jalurById = {}; jalurList.forEach(j => jalurById[j.id] = j);
+  spanById  = {}; spanList.forEach(s => spanById[s.id] = s);
+
+  const sections = [];
+
+  accounts.forEach(acc => {
+    const spanIds = acc.span_ids || [];
+    if(!spanIds.length) return;
+
+    const spans = spanIds.map(id => spanById[id]).filter(Boolean);
+    if(!spans.length) return;
+
+    const byJalur = {};
+    spans.forEach(s => {
+      const key = s.jalur_id || "-";
+      (byJalur[key] = byJalur[key] || []).push(s);
+    });
+
+    Object.keys(byJalur).forEach(jalurId => {
+      const list = byJalur[jalurId].slice().sort((a,b) => a.nomor - b.nomor);
+      const first = list[0].nomor;
+      const last  = list[list.length - 1].nomor;
+      const jInfo = jalurById[jalurId];
+      const jCode = jInfo ? (jInfo.code || "") : "";
+      const jLabel = jInfo ? jInfo.label : "-";
+      const initial = (acc.username || "?").trim().charAt(0).toUpperCase() || "?";
+      const label = `${initial}.${pad3(first)}-${pad3(last)}${jCode}`;
+
+      sections.push({
+        ownerKey: acc.username + "|" + jalurId,
+        username: acc.username,
+        jalurId,
+        jalurLabel: jLabel,
+        label,
+        spans: list
+      });
+    });
+  });
+
+  sections.sort((a,b) => a.label.localeCompare(b.label));
+  return sections;
+}
+
+function renderSections(sections, focusOwner, focusJalur){
+  const wrap = document.getElementById("ownerList");
+  wrap.innerHTML = "";
+
+  document.getElementById("sumOwners").textContent = sections.length;
+  document.getElementById("sumSpans").textContent = sections.reduce((n,s) => n + s.spans.length, 0);
+
+  if(!sections.length){
+    document.getElementById("emptyList").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("emptyList").classList.add("hidden");
+
+  sections.forEach(sec => {
+    const isFocus = focusOwner && sec.username === focusOwner && (!focusJalur || sec.jalurId === focusJalur);
+
+    const secEl = document.createElement("div");
+    secEl.className = "owner-section" + (isFocus ? " open highlight" : "");
+    secEl.id = "sec-" + cssSafe(sec.ownerKey);
+
+    secEl.innerHTML = `
+      <div class="owner-header" onclick="toggleOwnerSection('${cssSafe(sec.ownerKey)}')">
+        <div class="owner-code-badge">${sec.label}</div>
+        <div class="owner-meta"><b>${sec.spans.length}</b> span &middot; ${sec.jalurLabel}</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="owner-body">
+        ${sec.spans.map(s => spanRowHtml(s, sec)).join("")}
+      </div>
+    `;
+    wrap.appendChild(secEl);
+  });
+
+  if(focusOwner){
+    setTimeout(() => {
+      const el = wrap.querySelector(".owner-section.highlight");
+      if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
+    }, 80);
+  }
+}
+
+function cssSafe(str){
+  return String(str).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function spanRowHtml(s, sec){
+  const code = (sec.jalurLabel ? "" : "") + "S" + pad3(s.nomor);
+  const rowId = "span-" + s.id;
+  return `
+    <div class="span-row" id="${rowId}" onclick="toggleSpanRow('${s.id}', event)">
+      <div class="span-row-top">
+        <div class="span-code">Span ${code}</div>
+        <div class="span-status ${statusClass(s.status)}">${s.status || "Belum diisi"}</div>
+      </div>
+      <div class="span-sub">Spacer: ${s.spacer || "-"} &middot; Joint: ${s.joint || "-"}</div>
+      <div class="span-extra" id="extra-${s.id}"></div>
+    </div>
+  `;
+}
+
+async function toggleOwnerSection(safeKey){
+  const el = document.getElementById("sec-" + safeKey);
+  if(!el) return;
+  el.classList.toggle("open");
+}
+
+async function toggleSpanRow(spanId, evt){
+  if(evt) evt.stopPropagation();
+  const row = document.getElementById("span-" + spanId);
+  if(!row) return;
+
+  const wasExpanded = row.classList.contains("expanded");
+  row.classList.toggle("expanded");
+  if(wasExpanded) return;
+
+  const extraBox = document.getElementById("extra-" + spanId);
+  if(expandedCache[spanId]){
+    extraBox.innerHTML = renderExtra(expandedCache[spanId]);
+    return;
+  }
+
+  extraBox.innerHTML = `<div class="span-extra-loading">Memuat detail...</div>`;
+
+  try{
+    const [tegakan, catatan] = await Promise.all([
+      getTegakanBySpan(spanId),
+      getCatatanBySpan(spanId)
+    ]);
+    expandedCache[spanId] = { tegakan, catatan };
+    extraBox.innerHTML = renderExtra(expandedCache[spanId]);
+  }catch(e){
+    extraBox.innerHTML = `<div class="extra-empty">Gagal memuat detail span ini.</div>`;
+  }
+}
+
+function renderExtra(data){
+  const { tegakan, catatan } = data;
+  let html = "";
+
+  html += `<div class="span-extra-title">🌳 Tegakan</div>`;
+  if(!tegakan || !tegakan.length){
+    html += `<div class="extra-empty">Belum ada data tegakan.</div>`;
+  }else{
+    tegakan.forEach(t => {
+      html += `<div class="tegakan-item">
+        <b>${t.nama || "(tanpa nama)"}</b> — ID ${t.idTegakan || "-"}<br>
+        Pemilik: ${t.pemilikNama || "Belum diisi"}<br>
+        Alamat: ${t.pemilikAlamat || "Belum diisi"}
+      </div>`;
+    });
+  }
+
+  html += `<div class="span-extra-title" style="margin-top:10px;">📝 Catatan Lapangan</div>`;
+  if(!catatan || !catatan.length){
+    html += `<div class="extra-empty">Belum ada catatan.</div>`;
+  }else{
+    catatan.slice(0, 10).forEach(c => {
+      const tanggal = c.createdAt ? new Date(c.createdAt).toLocaleDateString("id-ID") : "-";
+      html += `<div class="catatan-item">
+        ${c.catatan ? c.catatan : "(tanpa keterangan)"}<br>
+        <span style="color:var(--ink-3);">${tanggal}</span>
+      </div>`;
+    });
+  }
+
+  return html;
+}
+
+async function initPage(){
+  const params = new URLSearchParams(location.search);
+  const focusOwner = params.get("owner");
+  const focusJalur = params.get("jalur");
+
+  const allowed = await checkAccess();
+
+  if(!allowed){
+    document.getElementById("deniedBox").classList.remove("hidden");
+    document.getElementById("topbarSub").textContent = "Akses dibatasi";
+    return;
+  }
+
+  document.getElementById("mainBox").classList.remove("hidden");
+  document.getElementById("topbarSub").textContent = focusOwner
+    ? "Detail kelompok span (via QR)"
+    : "Seluruh data span, semua jalur";
+
+  try{
+    const sections = await buildSections();
+    document.getElementById("loadingList").classList.add("hidden");
+    renderSections(sections, focusOwner, focusJalur);
+  }catch(e){
+    document.getElementById("loadingList").textContent = "Gagal memuat data span.";
+  }
+}
+
+initPage();
+</script>
+</body>
+</html>
