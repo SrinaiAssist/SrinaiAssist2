@@ -124,135 +124,139 @@ body{
 /* =========================================================
    GREETING + DATETIME
 ========================================================= */
-.greeting-wrap{
-  position:relative;z-index:2;
-  padding:20px 20px 0;
-}
-.datetime-badge{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:11px;font-weight:600;color:var(--ink-3);
-  margin-bottom:6px;
-}
-.datetime-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;}
-.greeting-wrap h1{
-  font-size:26px;font-weight:800;color:var(--ink);
-  letter-spacing:-0.5px;line-height:1.1;
-}
-.greeting-wrap h1 span{color:var(--gold);}
-.greeting-sub{font-size:12px;color:var(--ink-3);margin-top:4px;}
-
 /* =========================================================
-   HERO CARD
+   AI HERO (greeting + SrinAI mascot + ask bar)
 ========================================================= */
-.hero{
+.ai-hero{
   position:relative;z-index:2;
-  margin:18px 20px 0;
-  border-radius:22px;
-  background:linear-gradient(135deg, #1A2C52 0%, #0E1E3A 55%, #081428 100%);
-  border:1px solid rgba(74,142,245,0.2);
+  margin:14px 20px 0;
+  border-radius:24px;
+  background:radial-gradient(ellipse 120% 90% at 78% 8%, rgba(244,197,66,0.16) 0%, transparent 55%),
+             linear-gradient(160deg, #10192E 0%, #0A1324 60%, #080F1E 100%);
+  border:1px solid rgba(244,197,66,0.16);
   overflow:hidden;
-  min-height:190px;
-  box-shadow:0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  padding:18px 18px 16px;
+  box-shadow:0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.ai-hero-aurora{
+  position:absolute;top:-18%;right:-30%;
+  width:230px;height:auto;
+  opacity:0.55;
+  pointer-events:none;
+  z-index:0;
+  animation:auroraDrift 9s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+@keyframes auroraDrift{
+  0%,100%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(-6px,6px) scale(1.04);}
+}
+.ai-hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:24px 24px;
+  pointer-events:none;
+  z-index:0;
 }
 /* Shimmer line di atas — bergerak */
 @keyframes heroShimmer{
   0%{background-position:-200% center;}
   100%{background-position:200% center;}
 }
-.hero::before{
+.ai-hero::before{
   content:"";
   position:absolute;top:0;left:0;right:0;height:2px;
   background:linear-gradient(90deg,
     transparent 0%,
-    rgba(74,142,245,0.5) 30%,
-    rgba(244,197,66,0.9) 50%,
-    rgba(74,142,245,0.5) 70%,
+    rgba(244,197,66,0.55) 30%,
+    rgba(244,197,66,0.95) 50%,
+    rgba(244,197,66,0.55) 70%,
     transparent 100%);
   background-size:200% 100%;
   animation:heroShimmer 3s linear infinite;
   z-index:3;
 }
-/* Subtle grid texture */
-.hero-grid{
-  position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size:24px 24px;
-  pointer-events:none;
-  z-index:0;
-}
-/* Accent glow kanan bawah */
-.hero-glow{
-  position:absolute;right:-20px;bottom:-30px;
-  width:160px;height:160px;border-radius:50%;
-  background:radial-gradient(circle, rgba(74,142,245,0.2) 0%, transparent 70%);
-  pointer-events:none;
-  z-index:0;
-}
-/* Foto profil — full tinggi kartu, nempel sisi kanan */
-.hero-photo{
-  position:absolute;
-  right:0;top:0;bottom:0;
-  width:155px;
-  overflow:hidden;
-  z-index:1;
-}
-.hero-photo img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:top center;
-}
-.hero-photo-empty{
-  width:100%;height:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  color:rgba(255,255,255,0.2);font-size:10px;text-align:center;padding:10px;
-}
-.hero-photo-empty svg{width:36px;height:36px;margin-bottom:6px;opacity:.4;}
-/* Gradient fade dari kiri ke foto — teks tetap terbaca */
-.hero-photo-fade{
-  position:absolute;right:0;bottom:0;top:0;
-  width:195px;
-  background:linear-gradient(90deg,
-    #0E1E3A 0%,
-    #0E1E3A 10%,
-    rgba(14,30,58,0.92) 30%,
-    rgba(14,30,58,0.55) 55%,
-    transparent 100%);
-  pointer-events:none;
-  z-index:2;
-}
 
-.hero-content{
-  position:relative;z-index:3;
-  padding:20px 20px;
-  max-width:58%;
+.ai-hero-top{
+  position:relative;z-index:2;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:8px;
 }
-.hero-eyebrow{
+.ai-hero-text{max-width:56%;padding-top:2px;}
+.datetime-badge{
   display:inline-flex;align-items:center;gap:5px;
-  font-size:10px;font-weight:700;color:var(--teal);
-  letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;
+  font-size:11px;font-weight:600;color:var(--ink-3);
+  margin-bottom:6px;
 }
-.hero-eyebrow-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);}
-.hero-title{
-  font-size:17px;font-weight:800;color:var(--ink);
-  letter-spacing:-0.3px;line-height:1.3;margin-bottom:8px;
+.datetime-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+.ai-hero-text h1{
+  font-size:21px;font-weight:800;color:var(--ink);
+  letter-spacing:-0.4px;line-height:1.15;
 }
-.hero-desc{
-  font-size:11.5px;color:var(--ink-2);
-  line-height:1.55;margin-bottom:16px;
-}
-.hero-btn{
+.ai-hero-text h1 span{color:var(--gold);}
+.ai-hero-sub{font-size:11.5px;color:var(--ink-2);margin-top:5px;line-height:1.5;}
+.ai-hero-badge{
   display:inline-flex;align-items:center;gap:6px;
-  background:white;color:#0A1E3D;
-  font-size:12px;font-weight:800;
-  padding:9px 16px;border-radius:30px;
-  border:none;cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,0.25);
-  letter-spacing:-0.1px;
+  margin-top:12px;
+  background:rgba(244,197,66,0.10);border:1px solid rgba(244,197,66,0.28);
+  padding:5px 11px;border-radius:20px;
+  font-size:10.5px;font-weight:700;color:var(--gold);
 }
-.hero-btn svg{flex-shrink:0;}
+.ai-hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+
+/* --- Robot mascot --- */
+.ai-hero-robot-wrap{
+  position:relative;
+  width:150px;height:150px;flex-shrink:0;
+  margin-top:-6px;margin-right:-8px;
+}
+.ai-hero-robot-glow{
+  position:absolute;inset:8px;border-radius:50%;
+  background:radial-gradient(circle, rgba(244,197,66,0.35) 0%, transparent 72%);
+  z-index:0;
+  animation:robotGlowPulse 2.6s ease-in-out infinite;
+}
+@keyframes robotGlowPulse{
+  0%,100%{opacity:0.6;transform:scale(0.94);}
+  50%{opacity:1;transform:scale(1.05);}
+}
+.ai-hero-robot{
+  position:relative;z-index:1;
+  width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,0.5));
+  animation:robotFloat 3.6s ease-in-out infinite;
+}
+@keyframes robotFloat{
+  0%,100%{transform:translateY(0) rotate(0deg);}
+  50%{transform:translateY(-7px) rotate(-1.5deg);}
+}
+/* legacy profile-photo binding kept off-canvas so JS never breaks */
+.hero-photo{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;}
+
+/* --- Ask bar --- */
+.ai-hero-ask{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+  margin-top:16px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:30px;
+  padding:6px 6px 6px 16px;
+  cursor:pointer;
+}
+.ai-hero-ask span.placeholder{
+  font-size:12.5px;color:var(--ink-3);font-weight:500;
+}
+.ai-hero-send{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg, var(--gold) 0%, #E89A20 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(244,197,66,0.35);
+}
+.ai-hero-send svg{flex-shrink:0;}
 
 /* =========================================================
    MENU CARD (Profile strip + Quickgrid)
@@ -806,8 +810,7 @@ body{
   to{opacity:1;transform:translateY(0);}
 }
 .topbar{animation:fadeSlideUp .4s ease both;}
-.greeting-wrap{animation:fadeSlideUp .45s .08s ease both;}
-.hero{animation:fadeSlideUp .45s .16s ease both;}
+.ai-hero{animation:fadeSlideUp .45s .1s ease both;}
 .menu-card{animation:fadeSlideUp .45s .26s ease both;}
 #noticeBox{animation:fadeSlideUp .45s .32s ease both;}
 #baPanelWrap{animation:fadeSlideUp .45s .34s ease both;}
@@ -874,38 +877,40 @@ body{
     </div>
   </div>
 
-  <!-- GREETING -->
-  <div class="greeting-wrap">
-    <div class="datetime-badge">
-      <div class="datetime-dot"></div>
-      <span id="datetimeText">Memuat...</span>
-    </div>
-    <h1 id="greetingText">Selamat Pagi, <span id="firstName">-</span>!</h1>
-    <div class="greeting-sub">Ada yang bisa SrinAI bantu hari ini?</div>
-  </div>
+  <!-- AI HERO: greeting + SrinAI mascot + ask bar -->
+  <div class="ai-hero">
+    <img class="ai-hero-aurora" src="assets/img/aurora-gold.png" alt="" aria-hidden="true">
+    <div class="ai-hero-grid"></div>
 
-  <!-- HERO CARD -->
-  <div class="hero">
-    <div class="hero-grid"></div>
-    <div class="hero-glow"></div>
-    <!-- Foto Petugas — full tinggi kartu, sisi kanan sebagai background -->
-    <div class="hero-photo" id="heroPhotoWrap">
-      <div class="hero-photo-empty" id="heroPhotoPlaceholder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.8-4.8 5-7 8-7s6.2 2.2 8 7"/></svg>
-        Foto petugas<br>(atur di Profil)
+    <div class="ai-hero-top">
+      <div class="ai-hero-text">
+        <div class="datetime-badge">
+          <div class="datetime-dot"></div>
+          <span id="datetimeText">Memuat...</span>
+        </div>
+        <h1 id="greetingText">Selamat Pagi, <span id="firstName">-</span> 👋</h1>
+        <div class="ai-hero-sub">Ada yang bisa SrinAI bantu hari ini?</div>
+        <div class="ai-hero-badge"><div class="ai-hero-badge-dot"></div>SrinAI siap membantu</div>
       </div>
-      <img id="heroPhotoImg" src="" alt="Foto Petugas" style="display:none;">
+
+      <div class="ai-hero-robot-wrap">
+        <div class="ai-hero-robot-glow"></div>
+        <img class="ai-hero-robot" src="assets/img/srinai-robot.png" alt="SrinAI Assistant">
+      </div>
+
+      <!-- legacy foto-petugas binding, kept off-canvas so JS (heroPhotoImg) never breaks.
+           Foto petugas kini ditampilkan di halaman Profil. -->
+      <div class="hero-photo" id="heroPhotoWrap">
+        <div class="hero-photo-empty" id="heroPhotoPlaceholder"></div>
+        <img id="heroPhotoImg" src="" alt="" style="display:none;">
+      </div>
     </div>
-    <!-- Gradient fade menutupi transisi foto ke teks -->
-    <div class="hero-photo-fade"></div>
-    <div class="hero-content">
-      <div class="hero-eyebrow"><div class="hero-eyebrow-dot"></div>Asisten Lapangan Pintar</div>
-      <div class="hero-title">Inspeksi &amp; Berita Acara lebih cepat dengan SrinAI.</div>
-      <div class="hero-desc">Tanya, cari BA, atau buat laporan langsung dari sini.</div>
-      <button class="hero-btn" onclick="location.href='ai.html'">
-        Buka SrinAI
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0A1E3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
+
+    <div class="ai-hero-ask" onclick="location.href='ai.html'">
+      <span class="placeholder">Tanyakan apa saja...</span>
+      <div class="ai-hero-send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0A1E3D" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </div>
     </div>
   </div>
 
@@ -1481,7 +1486,7 @@ body{
 
   /* ══ TARGET POSITIONS ══ */
   const targetSels = [
-    '.quickgrid','.menu-card','.hero','.greeting-wrap',
+    '.quickgrid','.menu-card','.ai-hero',
     '.section-head','.ba-panel','.list-card','.profile-strip',
   ];
   function getTargets() {
@@ -1969,7 +1974,7 @@ async function initPage(){
   else if(hour >= 11 && hour < 15) greet = "Selamat Siang";
   else if(hour >= 15 && hour < 18) greet = "Selamat Sore";
   document.getElementById("greetingText").innerHTML =
-    `${greet}, <span>${profile.nama.split(" ")[0]}</span>!`;
+    `${greet}, <span>${profile.nama.split(" ")[0]}</span>! 👋`;
 
   /* --- Profile data --- */
   document.getElementById("jalur").textContent     = (profile.jalurLabel || "-").replace(" - ","-\n");
