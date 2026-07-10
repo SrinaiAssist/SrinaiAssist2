@@ -669,6 +669,15 @@ body{
 .db-storage-percent.is-warn{color:var(--gold);}
 .db-storage-percent.is-danger{color:var(--red);}
 
+/* Variant warna untuk widget "Penyimpanan Drive" (teal), letaknya persis di
+   bawah widget Penyimpanan Database -- struktur/markup sama, cuma beda aksen
+   warna supaya kedua widget storage tetap gampang dibedakan sekilas. */
+.db-storage-card.drive-variant{margin-top:10px;}
+.db-storage-card.drive-variant .db-storage-label svg{color:var(--teal);}
+.db-storage-card.drive-variant .db-storage-bar-fill{background:linear-gradient(90deg, var(--teal), #2ecc9a);}
+.db-storage-card.drive-variant .db-storage-bar-fill.is-warn{background:linear-gradient(90deg, var(--gold), #e8b32a);}
+.db-storage-card.drive-variant .db-storage-bar-fill.is-danger{background:linear-gradient(90deg, var(--red), #c94545);}
+
 .sync-bar{
   position:relative;z-index:2;
   margin:14px 20px 0;
@@ -1024,6 +1033,19 @@ body{
       <div class="db-storage-sub" id="dbStorageSub">Memuat data...</div>
     </div>
 
+    <!-- DRIVE STORAGE WIDGET (perkiraan dari kuota gratis 15GB) -->
+    <div class="db-storage-card drive-variant" id="driveStorageCard">
+      <div class="db-storage-top">
+        <div class="db-storage-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.7 3h8.6l6.2 10.7-4.3 7.3H5.8l-4.3-7.3L7.7 3z"/><path d="M1.5 13.7h9.3M12.3 21l4.9-8.5"/></svg>
+          Penyimpanan Drive
+        </div>
+        <div class="db-storage-percent" id="driveStoragePercent">–%</div>
+      </div>
+      <div class="db-storage-bar"><div class="db-storage-bar-fill" id="driveStorageBarFill"></div></div>
+      <div class="db-storage-sub" id="driveStorageSub">Memuat data...</div>
+    </div>
+
     <!-- Quickgrid header + hamburger -->
     <div class="quickgrid-header">
       <div class="section-eyebrow" style="padding:0;margin:0;">Quickgrid</div>
@@ -1285,6 +1307,9 @@ async function initPage(){
   /* --- Persentase storage database (tidak blocking) --- */
   loadDbStorage();
 
+  /* --- Persentase storage Drive, perkiraan (tidak blocking) --- */
+  loadDriveStorage();
+
   /* --- Update label sync --- */
   if(typeof _updateSyncBadge === "function") _updateSyncBadge();
 
@@ -1455,6 +1480,45 @@ async function loadDbStorage(){
   } catch(err){
     console.error("Gagal memuat storage database:", err);
     document.getElementById("dbStorageSub").textContent = "Gagal memuat data storage";
+  }
+}
+
+/* =========================================================
+   DRIVE STORAGE WIDGET — persentase pemakaian Google Drive,
+   ditampilkan tepat di bawah widget Penyimpanan Database.
+   Batas 15 GB di-hardcode di server (lihat api/settings.js) karena
+   Google tidak selalu melaporkan limit akun yang pasti, jadi angka
+   di widget ini sifatnya PERKIRAAN saja, bukan patokan pasti.
+   Numpang endpoint /api/settings yang sudah ada (?stats=drive)
+   supaya tidak nambah slot serverless function baru.
+========================================================= */
+async function loadDriveStorage(){
+  try{
+    const res = await fetch("/api/settings?stats=drive");
+    const data = await res.json();
+    if(!data.success) throw new Error(data.message || "gagal");
+
+    const pct = Math.max(0, Math.min(100, data.percent));
+    const fillEl = document.getElementById("driveStorageBarFill");
+    const pctEl  = document.getElementById("driveStoragePercent");
+
+    fillEl.style.width = pct + "%";
+    pctEl.textContent = pct.toFixed(1) + "%";
+
+    fillEl.classList.remove("is-warn","is-danger");
+    pctEl.classList.remove("is-warn","is-danger");
+    if(pct >= 90){
+      fillEl.classList.add("is-danger"); pctEl.classList.add("is-danger");
+    } else if(pct >= 70){
+      fillEl.classList.add("is-warn"); pctEl.classList.add("is-warn");
+    }
+
+    const gb = (data.mb / 1024).toFixed(2);
+    document.getElementById("driveStorageSub").textContent =
+      `≈ ${gb} GB dari 15 GB (perkiraan)`;
+  } catch(err){
+    console.error("Gagal memuat storage Drive:", err);
+    document.getElementById("driveStorageSub").textContent = "Gagal memuat data storage";
   }
 }
 
