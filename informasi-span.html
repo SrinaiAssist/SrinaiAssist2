@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Informasi Span - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -152,6 +153,32 @@ body{
 }
 .summary-chip .n{font-size:18px;font-weight:800;color:var(--gold);}
 .summary-chip .l{font-size:10px;color:var(--ink-3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+
+.qr-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal-box{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+  padding:22px;max-width:340px;width:100%;text-align:center;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
+.qr-box{
+  width:220px;height:220px;margin:0 auto 14px;border-radius:14px;overflow:hidden;
+  background:white;display:flex;align-items:center;justify-content:center;
+}
+.qr-box img{display:block;width:100%;height:100%;}
+.qr-loading{font-size:11px;color:#0A1E3D;width:220px;height:220px;display:flex;align-items:center;justify-content:center;}
+.btn-secondary{
+  width:100%;padding:13px;border:none;border-radius:12px;font-family:inherit;
+  font-size:13.5px;font-weight:700;cursor:pointer;margin-top:10px;
+  background:var(--bg-glass);border:1px solid var(--border);color:var(--ink-2);
+}
 </style>
 </head>
 <body>
@@ -166,6 +193,9 @@ body{
     <div class="topbar-title">
       <h1>📍 Informasi Span</h1>
       <p id="topbarSub">Memuat...</p>
+    </div>
+    <div class="qr-btn hidden" id="qrPageBtn" onclick="showQrInfoSpanPage()" title="QR Halaman Ini">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="17"/><line x1="14" y1="20" x2="14" y2="20.01"/><line x1="17" y1="14" x2="20" y2="14"/><line x1="20" y1="17" x2="17" y2="17"/><line x1="20" y1="20" x2="17" y2="20"/></svg>
     </div>
   </div>
 
@@ -203,6 +233,17 @@ body{
 
     </div>
 
+  </div>
+</div>
+
+<!-- Modal QR Halaman Informasi Span -->
+<div class="modal-overlay" id="qrPageModal" onclick="if(event.target===this) closeQrInfoSpanPage()">
+  <div class="modal-box">
+    <div class="modal-title">QR Informasi Span</div>
+    <div class="modal-sub">Cetak/tempel QR ini agar siapa pun dapat memindainya untuk membuka halaman Informasi Span (sesuai pengaturan akses yang berlaku).</div>
+    <div class="qr-box" id="qrPageBox"><div class="qr-loading">Memuat QR...</div></div>
+    <button class="btn btn-primary" onclick="downloadQrInfoSpanPage()">Unduh QR</button>
+    <button class="btn-secondary" onclick="closeQrInfoSpanPage()">Tutup</button>
   </div>
 </div>
 
@@ -441,6 +482,10 @@ async function initPage(){
     ? "Detail kelompok span (via QR)"
     : "Seluruh data span, semua jalur";
 
+  if(getCurrentUser() && typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
+    document.getElementById("qrPageBtn").classList.remove("hidden");
+  }
+
   try{
     const sections = await buildSections();
     document.getElementById("loadingList").classList.add("hidden");
@@ -451,6 +496,35 @@ async function initPage(){
 }
 
 initPage();
+
+/* ===================== QR CODE HALAMAN INFORMASI SPAN ===================== */
+function infoSpanPageLink(){
+  return location.origin + location.pathname.replace(/informasi-span\.html$/, "") + "informasi-span.html";
+}
+
+async function showQrInfoSpanPage(){
+  document.getElementById("qrPageModal").classList.add("active");
+  const box = document.getElementById("qrPageBox");
+  box.innerHTML = `<div class="qr-loading">Memuat QR...</div>`;
+
+  const dataUrl = await getOrCreateQrDataUrl("qr:infospan:main", infoSpanPageLink());
+  box.innerHTML = dataUrl
+    ? `<img src="${dataUrl}" alt="QR Informasi Span">`
+    : `<div class="qr-loading">Gagal memuat QR.</div>`;
+}
+
+function closeQrInfoSpanPage(){
+  document.getElementById("qrPageModal").classList.remove("active");
+}
+
+function downloadQrInfoSpanPage(){
+  const img = document.getElementById("qrPageBox").querySelector("img");
+  if(!img) return;
+  const a = document.createElement("a");
+  a.href = img.src;
+  a.download = "QR_Informasi_Span.png";
+  a.click();
+}
 </script>
 </body>
 </html>
