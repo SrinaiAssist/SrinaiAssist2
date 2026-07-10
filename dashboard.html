@@ -67,10 +67,27 @@ body{
   position:fixed;
   top:0;left:0;right:0;
   max-width:460px;margin:auto;
-  height:340px;
-  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.18) 0%, transparent 70%);
+  height:420px;
+  background:radial-gradient(ellipse 85% 65% at 62% 0%, rgba(244,197,66,0.16) 0%, transparent 68%);
   pointer-events:none;
   z-index:0;
+}
+.bg-particles{
+  position:fixed;
+  top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:520px;
+  pointer-events:none;
+  z-index:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(244,197,66,0.55) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 82% 10%, rgba(244,197,66,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 35% 30%, rgba(244,197,66,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 68% 42%, rgba(244,197,66,0.35) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 90% 55%, rgba(244,197,66,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 20% 60%, rgba(244,197,66,0.3) 50%, transparent 100%),
+    radial-gradient(1px 1px at 55% 8%, rgba(244,197,66,0.45) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 8% 45%, rgba(244,197,66,0.3) 50%, transparent 100%);
 }
 
 /* =========================================================
@@ -129,19 +146,13 @@ body{
 ========================================================= */
 .ai-hero{
   position:relative;z-index:2;
-  margin:14px 20px 0;
-  border-radius:24px;
-  background:radial-gradient(ellipse 120% 90% at 78% 8%, rgba(244,197,66,0.16) 0%, transparent 55%),
-             linear-gradient(160deg, #10192E 0%, #0A1324 60%, #080F1E 100%);
-  border:1px solid rgba(244,197,66,0.16);
-  overflow:hidden;
-  padding:18px 18px 16px;
-  box-shadow:0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  margin:10px 20px 0;
+  padding:2px 0 0;
 }
 .ai-hero-aurora{
-  position:absolute;top:-18%;right:-30%;
-  width:230px;height:auto;
-  opacity:0.55;
+  position:absolute;top:-10%;right:-18%;
+  width:340px;height:auto;
+  opacity:0.8;
   pointer-events:none;
   z-index:0;
   animation:auroraDrift 9s ease-in-out infinite;
@@ -151,70 +162,44 @@ body{
   0%,100%{transform:translate(0,0) scale(1);}
   50%{transform:translate(-6px,6px) scale(1.04);}
 }
-.ai-hero-grid{
-  position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size:24px 24px;
-  pointer-events:none;
-  z-index:0;
-}
-/* Shimmer line di atas — bergerak */
-@keyframes heroShimmer{
-  0%{background-position:-200% center;}
-  100%{background-position:200% center;}
-}
-.ai-hero::before{
-  content:"";
-  position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,
-    transparent 0%,
-    rgba(244,197,66,0.55) 30%,
-    rgba(244,197,66,0.95) 50%,
-    rgba(244,197,66,0.55) 70%,
-    transparent 100%);
-  background-size:200% 100%;
-  animation:heroShimmer 3s linear infinite;
-  z-index:3;
-}
 
 .ai-hero-top{
   position:relative;z-index:2;
-  display:flex;justify-content:space-between;align-items:flex-start;
+  display:flex;justify-content:space-between;align-items:center;
   gap:8px;
+  min-height:196px;
 }
-.ai-hero-text{max-width:56%;padding-top:2px;}
+.ai-hero-text{max-width:47%;}
 .datetime-badge{
   display:inline-flex;align-items:center;gap:5px;
   font-size:11px;font-weight:600;color:var(--ink-3);
-  margin-bottom:6px;
+  margin-bottom:8px;
 }
 .datetime-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;}
 .ai-hero-text h1{
-  font-size:21px;font-weight:800;color:var(--ink);
-  letter-spacing:-0.4px;line-height:1.15;
+  font-size:22px;font-weight:800;color:var(--ink);
+  letter-spacing:-0.4px;line-height:1.2;
 }
 .ai-hero-text h1 span{color:var(--gold);}
-.ai-hero-sub{font-size:11.5px;color:var(--ink-2);margin-top:5px;line-height:1.5;}
+.ai-hero-sub{font-size:12px;color:var(--ink-2);margin-top:6px;line-height:1.5;}
 .ai-hero-badge{
   display:inline-flex;align-items:center;gap:6px;
-  margin-top:12px;
+  margin-top:14px;
   background:rgba(244,197,66,0.10);border:1px solid rgba(244,197,66,0.28);
-  padding:5px 11px;border-radius:20px;
+  padding:6px 12px;border-radius:20px;
   font-size:10.5px;font-weight:700;color:var(--gold);
 }
 .ai-hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
 
-/* --- Robot mascot --- */
+/* --- Robot mascot: besar & menonjol, mengambang di atas background halaman --- */
 .ai-hero-robot-wrap{
   position:relative;
-  width:150px;height:150px;flex-shrink:0;
-  margin-top:-6px;margin-right:-8px;
+  width:196px;height:196px;flex-shrink:0;
+  margin-right:-10px;
 }
 .ai-hero-robot-glow{
-  position:absolute;inset:8px;border-radius:50%;
-  background:radial-gradient(circle, rgba(244,197,66,0.35) 0%, transparent 72%);
+  position:absolute;inset:18px;border-radius:50%;
+  background:radial-gradient(circle, rgba(244,197,66,0.4) 0%, transparent 72%);
   z-index:0;
   animation:robotGlowPulse 2.6s ease-in-out infinite;
 }
@@ -225,12 +210,12 @@ body{
 .ai-hero-robot{
   position:relative;z-index:1;
   width:100%;height:100%;object-fit:contain;
-  filter:drop-shadow(0 8px 18px rgba(0,0,0,0.5));
+  filter:drop-shadow(0 10px 22px rgba(0,0,0,0.55));
   animation:robotFloat 3.6s ease-in-out infinite;
 }
 @keyframes robotFloat{
   0%,100%{transform:translateY(0) rotate(0deg);}
-  50%{transform:translateY(-7px) rotate(-1.5deg);}
+  50%{transform:translateY(-8px) rotate(-1.5deg);}
 }
 /* legacy profile-photo binding kept off-canvas so JS never breaks */
 .hero-photo{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;}
@@ -240,7 +225,7 @@ body{
   position:relative;z-index:2;
   display:flex;align-items:center;justify-content:space-between;
   gap:10px;
-  margin-top:16px;
+  margin-top:6px;
   background:rgba(255,255,255,0.05);
   border:1px solid rgba(255,255,255,0.10);
   border-radius:30px;
@@ -852,6 +837,7 @@ body{
 <body>
 
 <div class="bg-glow"></div>
+<div class="bg-particles"></div>
 
 <div class="container">
 
@@ -880,7 +866,6 @@ body{
   <!-- AI HERO: greeting + SrinAI mascot + ask bar -->
   <div class="ai-hero">
     <img class="ai-hero-aurora" src="assets/img/aurora-gold.png" alt="" aria-hidden="true">
-    <div class="ai-hero-grid"></div>
 
     <div class="ai-hero-top">
       <div class="ai-hero-text">
@@ -1110,817 +1095,6 @@ body{
   </a>
 </div>
 
-<!-- =============================================
-     SRINAI WALKING CHARACTER v3
-     • wearpack merah + helm putih
-     • mode tidur otomatis jam 18:00
-     • tengkurap di sebelah tombol SrinAI
-     • ZZZ animasi, drag bangun + marah
-============================================= -->
-<style>
-/* ── container overlay ── */
-#srinai-wrap {
-  position: absolute;
-  left:0; right:0; top:0; bottom:0;
-  pointer-events: none;
-  overflow: visible;
-  z-index: 50;
-}
-
-/* ── karakter ── */
-#srinai-char {
-  position: absolute;
-  width: 68px;
-  pointer-events: auto;
-  cursor: pointer;
-  user-select: none;
-  touch-action: none;
-  transition: transform 0.15s ease;
-}
-
-/* ── speech bubble ── */
-#srinai-bubble {
-  position: absolute;
-  bottom: 82px;
-  left: 4px;
-  background: #fff;
-  color: #0A1E3D;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.5;
-  padding: 9px 13px;
-  border-radius: 14px 14px 14px 4px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
-  width: max-content;
-  max-width: 178px;
-  white-space: normal;
-  opacity: 0;
-  transform: scale(0.75) translateY(8px);
-  transform-origin: bottom left;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none;
-  z-index: 20;
-}
-#srinai-bubble.show { opacity:1; transform:scale(1) translateY(0); }
-#srinai-bubble::after {
-  content:""; position:absolute; bottom:-9px; left:16px;
-  border-width:9px 9px 0 0; border-style:solid;
-  border-color:#fff transparent transparent transparent;
-}
-#srinai-char.flip-bubble #srinai-bubble {
-  left:auto; right:4px;
-  border-radius:14px 14px 4px 14px;
-  transform-origin:bottom right;
-}
-#srinai-char.flip-bubble #srinai-bubble::after {
-  left:auto; right:16px;
-  border-width:9px 0 0 9px;
-  border-color:#fff transparent transparent transparent;
-}
-
-/* ── ZZZ tidur overlay ── */
-#srinai-zzz {
-  position: absolute;
-  top: -18px; right: -8px;
-  font-size: 13px;
-  font-weight: 900;
-  color: #a0c4ff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  pointer-events: none;
-  opacity: 0;
-  letter-spacing: 1px;
-}
-#srinai-zzz.show { animation: zzzFloat 2.2s ease-in-out infinite; }
-@keyframes zzzFloat {
-  0%   { opacity:0;   transform: translate(0,0)    scale(0.7); }
-  15%  { opacity:1;   transform: translate(0,0)    scale(1); }
-  70%  { opacity:0.8; transform: translate(6px,-14px) scale(1.1); }
-  100% { opacity:0;   transform: translate(10px,-22px) scale(0.6); }
-}
-
-/* ── SVG karakter ── */
-#srinai-svg {
-  width: 68px;
-  height: 80px;
-  display: block;
-  filter: drop-shadow(0 5px 12px rgba(0,0,0,0.5));
-  will-change: transform;
-  transform-origin: center bottom;
-}
-
-/* ── mode tidur: rotasi 90° ke kiri (tengkurap / bersender) ── */
-#srinai-char.sleeping #srinai-svg {
-  transform: rotate(90deg) scaleX(-1) !important;
-  transform-origin: center center;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
-}
-#srinai-char.sleeping {
-  cursor: grab;
-}
-#srinai-char.sleeping:active {
-  cursor: grabbing;
-}
-
-/* ── animasi berjalan ── */
-@keyframes sWalk {
-  0%   { transform:translateY(0)    rotate(0deg); }
-  20%  { transform:translateY(-6px) rotate(-2.5deg); }
-  40%  { transform:translateY(-1px) rotate(0deg); }
-  60%  { transform:translateY(-6px) rotate(2.5deg); }
-  80%  { transform:translateY(-1px) rotate(0deg); }
-  100% { transform:translateY(0)    rotate(0deg); }
-}
-/* idle: napas pelan */
-@keyframes sIdle {
-  0%,100% { transform:translateY(0) rotate(0deg); }
-  35%     { transform:translateY(-3px) rotate(-1.2deg); }
-  70%     { transform:translateY(-2px) rotate(1.2deg); }
-}
-/* ngintip */
-@keyframes sPeek {
-  0%,100% { transform:rotate(0deg); }
-  45%,60% { transform:rotate(14deg) translateY(-5px); }
-}
-/* marah: shake */
-@keyframes sAngry {
-  0%,100% { transform:translateX(0) rotate(0deg); }
-  20%     { transform:translateX(-5px) rotate(-3deg); }
-  40%     { transform:translateX(5px) rotate(3deg); }
-  60%     { transform:translateX(-4px) rotate(-2deg); }
-  80%     { transform:translateX(4px) rotate(2deg); }
-}
-/* napas tidur pelan */
-@keyframes sSleep {
-  0%,100% { transform:rotate(90deg) scaleX(-1) translateY(0); }
-  50%     { transform:rotate(90deg) scaleX(-1) translateY(-2px); }
-}
-
-#srinai-svg.s-walk  { animation: sWalk  0.4s ease-in-out infinite; }
-#srinai-svg.s-idle  { animation: sIdle  2.4s ease-in-out infinite; }
-#srinai-svg.s-peek  { animation: sPeek  1.5s ease-in-out infinite; transform-origin: bottom center; }
-#srinai-svg.s-angry { animation: sAngry 0.45s ease-in-out 3; }
-#srinai-char.sleeping #srinai-svg { animation: sSleep 3s ease-in-out infinite !important; }
-
-/* kaki & tangan swing saat jalan */
-@keyframes kL { 0%,100%{transform:rotate(-24deg)} 50%{transform:rotate(24deg)} }
-@keyframes kR { 0%,100%{transform:rotate(24deg)}  50%{transform:rotate(-24deg)} }
-@keyframes tL { 0%,100%{transform:rotate(28deg)}  50%{transform:rotate(-18deg)} }
-@keyframes tR { 0%,100%{transform:rotate(-28deg)} 50%{transform:rotate(18deg)} }
-
-#srinai-svg.s-walk #kaki-l { animation:kL 0.4s ease-in-out infinite; transform-origin:27px 57px; }
-#srinai-svg.s-walk #kaki-r { animation:kR 0.4s ease-in-out infinite; transform-origin:37px 57px; }
-#srinai-svg.s-walk #tgn-l  { animation:tL 0.4s ease-in-out infinite; transform-origin:16px 38px; }
-#srinai-svg.s-walk #tgn-r  { animation:tR 0.4s ease-in-out infinite; transform-origin:48px 38px; }
-</style>
-
-<script>
-(function(){
-  /* ══════════════════════════════════════════
-     BUILD DOM
-  ══════════════════════════════════════════ */
-  const container = document.querySelector('.container');
-  const wrap = document.createElement('div');
-  wrap.id = 'srinai-wrap';
-  container.appendChild(wrap);
-
-  wrap.innerHTML = `
-  <div id="srinai-char">
-    <div id="srinai-bubble"></div>
-    <div id="srinai-zzz">z z z</div>
-    <svg id="srinai-svg" viewBox="0 0 68 82" fill="none" xmlns="http://www.w3.org/2000/svg">
-
-      <!-- ══ HELM PROYEK PUTIH ══ -->
-      <!-- Brim bawah helm -->
-      <ellipse cx="34" cy="19" rx="16" ry="4.5" fill="#E8E8E8"/>
-      <!-- Kubah helm -->
-      <ellipse cx="34" cy="13" rx="13.5" ry="12" fill="#F5F5F5"/>
-      <!-- Highlight helm -->
-      <ellipse cx="29" cy="9" rx="5" ry="3" fill="white" opacity="0.6"/>
-      <!-- Shadow bawah kubah -->
-      <ellipse cx="34" cy="19" rx="13.5" ry="3" fill="#D0D0D0" opacity="0.5"/>
-      <!-- Tali helm -->
-      <path d="M21 18 Q18 24 20 28" stroke="#BBBBBB" stroke-width="1.2" stroke-linecap="round"/>
-      <path d="M47 18 Q50 24 48 28" stroke="#BBBBBB" stroke-width="1.2" stroke-linecap="round"/>
-
-      <!-- ══ WAJAH ══ -->
-      <ellipse cx="34" cy="29" rx="11" ry="10" fill="#FDDCB0"/>
-      <!-- Mata sipit kesal -->
-      <path d="M29.5 27.5 Q30.5 26.5 31.5 27.5" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <path d="M36.5 27.5 Q37.5 26.5 38.5 27.5" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <!-- Pupil -->
-      <circle cx="30.5" cy="28" r="1.2" fill="#1A1A1A"/>
-      <circle cx="37.5" cy="28" r="1.2" fill="#1A1A1A"/>
-      <!-- Alis lebat kesal -->
-      <path d="M27 25 Q30.5 23.2 33 24.5" stroke="#5C3000" stroke-width="2" stroke-linecap="round"/>
-      <path d="M35 24.5 Q37.5 23.2 41 25" stroke="#5C3000" stroke-width="2" stroke-linecap="round"/>
-      <!-- Mulut cemberut -->
-      <path d="M30 33 Q34 31 38 33" stroke="#B06030" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <!-- Pipi merona -->
-      <ellipse cx="26" cy="30.5" rx="3.5" ry="2" fill="#F4A0A0" opacity="0.45"/>
-      <ellipse cx="42" cy="30.5" rx="3.5" ry="2" fill="#F4A0A0" opacity="0.45"/>
-
-      <!-- ══ WEARPACK MERAH ══ -->
-      <!-- Badan utama -->
-      <rect x="22" y="38" width="24" height="24" rx="5.5" fill="#CC2222"/>
-      <!-- Kerah / risleting tengah -->
-      <rect x="32" y="38" width="4" height="24" rx="2" fill="#AA1111"/>
-      <!-- Ritsleting detail -->
-      <rect x="33.2" y="40" width="1.6" height="20" rx=".8" fill="#FF6666" opacity="0.4"/>
-      <!-- Strip reflektif kuning -->
-      <rect x="22" y="50" width="24" height="3" rx="1.5" fill="#F4C542" opacity="0.75"/>
-      <!-- Saku dada kiri -->
-      <rect x="23.5" y="40" width="7" height="6" rx="1.5" fill="#AA1111"/>
-      <!-- Badge "Srinai" di saku -->
-      <rect x="24" y="41" width="6" height="4" rx="1" fill="white" opacity="0.15"/>
-      <text x="27" y="44.5" text-anchor="middle" font-size="3" fill="white" font-weight="800" font-family="Arial" opacity="0.9">Srinai</text>
-
-      <!-- ══ LENGAN ══ -->
-      <!-- Lengan kiri -->
-      <rect id="tgn-l" x="11" y="38" width="11" height="5" rx="2.5" fill="#CC2222"/>
-      <!-- Tangan kiri + clipboard -->
-      <ellipse cx="11" cy="40.5" rx="4" ry="3.5" fill="#FDDCB0"/>
-      <!-- Clipboard -->
-      <rect x="3" y="34" width="9" height="12" rx="1.8" fill="#F4C542" opacity="0.92"/>
-      <rect x="6.5" y="33" width="3" height="2.5" rx="1" fill="#C89000"/>
-      <rect x="4.5" y="37" width="6" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
-      <rect x="4.5" y="39.5" width="6" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
-      <rect x="4.5" y="42" width="4" height="1.3" rx=".6" fill="#0A1E3D" opacity="0.5"/>
-      <!-- Lengan kanan -->
-      <rect id="tgn-r" x="46" y="38" width="11" height="5" rx="2.5" fill="#CC2222"/>
-      <ellipse cx="57" cy="40.5" rx="4" ry="3.5" fill="#FDDCB0"/>
-
-      <!-- ══ CELANA ══ -->
-      <rect id="kaki-l" x="23" y="61" width="9" height="15" rx="4.5" fill="#2C2C2C"/>
-      <rect id="kaki-r" x="34" y="61" width="9" height="15" rx="4.5" fill="#2C2C2C"/>
-      <!-- Sepatu safety -->
-      <ellipse cx="27.5" cy="76" rx="6" ry="3.8" fill="#1A1A1A"/>
-      <ellipse cx="38.5" cy="76" rx="6" ry="3.8" fill="#1A1A1A"/>
-      <!-- Ujung sepatu safety (toecap) -->
-      <ellipse cx="24" cy="75.5" rx="3" ry="2" fill="#333" opacity="0.6"/>
-      <ellipse cx="35" cy="75.5" rx="3" ry="2" fill="#333" opacity="0.6"/>
-    </svg>
-  </div>`;
-
-  const char   = document.getElementById('srinai-char');
-  const svg    = document.getElementById('srinai-svg');
-  const bubble = document.getElementById('srinai-bubble');
-  const zzz    = document.getElementById('srinai-zzz');
-
-  /* ══════════════════════════════════════════
-     DIALOG BANK
-  ══════════════════════════════════════════ */
-  const gerutu = [
-    "anjir, gua gabisa tidur cok 😩",
-    "woy, BA minggu ini siapa yang belum?! 🔥",
-    "bikin BA minimal 5 perminggu lah, jangan nanggung 😤",
-    "sinyal di lapangan 0 bar... hadeh 📵",
-    "hari ini 3 jalur sekaligus, serius?! 💀",
-    "span mana yang belum di-update nih?! 🤬",
-    "tower 17 dari kapan ga dicek ini? 😱",
-    "ya Allah, data kosong lagi kosong lagi 🤦",
-    "lembur lagi... lembur lagi... 😭",
-    "laporan belum, data belum, tidur juga belum 💤",
-    "kenapa harus gua yang ngecek semua sih 😤",
-    "jalur 2 towernya ada yang miring bos! 😨",
-    "deadline BA bentar lagi, santai aja kalian 🙃",
-    "kalau app-nya error lagi gua lempar HP nih 🤳💢",
-    "foto BA-nya buram lagi... bro serius? 🙄",
-  ];
-
-  const klikDialog = [
-    "ada apa, bro? 😒",
-    "bukan muhrim! jangan deket-deket 😤",
-    "apaan sih ganggu banget 🙄",
-    "lagi sibuk nih, BENTAR! 😤",
-    "hei, privasi dong! 😠",
-    "kenapa lo klik gua?! 😤",
-    "mau apa? ngomong yang jelas! 😒",
-    "auto-report lu udah beres belum? 😤",
-  ];
-
-  const bangunDicolek = [
-    "WOIII GANGGU AJA! 😡",
-    "YA AMPUN BRO... 🤬",
-    "siapa itu?! mau diapain?! 😤",
-    "astagaa, lagi enak tidur tau! 😡",
-    "BERISIK! gua lagi istirahat! 🔥",
-  ];
-
-  const bangunDiseret = [
-    "LEPAS! GUA MAU TIDUR! 😡🔥",
-    "woy diseret-seret apaan sih?! 🤬",
-    "HAAAAA?! lo seret gua?! 😤💢",
-    "balikin gua ke tempat tidur! 😡",
-  ];
-
-  /* ══════════════════════════════════════════
-     POSISI TIDUR: di sebelah kiri tombol SrinAI
-     (tengah bottom nav = posisi ~50% layar)
-  ══════════════════════════════════════════ */
-  const CW = Math.min(460, window.innerWidth);
-  // Posisi Y tidur: bottom dari container — tepat di atas bottom nav
-  // Kita pakai posisi absolut dalam container
-  function getSleepPos() {
-    const ch = container.scrollHeight;
-    const navBtn = document.querySelector('.nav-item.center');
-    if (navBtn) {
-      const nr = navBtn.getBoundingClientRect();
-      const cr = container.getBoundingClientRect();
-      // posisi x: tepat kiri tombol SrinAI
-      const sx = nr.left - cr.left - 50;
-      // posisi y: dasar container dikurangi tinggi karakter + sedikit
-      const sy = ch - 90;
-      return { x: Math.max(8, sx), y: sy };
-    }
-    return { x: CW / 2 - 60, y: ch - 90 };
-  }
-
-  /* ══════════════════════════════════════════
-     STATE MACHINE
-     states: 'walk' | 'idle' | 'peek' | 'sleep' | 'angry' | 'return'
-  ══════════════════════════════════════════ */
-  const CHAR_W = 68, CHAR_H = 82;
-  let posX = 20, posY = 350;
-  let targetX = posX, targetY = posY;
-  let returnX = posX, returnY = posY; // titik asal setelah sleep
-  let speed = 1.8;
-  let state = 'walk';
-  let facingRight = true;
-  let idleTimer = null, bubbleTimer = null, sleepCheckTimer = null;
-  let lastIdx = -1;
-  let sleeping = false;
-  let dragging = false;
-  let dragOffX = 0, dragOffY = 0;
-  let dragMoved = false;
-
-  /* ── helpers ── */
-  function rndDialog(arr) {
-    let i; do { i = Math.floor(Math.random()*arr.length); } while(i===lastIdx && arr.length>1);
-    lastIdx = i; return arr[i];
-  }
-  function clampX(x){ return Math.max(8, Math.min(CW - CHAR_W - 8, x)); }
-  function clampY(y){ return Math.max(80, Math.min(container.scrollHeight - CHAR_H - 10, y)); }
-
-  function showBubble(txt, ms) {
-    bubble.textContent = txt;
-    bubble.classList.add('show');
-    clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms||3800);
-    // flip bubble kalau terlalu kanan
-    char.classList.toggle('flip-bubble', posX > CW * 0.55);
-  }
-
-  function setSvgAnim(cls) {
-    svg.classList.remove('s-walk','s-idle','s-peek','s-angry');
-    if(cls) svg.classList.add(cls);
-  }
-
-  function setFacing(dx) {
-    const goR = dx > 0;
-    if(goR !== facingRight) {
-      facingRight = goR;
-      if(!sleeping) svg.style.transform = facingRight ? 'scaleX(1)' : 'scaleX(-1)';
-    }
-  }
-
-  /* ══ TARGET POSITIONS ══ */
-  const targetSels = [
-    '.quickgrid','.menu-card','.ai-hero',
-    '.section-head','.ba-panel','.list-card','.profile-strip',
-  ];
-  function getTargets() {
-    const cr = container.getBoundingClientRect();
-    const pts = [];
-    targetSels.forEach(sel => {
-      const el = container.querySelector(sel);
-      if(!el) return;
-      const r = el.getBoundingClientRect();
-      pts.push({
-        x: r.left - cr.left + r.width * 0.3,
-        y: r.top - cr.top + window.scrollY + r.height * 0.8,
-        peek: true
-      });
-    });
-    for(let i=0;i<4;i++) pts.push({
-      x: 10 + Math.random()*(CW-90),
-      y: 180 + Math.random()*(Math.max(container.scrollHeight,900)-350),
-      peek: false
-    });
-    return pts;
-  }
-
-  function pickNext() {
-    const pts = getTargets();
-    const t = pts[Math.floor(Math.random()*pts.length)];
-    targetX = clampX(t.x);
-    targetY = clampY(t.y - CHAR_H);
-    return t.peek;
-  }
-
-  /* ══ SLEEP MODE ══ */
-  function isSleepTime() {
-    const h = new Date().getHours();
-    return h >= 18 || h < 6; // tidur jam 18.00–05.59
-  }
-
-  function goToSleep() {
-    if(sleeping) return;
-    sleeping = true;
-    state = 'sleep';
-    clearTimeout(idleTimer);
-    bubble.classList.remove('show');
-
-    // jalan dulu ke posisi tidur
-    const sp = getSleepPos();
-    targetX = clampX(sp.x);
-    targetY = clampY(sp.y);
-    state = 'return'; // mode jalan ke tempat tidur
-    setSvgAnim('s-walk');
-  }
-
-  function enterSleep() {
-    sleeping = true;
-    state = 'sleep';
-    char.classList.add('sleeping');
-    setSvgAnim('');
-    zzz.classList.add('show');
-  }
-
-  function wakeUp(dialogs, goBackToSleep) {
-    if(!sleeping && state!=='sleep') return;
-    sleeping = false;
-    state = 'angry';
-    char.classList.remove('sleeping');
-    zzz.classList.remove('show');
-    bubble.classList.remove('show');
-
-    setSvgAnim('s-angry');
-    showBubble(rndDialog(dialogs), 3200);
-
-    setTimeout(() => {
-      setSvgAnim('s-idle');
-      if(goBackToSleep) {
-        // setelah marah, balik tidur
-        setTimeout(() => {
-          if(isSleepTime()) goToSleep();
-        }, 3500);
-      }
-      else {
-        // balik aktif
-        setTimeout(() => {
-          if(isSleepTime()) {
-            goToSleep();
-          } else {
-            pickNext();
-            state = 'walk';
-            setSvgAnim('s-walk');
-          }
-        }, 3500);
-      }
-    }, 1350);
-  }
-
-  /* ══ SLEEP TIME CHECK ══ */
-  function scheduleSleepCheck() {
-    clearTimeout(sleepCheckTimer);
-    // cek tiap menit
-    sleepCheckTimer = setTimeout(() => {
-      if(isSleepTime() && !sleeping && state!=='return') {
-        goToSleep();
-      }
-      scheduleSleepCheck();
-    }, 60000);
-  }
-
-  /* ══ DRAG / TOUCH ══ */
-  function startDrag(clientX, clientY) {
-    if(!sleeping) return;
-    dragging = true;
-    dragMoved = false;
-    const cr = container.getBoundingClientRect();
-    dragOffX = clientX - cr.left - posX;
-    dragOffY = clientY - cr.top - posY + window.scrollY;
-    char.style.transition = 'none';
-  }
-
-  function moveDrag(clientX, clientY) {
-    if(!dragging) return;
-    const cr = container.getBoundingClientRect();
-    const nx = clientX - cr.left - dragOffX;
-    const ny = clientY - cr.top + window.scrollY - dragOffY;
-    if(Math.abs(nx - posX) > 4 || Math.abs(ny - posY) > 4) dragMoved = true;
-    posX = clampX(nx);
-    posY = clampY(ny);
-    char.style.left = posX+'px';
-    char.style.top  = posY+'px';
-  }
-
-  function endDrag() {
-    if(!dragging) return;
-    dragging = false;
-    if(dragMoved) {
-      wakeUp(bangunDiseret, false);
-    }
-  }
-
-  // pointer events
-  char.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    char.setPointerCapture(e.pointerId);
-    if(sleeping) startDrag(e.clientX, e.clientY);
-  });
-  char.addEventListener('pointermove', e => {
-    if(dragging) moveDrag(e.clientX, e.clientY);
-  });
-  char.addEventListener('pointerup', e => {
-    if(dragging) { endDrag(); return; }
-    // klik biasa
-    e.stopPropagation();
-    if(sleeping) {
-      wakeUp(bangunDicolek, true);
-    } else {
-      showBubble(rndDialog(klikDialog), 3000);
-      if(state==='walk') {
-        state='idle'; setSvgAnim('s-idle');
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(()=>{
-          bubble.classList.remove('show');
-          pickNext(); state='walk'; setSvgAnim('s-walk');
-        }, 4000);
-      }
-    }
-  });
-
-  /* ══ MAIN LOOP ══ */
-  function update() {
-    if(!dragging && (state==='walk' || state==='return')) {
-      const dx = targetX - posX;
-      const dy = targetY - posY;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if(dist < 3) {
-        posX = targetX; posY = targetY;
-        char.style.left = posX+'px';
-        char.style.top  = posY+'px';
-
-        if(state === 'return') {
-          // sampai di titik tidur
-          enterSleep();
-        } else {
-          // jalan biasa, berhenti idle
-          const isPeek = pickNext();
-          state = 'idle';
-          setSvgAnim(isPeek ? 's-peek' : 's-idle');
-          showBubble(rndDialog(gerutu), 4000);
-          clearTimeout(idleTimer);
-          idleTimer = setTimeout(()=>{
-            bubble.classList.remove('show');
-            if(isSleepTime()) { goToSleep(); return; }
-            pickNext(); state='walk'; setSvgAnim('s-walk');
-          }, 4500 + Math.random()*1500);
-        }
-      } else {
-        const r = Math.min(speed, dist)/dist;
-        posX += dx*r; posY += dy*r;
-        char.style.left = Math.round(posX)+'px';
-        char.style.top  = Math.round(posY)+'px';
-        if(!sleeping) setFacing(dx);
-      }
-    }
-    requestAnimationFrame(update);
-  }
-
-  /* ══ INIT ══ */
-  char.style.left = posX+'px';
-  char.style.top  = posY+'px';
-  svg.style.transform = 'scaleX(1)';
-
-  if(isSleepTime()) {
-    // langsung jalan ke tempat tidur
-    sleeping = true; // flag sementara supaya wakeUp tau
-    sleeping = false;
-    goToSleep();
-  } else {
-    setSvgAnim('s-walk');
-    pickNext();
-    state = 'walk';
-  }
-
-  scheduleSleepCheck();
-  requestAnimationFrame(update);
-
-  /* ══════════════════════════════════════════
-     FITUR 1 — PAYUNG + KELUHAN CUACA HUJAN
-     Ambil cuaca dari GPS → OpenMeteo (free, no API key)
-  ══════════════════════════════════════════ */
-  const dialogHujan = [
-    "waduh hujan nih, males banget ke lapangan 🌧️☂️",
-    "hujan deras bro, tower bisa kesamber petir! ⚡🌧️",
-    "pakai payung atau bajang? dua-duanya gua yang nanggung 😩☂️",
-    "lapangan basah... foto BA-nya bakal blur semua nih 🌧️😤",
-    "hujan gini enaknya tidur, bukan inspeksi! 🌧️💤",
-    "aduh, helm gua kebasahan cuy! ☂️😭",
-  ];
-
-  // Modifikasi SVG: tambah payung saat hujan
-  function addUmbrella() {
-    const svgEl = document.getElementById('srinai-svg');
-    if(svgEl.querySelector('#payung')) return; // sudah ada
-    const payungSvg = `
-      <!-- ══ PAYUNG ══ -->
-      <g id="payung" transform="translate(44, 10)">
-        <!-- Gagang payung -->
-        <path d="M12 34 Q10 38 6 38 Q3 38 3 36" stroke="#4A3000" stroke-width="2" stroke-linecap="round" fill="none"/>
-        <!-- Tongkat payung -->
-        <line x1="12" y1="8" x2="12" y2="34" stroke="#4A3000" stroke-width="2.2" stroke-linecap="round"/>
-        <!-- Kanopi payung - merah -->
-        <path d="M0 10 Q12 -4 24 10" fill="#CC2222" stroke="#AA1111" stroke-width="1"/>
-        <path d="M0 10 Q6 4 12 4 Q18 4 24 10 Z" fill="#CC2222"/>
-        <!-- Panel warna alternatif -->
-        <path d="M12 4 Q12 -2 16 -1 Q22 2 24 10 Z" fill="#AA1111"/>
-        <path d="M12 4 Q12 -2 8 -1 Q2 2 0 10 Z" fill="#AA1111"/>
-        <!-- Tip tengah atas -->
-        <circle cx="12" cy="3" r="2" fill="#880000"/>
-        <!-- Jari-jari -->
-        <path d="M12 8 L0 10" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
-        <path d="M12 8 L24 10" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
-        <path d="M12 8 L6 6" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
-        <path d="M12 8 L18 6" stroke="#880000" stroke-width="0.8" opacity="0.6"/>
-        <!-- Tetesan hujan di sekitar -->
-        <text x="-8" y="18" font-size="8" opacity="0.7">💧</text>
-        <text x="22" y="25" font-size="7" opacity="0.6">💧</text>
-      </g>`;
-    svgEl.insertAdjacentHTML('beforeend', payungSvg);
-
-    // pindahkan posisi tangan kanan supaya pegang payung
-    const tgnR = svgEl.querySelector('#tgn-r');
-    if(tgnR) tgnR.setAttribute('transform', 'rotate(-30, 48, 40)');
-  }
-
-  function removeUmbrella() {
-    const p = document.getElementById('payung');
-    if(p) p.remove();
-    const tgnR = document.querySelector('#srinai-svg #tgn-r');
-    if(tgnR) tgnR.removeAttribute('transform');
-  }
-
-  let isRaining = false;
-  let rainDialogInterval = null;
-
-  async function checkWeather() {
-    try {
-      if(!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=rain,precipitation,weathercode&timezone=auto`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const wc = data.current?.weathercode ?? 0;
-        const rain = data.current?.rain ?? 0;
-        const precip = data.current?.precipitation ?? 0;
-
-        // WMO code: 51-67 = drizzle/rain, 80-82 = showers, 95-99 = thunderstorm
-        const hujan = rain > 0 || precip > 0 || (wc >= 51 && wc <= 67) || (wc >= 80 && wc <= 82) || (wc >= 95);
-
-        if(hujan && !isRaining) {
-          isRaining = true;
-          addUmbrella();
-          if(!sleeping && state !== 'sleep') {
-            showBubble(dialogHujan[0], 5000);
-          }
-          // setiap 5 menit tampilkan keluhan hujan
-          rainDialogInterval = setInterval(() => {
-            if(isRaining && !sleeping && state !== 'sleep') {
-              const d = dialogHujan[Math.floor(Math.random()*dialogHujan.length)];
-              showBubble(d, 5000);
-            }
-          }, 5 * 60 * 1000);
-        } else if(!hujan && isRaining) {
-          isRaining = false;
-          removeUmbrella();
-          clearInterval(rainDialogInterval);
-          if(!sleeping && state !== 'sleep') {
-            showBubble("syukurlah udah reda, ayo lanjut lapangan! ☀️", 4000);
-          }
-        }
-      }, () => { /* geoloc denied, skip */ });
-    } catch(e) { /* network error, skip */ }
-  }
-
-  // Cek cuaca pertama kali dan tiap 15 menit
-  checkWeather();
-  setInterval(checkWeather, 15 * 60 * 1000);
-
-  /* ══════════════════════════════════════════
-     FITUR 2 — PANIK BATERAI DI BAWAH 20%
-  ══════════════════════════════════════════ */
-  const dialogBaterai = [
-    "HP mau mati bro, colok dulu! 🔋😱",
-    "BATERAI 🔴 BATERAI 🔴 TOLONG COLOK CHARGER!! 😱",
-    "aduh HP hampir mati, data belum kesave semua! 🔋💀",
-    "charger mana charger?! gua ga bisa mati sekarang! 🔋😤",
-    "15% bro! ini darurat! darurat! 🚨🔋",
-    "tanpa daya gua tiada artinya... tolong colok! 😭🔋",
-  ];
-
-  let batteryLow = false;
-  let batteryPanicInterval = null;
-
-  /* ── Animasi lari panik ── */
-  const panicStyle = document.createElement('style');
-  panicStyle.textContent = `
-    @keyframes sPanic {
-      0%,100% { transform:translateY(0) rotate(0deg) scaleX(var(--sx,1)); }
-      15%     { transform:translateY(-10px) rotate(-5deg) scaleX(var(--sx,1)); }
-      30%     { transform:translateY(-2px) rotate(0deg) scaleX(var(--sx,1)); }
-      45%     { transform:translateY(-10px) rotate(5deg) scaleX(var(--sx,1)); }
-      60%     { transform:translateY(-2px) rotate(0deg) scaleX(var(--sx,1)); }
-      80%     { transform:translateY(-12px) rotate(-6deg) scaleX(var(--sx,1)); }
-    }
-    #srinai-svg.s-panic {
-      animation: sPanic 0.28s ease-in-out infinite !important;
-    }
-    #srinai-char.battery-low #srinai-svg {
-      filter: drop-shadow(0 0 8px rgba(255,60,60,0.9)) drop-shadow(0 5px 12px rgba(0,0,0,0.5));
-    }
-    /* Ikon baterai merah di atas kepala */
-    #srinai-char.battery-low::before {
-      content: "🔋❗";
-      position: absolute;
-      top: -28px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 18px;
-      animation: battPulse 0.5s ease-in-out infinite alternate;
-      pointer-events: none;
-      filter: drop-shadow(0 0 6px red);
-    }
-    @keyframes battPulse {
-      from { transform: translateX(-50%) scale(1); }
-      to   { transform: translateX(-50%) scale(1.25); }
-    }
-  `;
-  document.head.appendChild(panicStyle);
-
-  function startBatteryPanic() {
-    if(batteryLow) return;
-    batteryLow = true;
-    char.classList.add('battery-low');
-
-    function doPanic() {
-      if(!sleeping && state !== 'sleep') {
-        const d = dialogBaterai[Math.floor(Math.random()*dialogBaterai.length)];
-        showBubble(d, 4500);
-
-        // paksa lari lebih cepat & panik
-        speed = 3.5;
-        setSvgAnim('s-panic');
-
-        // gerakan acak cepat
-        targetX = clampX(30 + Math.random()*(CW-110));
-        targetY = clampY(200 + Math.random()*(Math.max(container.scrollHeight,900)-400));
-        state = 'walk';
-      }
-    }
-
-    doPanic();
-    batteryPanicInterval = setInterval(doPanic, 8000);
-  }
-
-  function stopBatteryPanic() {
-    batteryLow = false;
-    char.classList.remove('battery-low');
-    clearInterval(batteryPanicInterval);
-    speed = 1.8; // kembalikan kecepatan normal
-    setSvgAnim('s-walk');
-    showBubble("fiuh, udah dicharge! tenang... 😌🔋", 3500);
-  }
-
-  async function checkBattery() {
-    if(!('getBattery' in navigator)) return;
-    try {
-      const bat = await navigator.getBattery();
-
-      function evalBattery() {
-        const pct = bat.level * 100;
-        const charging = bat.charging;
-        if(pct <= 20 && !charging && !batteryLow) {
-          startBatteryPanic();
-        } else if((pct > 20 || charging) && batteryLow) {
-          stopBatteryPanic();
-        }
-      }
-
-      evalBattery();
-      bat.addEventListener('levelchange', evalBattery);
-      bat.addEventListener('chargingchange', evalBattery);
-    } catch(e) { /* not supported */ }
-  }
-
-  checkBattery();
-
-})();
-</script>
 
 <script>
 /* =========================================================
