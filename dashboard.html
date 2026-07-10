@@ -1488,8 +1488,10 @@ async function initPage(){
   }
   if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
     document.getElementById("sideMasterData").style.display = "flex";
-    document.getElementById("sidePengaturanBa").style.display = "flex";
     document.getElementById("sidebarToggleBtn").style.display = "flex";
+  }
+  if(typeof isAdmin === "function" && isAdmin()){
+    document.getElementById("sidePengaturanBa").style.display = "flex";
   }
 
   /* --- Notice (dari cache) --- */

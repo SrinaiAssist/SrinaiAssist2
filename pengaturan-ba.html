@@ -396,19 +396,15 @@ async function initPage(){
 
   /* =========================================================
      HAK AKSES HALAMAN
-     - Admin & KLW: bisa upload, hapus, kalibrasi (full akses).
-     - LW & Monitor: hanya bisa melihat (read-only), tidak ada
-       input file, tombol hapus, atau tombol kalibrasi/analisis.
+     - Admin: bisa upload, hapus, kalibrasi (full akses).
+     - KLW (Koordinator), LW & Monitor: TIDAK punya akses ke
+       halaman ini sama sekali — langsung diarahkan ke dashboard.
   ========================================================= */
-  canManageBA = isAdmin() || isKLW();
-
-  if(!canManageBA){
-    document.getElementById("readonlyBanner").style.display = "flex";
-    document.getElementById("baBgUploadActions").style.display = "none";
-    document.getElementById("baLogoUploadActions").style.display = "none";
-    document.getElementById("ttdJargiUploadActions").style.display = "none";
-    document.getElementById("baContohUploadActions").style.display = "none";
+  if(!isAdmin()){
+    location.href = "dashboard.html";
+    return;
   }
+  canManageBA = true;
 
   await loadBaBgPreview();
   await loadBaLogoPreview();
