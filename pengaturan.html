@@ -195,24 +195,8 @@ textarea.field-input:focus{border-color:rgba(74,142,245,0.4);}
         <button class="btn btn-primary" onclick="location.href='kelola-akun.html'">Buka Kelola Akun</button>
       </div>
 
-      <div class="card">
-        <div class="card-title gold">📍 Akses Informasi Span</div>
-        <div class="card-desc">Atur siapa saja yang boleh membuka halaman <b>Informasi Span</b> (halaman read-only berisi seluruh data span, dikelompokkan per kode petugas pemilik dan diakses lewat QR Code).</div>
-
-        <label class="toggle-row">
-          <input type="checkbox" id="infoSpanPublic" onchange="toggleInfoSpanPublicUI()">
-          <span>Bisa diakses publik (tanpa login)</span>
-        </label>
-
-        <div id="infoSpanRolesBox">
-          <div class="upload-label" style="margin-top:10px;">Role yang diizinkan (kalau tidak publik)</div>
-          <label class="toggle-row"><input type="checkbox" class="infoSpanRole" value="admin"><span>Admin</span></label>
-          <label class="toggle-row"><input type="checkbox" class="infoSpanRole" value="klw"><span>KLW / Koordinator</span></label>
-          <label class="toggle-row"><input type="checkbox" class="infoSpanRole" value="lw"><span>LW</span></label>
-          <label class="toggle-row"><input type="checkbox" class="infoSpanRole" value="monitor"><span>Monitor</span></label>
-        </div>
-
-        <button class="btn btn-primary" onclick="saveInfoSpanAccess()">💾 Simpan Akses Informasi Span</button>
+      <div class="info-box">
+        📍 Pengaturan akses halaman <b>Informasi Span</b> sekarang ada di <b>Dashboard</b> → menu sidebar (☰), khusus Admin & Koordinator.
       </div>
 
       <div class="card">
@@ -350,47 +334,12 @@ async function initPage(){
   if(isAdmin()){
     await loadLoginPreview("logo");
     await loadLoginPreview("background");
-    await loadInfoSpanAccess();
   }
 }
 
 async function saveNotice(){
   await setAppSetting("systemNotice", document.getElementById("noticeText").value);
   alert("Pengumuman berhasil disimpan.");
-}
-
-/* ── Akses Informasi Span ── */
-function toggleInfoSpanPublicUI(){
-  const isPublic = document.getElementById("infoSpanPublic").checked;
-  document.getElementById("infoSpanRolesBox").style.opacity = isPublic ? "0.4" : "1";
-  document.querySelectorAll(".infoSpanRole").forEach(cb => cb.disabled = isPublic);
-}
-
-async function loadInfoSpanAccess(){
-  let setting = null;
-  try{
-    const raw = await getAppSetting("infoSpanAccess");
-    setting = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
-  }catch(e){ setting = null; }
-
-  const roles = (setting && Array.isArray(setting.roles)) ? setting.roles : ["admin", "klw"];
-  const isPublic = !!(setting && setting.public);
-
-  document.getElementById("infoSpanPublic").checked = isPublic;
-  document.querySelectorAll(".infoSpanRole").forEach(cb => {
-    cb.checked = roles.includes(cb.value);
-  });
-  toggleInfoSpanPublicUI();
-}
-
-async function saveInfoSpanAccess(){
-  const isPublic = document.getElementById("infoSpanPublic").checked;
-  const roles = Array.from(document.querySelectorAll(".infoSpanRole"))
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
-
-  await setAppSetting("infoSpanAccess", JSON.stringify({ public: isPublic, roles }));
-  alert("Pengaturan akses Informasi Span berhasil disimpan.");
 }
 
 async function backupData(){

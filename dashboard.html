@@ -129,7 +129,7 @@ body{
 .sidebar-toggle-btn.active .bar:nth-child(3){top:18.5px;transform:rotate(-45deg);}
 
 .side-scrim{
-  position:absolute;inset:0;background:rgba(8,15,30,0.4);
+  position:absolute;inset:0;background:rgba(8,15,30,0.35);
   opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:60;
 }
 .side-scrim.open{opacity:1;pointer-events:auto;}
@@ -137,11 +137,11 @@ body{
 .side-sheet{
   position:absolute;top:0;left:0;
   width:58%;max-width:250px;
-  background:rgba(21,33,61,0.97);
-  backdrop-filter:blur(6px);
-  border-right:1px solid var(--border);
+  background:#EEF2FA;
+  color:#0A1E3D;
+  border-right:1px solid rgba(10,30,61,0.08);
   border-bottom-right-radius:22px;
-  box-shadow:6px 8px 24px rgba(0,0,0,0.35);
+  box-shadow:6px 10px 28px rgba(0,0,0,0.28);
   transform:translateY(-105%);
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   z-index:65;
@@ -154,28 +154,56 @@ body{
   margin-bottom:12px;
 }
 .side-sheet-title{
-  font-size:10px;font-weight:700;color:var(--ink-3);
+  font-size:10px;font-weight:700;color:rgba(10,30,61,0.5);
   text-transform:uppercase;letter-spacing:.8px;
 }
 .side-close-btn{
   width:28px;height:28px;border-radius:9px;flex-shrink:0;
-  background:var(--bg-glass);border:1px solid var(--border);
-  color:var(--ink-2);
+  background:rgba(10,30,61,0.06);border:1px solid rgba(10,30,61,0.12);
+  color:#0A1E3D;
   display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
 .side-nav-item{
   display:flex;align-items:center;gap:10px;
   padding:11px 10px;border-radius:13px;
-  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  background:#FFFFFF;border:1px solid rgba(10,30,61,0.08);
+  box-shadow:0 2px 8px rgba(10,30,61,0.05);
   margin-bottom:9px;cursor:pointer;text-decoration:none;
 }
 .side-nav-item .icon{
   width:30px;height:30px;border-radius:9px;flex-shrink:0;
-  background:rgba(56,191,160,0.15);border:1px solid rgba(56,191,160,0.3);
+  background:rgba(56,191,160,0.15);border:1px solid rgba(56,191,160,0.35);
   display:flex;align-items:center;justify-content:center;font-size:14px;
 }
-.side-nav-item .label{font-size:12.5px;font-weight:700;color:var(--ink);}
-.side-nav-item .sub{font-size:10px;color:var(--ink-3);margin-top:1px;}
+.side-nav-item .label{font-size:12.5px;font-weight:700;color:#0A1E3D;}
+.side-nav-item .sub{font-size:10px;color:rgba(10,30,61,0.55);margin-top:1px;}
+
+/* Panel pengaturan akses (Admin) di dalam sidebar */
+.side-settings-box{
+  background:#FFFFFF;border:1px solid rgba(10,30,61,0.08);
+  border-radius:14px;padding:12px;margin-top:4px;margin-bottom:9px;
+  box-shadow:0 2px 8px rgba(10,30,61,0.05);
+}
+.side-settings-title{
+  font-size:11px;font-weight:800;color:#0A1E3D;margin-bottom:2px;
+}
+.side-settings-desc{
+  font-size:9.5px;color:rgba(10,30,61,0.55);line-height:1.5;margin-bottom:8px;
+}
+.side-toggle-row{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;font-size:11px;color:#0A1E3D;cursor:pointer;
+}
+.side-toggle-row input[type=checkbox]{
+  width:15px;height:15px;accent-color:#38BFA0;flex-shrink:0;cursor:pointer;
+}
+.side-settings-save{
+  width:100%;padding:9px;border:none;border-radius:10px;
+  font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+  background:#38BFA0;color:#052A22;margin-top:6px;
+}
+.side-settings-note{font-size:9.5px;color:#38BFA0;margin-top:6px;display:none;}
+.side-settings-note.show{display:block;}
 .notif-dot{
   position:absolute;top:7px;right:8px;
   width:7px;height:7px;border-radius:50%;
@@ -1068,6 +1096,24 @@ body{
         <div class="sub">Manajemen akun & role pengguna</div>
       </div>
     </a>
+
+    <div class="side-settings-box" id="sideInfoSpanAccessBox" style="display:none;">
+      <div class="side-settings-title">📍 Akses Informasi Span</div>
+      <div class="side-settings-desc">Atur siapa yang boleh membuka halaman Informasi Span (read only).</div>
+
+      <label class="side-toggle-row">
+        <input type="checkbox" id="sideInfoSpanPublic" onchange="toggleSideInfoSpanPublicUI()">
+        <span>Bisa diakses publik (tanpa login)</span>
+      </label>
+
+      <div id="sideInfoSpanRolesBox">
+        <label class="side-toggle-row"><input type="checkbox" class="sideInfoSpanRole" value="admin"><span>Admin</span></label>
+        <label class="side-toggle-row"><input type="checkbox" class="sideInfoSpanRole" value="klw"><span>Koordinator (KLW)</span></label>
+      </div>
+
+      <button class="side-settings-save" onclick="saveSideInfoSpanAccess()">💾 Simpan</button>
+      <div class="side-settings-note" id="sideInfoSpanNote">Tersimpan.</div>
+    </div>
   </div>
 
   <!-- AI HERO: greeting + SrinAI mascot + ask bar -->
@@ -1331,6 +1377,43 @@ function closeSidebar(){
   document.getElementById("sidebarToggleBtn").classList.remove("active");
 }
 
+/* ── Akses Informasi Span (Admin, dari sidebar) ── */
+function toggleSideInfoSpanPublicUI(){
+  const isPublic = document.getElementById("sideInfoSpanPublic").checked;
+  document.getElementById("sideInfoSpanRolesBox").style.opacity = isPublic ? "0.4" : "1";
+  document.querySelectorAll(".sideInfoSpanRole").forEach(cb => cb.disabled = isPublic);
+}
+
+async function loadSideInfoSpanAccess(){
+  let setting = null;
+  try{
+    const raw = await getAppSetting("infoSpanAccess");
+    setting = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+  }catch(e){ setting = null; }
+
+  const roles = (setting && Array.isArray(setting.roles)) ? setting.roles : ["admin", "klw"];
+  const isPublic = !!(setting && setting.public);
+
+  document.getElementById("sideInfoSpanPublic").checked = isPublic;
+  document.querySelectorAll(".sideInfoSpanRole").forEach(cb => {
+    cb.checked = roles.includes(cb.value);
+  });
+  toggleSideInfoSpanPublicUI();
+}
+
+async function saveSideInfoSpanAccess(){
+  const isPublic = document.getElementById("sideInfoSpanPublic").checked;
+  const roles = Array.from(document.querySelectorAll(".sideInfoSpanRole"))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  await setAppSetting("infoSpanAccess", JSON.stringify({ public: isPublic, roles }));
+
+  const note = document.getElementById("sideInfoSpanNote");
+  note.classList.add("show");
+  setTimeout(() => note.classList.remove("show"), 2200);
+}
+
 /* =========================================================
    HAMBURGER — TOGGLE QUICKGRID
 ========================================================= */
@@ -1400,6 +1483,8 @@ async function initPage(){
   if(typeof isAdmin === "function" && isAdmin()){
     document.getElementById("qrCetakBtn").style.display = "flex";
     document.getElementById("sideKelolaAkun").style.display = "flex";
+    document.getElementById("sideInfoSpanAccessBox").style.display = "block";
+    loadSideInfoSpanAccess();
   }
   if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
     document.getElementById("sideMasterData").style.display = "flex";
