@@ -6,17 +6,6 @@
 //        body: { key, value }
 // DELETE /api/settings?key=..               -> hapus satu setting (reset ke default)
 //
-// GET    /api/settings?action=backup        -> Export SEMUA data (semua tabel) jadi
-//                                              satu objek JSON. Dipakai tombol
-//                                              "Backup Data" (Admin) di pengaturan.html.
-// POST   /api/settings?action=backup        -> Restore data dari file backup JSON.
-//        body: { tables: { accounts:[...], profiles:[...], jalur:[...], ... } }
-//        Upsert per baris (INSERT ... ON CONFLICT DO UPDATE) berdasarkan primary
-//        key tiap tabel -> TIDAK MENGHAPUS data yang sudah ada di server, hanya
-//        menambah baris baru & menimpa baris yang id/key-nya sama persis.
-// (Digabung ke sini, bukan file api/backup.js terpisah, karena folder /api sudah
-//  di limit 12 function Vercel Hobby. Lihat blok BACKUP/RESTORE di bawah.)
-//
 // PENTING (perbaikan kuota transfer Neon): 5 key berikut berisi gambar yang
 // bisa cukup besar (logo/background/contoh layout BA & halaman login):
 //   baLogo, baBackground, baContohLayout, loginLogo, loginBackground
@@ -97,131 +86,25 @@ async function resolveValueForRead(key, valueRaw) {
   }
 }
 
-// ===== BACKUP / RESTORE (digabung dari bekas api/backup.js, lihat catatan header) =====
-
-// Urutan tabel SENGAJA disusun parent dulu supaya restore tidak gagal karena
-// foreign key (mis. profiles.username -> accounts.username).
-const BACKUP_TABLES = [
-  { name: 'accounts', pk: ['username'] },
-  { name: 'profiles', pk: ['username'] },
-  { name: 'jalur', pk: ['id'] },
-  { name: 'tower', pk: ['id'] },
-  { name: 'span', pk: ['id'] },
-  { name: 'tegakan', pk: ['id'] },
-  { name: 'catatan_span', pk: ['id'] },
-  { name: 'ba_dokumen', pk: ['id'] },
-  { name: 'pemilik_signatures', pk: ['nama_key'] },
-  { name: 'profile_signatures', pk: ['username'] },
-  { name: 'chat_messages', pk: ['id'] },
-  { name: 'app_settings', pk: ['key'] },
-];
-
-const BACKUP_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
-function backupQuoteIdent(name) {
-  if (typeof name !== 'string' || !BACKUP_IDENT_RE.test(name)) {
-    throw new Error(`Nama kolom/tabel tidak valid: ${name}`);
-  }
-  return '"' + name + '"';
-}
-
-async function exportAllTables() {
-  const result = {};
-  for (const t of BACKUP_TABLES) {
-    try {
-      const rows = await sql(`SELECT * FROM ${backupQuoteIdent(t.name)}`);
-      result[t.name] = rows;
-    } catch (err) {
-      console.error(`Backup: gagal export tabel ${t.name}:`, err.message);
-      result[t.name] = [];
-    }
-  }
-  return result;
-}
-
-// Upsert satu baris. Kolom yang tidak dikenal (bukan identifier valid) dilewati
-// per-baris supaya satu baris rusak tidak menggagalkan seluruh restore.
-async function upsertBackupRow(tableName, pkCols, row) {
-  const cols = Object.keys(row).filter((c) => BACKUP_IDENT_RE.test(c));
-  if (cols.length === 0) return;
-
-  const colIdents = cols.map(backupQuoteIdent).join(', ');
-  const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
-  const pkIdents = pkCols.map(backupQuoteIdent).join(', ');
-  const updateCols = cols.filter((c) => !pkCols.includes(c));
-  const values = cols.map((c) => row[c]);
-
-  let queryText;
-  if (updateCols.length === 0) {
-    queryText = `
-      INSERT INTO ${backupQuoteIdent(tableName)} (${colIdents})
-      VALUES (${placeholders})
-      ON CONFLICT (${pkIdents}) DO NOTHING
-    `;
-  } else {
-    const setClause = updateCols.map((c) => `${backupQuoteIdent(c)} = EXCLUDED.${backupQuoteIdent(c)}`).join(', ');
-    queryText = `
-      INSERT INTO ${backupQuoteIdent(tableName)} (${colIdents})
-      VALUES (${placeholders})
-      ON CONFLICT (${pkIdents}) DO UPDATE SET ${setClause}
-    `;
-  }
-  await sql(queryText, values);
-}
-
-async function restoreAllTables(tablesData) {
-  const summary = {};
-  for (const t of BACKUP_TABLES) {
-    const rows = tablesData[t.name];
-    if (!Array.isArray(rows)) {
-      summary[t.name] = { skipped: true };
-      continue;
-    }
-    let ok = 0;
-    let failed = 0;
-    for (const row of rows) {
-      try {
-        await upsertBackupRow(t.name, t.pk, row);
-        ok += 1;
-      } catch (err) {
-        failed += 1;
-        console.error(`Restore: gagal upsert baris di ${t.name}:`, err.message);
-      }
-    }
-    summary[t.name] = { ok, failed, total: rows.length };
-  }
-  return summary;
-}
-
-// ===== akhir bagian BACKUP / RESTORE =====
+// Batas storage Neon Free plan: 0.5 GB per project. Dipakai untuk hitung
+// persentase pemakaian yang ditampilkan di dashboard (widget di atas quickgrid).
+const DB_STORAGE_LIMIT_BYTES = 0.5 * 1024 * 1024 * 1024;
 
 module.exports = async (req, res) => {
   try {
-    const { key: qKey, keys: qKeys, action } = req.query || {};
+    const { key: qKey, keys: qKeys, stats: qStats } = req.query || {};
 
-    if (action === 'backup') {
-      if (req.method === 'GET') {
-        const tables = await exportAllTables();
-        return res.status(200).json({
-          success: true,
-          exportedAt: new Date().toISOString(),
-          version: 1,
-          tables,
-        });
-      }
-      if (req.method === 'POST') {
-        const { tables } = req.body || {};
-        if (!tables || typeof tables !== 'object') {
-          return res.status(400).json({
-            success: false,
-            message: 'File backup tidak valid: field "tables" tidak ditemukan.',
-          });
-        }
-        const summary = await restoreAllTables(tables);
-        return res.status(200).json({ success: true, summary });
-      }
-      res.setHeader('Allow', 'GET, POST');
-      return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+    if (req.method === 'GET' && qStats === 'db') {
+      const rows = await sql`SELECT pg_database_size(current_database()) AS bytes`;
+      const bytes = Number(rows[0]?.bytes || 0);
+      const percent = Math.min(100, (bytes / DB_STORAGE_LIMIT_BYTES) * 100);
+      return res.status(200).json({
+        success: true,
+        bytes,
+        mb: +(bytes / (1024 * 1024)).toFixed(1),
+        limitMb: +(DB_STORAGE_LIMIT_BYTES / (1024 * 1024)).toFixed(0),
+        percent: +percent.toFixed(1),
+      });
     }
 
     if (req.method === 'GET') {
