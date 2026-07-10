@@ -49,6 +49,14 @@ function _spanCacheStale(key) {
   return (Date.now() - obj.ts) > SPAN_CACHE_TTL_MS;
 }
 
+/* Key dinamis per user untuk foto profil — TTL panjang (24 jam) karena
+   foto jarang berubah, tidak seperti data akun lain (tower/span/jalur).
+   Dipisah dari CACHE_KEYS.accounts supaya tidak ikut kadaluarsa tiap 30 mnt
+   dan tidak perlu download ulang dari Google Drive tiap buka dashboard. */
+const FOTO_CACHE_PREFIX = "srinai_cache_foto_";
+const FOTO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+function _fotoProfilKey(username) { return FOTO_CACHE_PREFIX + username; }
+
 /* ═══════════════════════════════════════════════════════
    UTILITAS CACHE
 ═══════════════════════════════════════════════════════ */
@@ -116,12 +124,82 @@ async function _refreshAccounts() {
   }
 }
 
+/* ═══════════════════════════════════════════════════════
+   FOTO PROFIL — cache khusus, terpisah dari cache akun.
+   TTL 24 jam supaya foto tidak fetch ulang dari Neon/Drive
+   tiap buka dashboard, walau cache akun (30 mnt) sudah stale.
+═══════════════════════════════════════════════════════ */
+
+/**
+ * Ambil foto profil satu user, cache-first (localStorage, base64).
+ * - Kalau cache foto masih segar (<24 jam) -> langsung pakai, TANPA request.
+ * - Kalau tidak ada / stale -> coba ambil dari cache akun yang masih segar
+ *   dulu (hindari request baru), baru kalau tidak ada, fetch 1 akun saja
+ *   lewat /api/accounts?username=... (bukan seluruh daftar akun).
+ */
+async function cachedGetFotoProfil(username) {
+  const key = _fotoProfilKey(username);
+  const cached = _cacheGet(key);
+  if (cached && (Date.now() - cached.ts) <= FOTO_CACHE_TTL_MS) {
+    return cached.data || "";
+  }
+
+  // Coba pakai cache akun yang masih segar dulu supaya tidak dobel request
+  const freshAccounts = !_cacheStale(CACHE_KEYS.accounts) ? _cacheGetData(CACHE_KEYS.accounts) : null;
+  if (freshAccounts) {
+    const acc = freshAccounts.find(a => a.username === username);
+    if (acc) {
+      _cacheSet(key, acc.foto || "");
+      return acc.foto || "";
+    }
+  }
+
+  // Fallback: fetch ringan, 1 akun saja (bukan seluruh daftar)
+  try {
+    const result = await apiRequest("/api/accounts?username=" + encodeURIComponent(username));
+    const acc = result && result.success && result.accounts ? result.accounts[0] : null;
+    const foto = acc ? (acc.foto || "") : "";
+    _cacheSet(key, foto);
+    return foto;
+  } catch(e) {
+    // Kalau gagal & ada cache lama (walau stale), lebih baik daripada kosong
+    return cached ? (cached.data || "") : "";
+  }
+}
+
+/** Simpan foto ke cache langsung — panggil setelah upload/simpan foto berhasil */
+function _setFotoProfilCache(username, foto) {
+  _cacheSet(_fotoProfilKey(username), foto || "");
+  _patchAccountFotoInCache(username, foto || "");
+}
+
+/** Hapus cache foto satu user — panggil kalau foto perlu dipaksa fetch ulang */
+function invalidateFotoProfilCache(username) {
+  _cacheClear(_fotoProfilKey(username));
+}
+
+/** Selaraskan foto di cache daftar akun (CACHE_KEYS.accounts) tanpa invalidate semua */
+function _patchAccountFotoInCache(username, foto) {
+  const accounts = _cacheGetData(CACHE_KEYS.accounts);
+  if (!accounts) return;
+  const idx = accounts.findIndex(a => a.username === username);
+  if (idx !== -1) {
+    accounts[idx] = { ...accounts[idx], foto: foto || "" };
+    _cacheSet(CACHE_KEYS.accounts, accounts);
+  }
+}
+
 /** Profile lengkap satu user, pakai cache akun */
 async function cachedGetFullProfile(username) {
   // getFullProfile di auth.js butuh jalur & tower — pakai versi cached
   const accounts = await cachedGetAllAccountsFull();
   const account  = accounts.find(a => a.username === username);
   if (!account) return null;
+
+  // Foto diambil dari cache khusus foto (TTL 24 jam), bukan langsung dari
+  // account.foto — supaya foto tidak ikut fetch ulang tiap cache akun
+  // (TTL 30 mnt) refresh, kecuali memang belum pernah di-cache.
+  const foto = await cachedGetFotoProfil(username);
 
   // Tiru logika getFullProfile dari auth.js
   const towerAwal   = account.tower_awal  != null ? account.tower_awal  : 1;
@@ -189,7 +267,7 @@ async function cachedGetFullProfile(username) {
     jumlahTower, jumlahSpan,
     hasNewAssignment: hasNew,
     wilayah     : account.wilayah || "",
-    foto        : account.foto || ""
+    foto        : foto || ""
   };
 }
 
@@ -545,6 +623,10 @@ async function syncAll(onProgress) {
 function clearAllCache() {
   Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(k));
   localStorage.removeItem(SYNC_KEY_META);
+  // Hapus juga semua cache foto profil per-user (key dinamis, prefix FOTO_CACHE_PREFIX)
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(FOTO_CACHE_PREFIX))
+    .forEach(k => localStorage.removeItem(k));
 }
 
 /** Waktu sinkronisasi terakhir */
