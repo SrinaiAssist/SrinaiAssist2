@@ -26,7 +26,7 @@
 // base64 apa adanya seperti semula supaya fitur tetap jalan.
 
 const { sql } = require('../lib/db');
-const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+const { uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo } = require('../lib/googleDrive');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -90,6 +90,14 @@ async function resolveValueForRead(key, valueRaw) {
 // persentase pemakaian yang ditampilkan di dashboard (widget di atas quickgrid).
 const DB_STORAGE_LIMIT_BYTES = 0.5 * 1024 * 1024 * 1024;
 
+// Batas storage Google Drive dipakai untuk widget "Penyimpanan Drive" (di
+// bawah widget Penyimpanan Database di dashboard). Google Drive akun gratis
+// berbagi kuota 15 GB dengan Gmail & Google Photos, dan `storageQuota.limit`
+// dari API kadang null (tidak dilaporkan / akun unlimited) -- jadi 15 GB
+// di sini SELALU dipakai sebagai acuan tetap, bukan diambil dari API. Angka
+// persentase yang tampil di dashboard karena itu sifatnya PERKIRAAN saja.
+const DRIVE_STORAGE_LIMIT_BYTES = 15 * 1024 * 1024 * 1024;
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats } = req.query || {};
@@ -103,6 +111,19 @@ module.exports = async (req, res) => {
         bytes,
         mb: +(bytes / (1024 * 1024)).toFixed(1),
         limitMb: +(DB_STORAGE_LIMIT_BYTES / (1024 * 1024)).toFixed(0),
+        percent: +percent.toFixed(1),
+      });
+    }
+
+    if (req.method === 'GET' && qStats === 'drive') {
+      const info = await getDriveStorageInfo();
+      const bytes = info.usageBytes;
+      const percent = Math.min(100, (bytes / DRIVE_STORAGE_LIMIT_BYTES) * 100);
+      return res.status(200).json({
+        success: true,
+        bytes,
+        mb: +(bytes / (1024 * 1024)).toFixed(1),
+        limitMb: +(DRIVE_STORAGE_LIMIT_BYTES / (1024 * 1024)).toFixed(0),
         percent: +percent.toFixed(1),
       });
     }
