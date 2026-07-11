@@ -121,6 +121,51 @@ body{
 .empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
 .loading-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
 
+/* Tab bar */
+.tab-bar{
+  position:relative;z-index:2;display:flex;gap:8px;margin:18px 20px 0;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:4px;
+}
+.tab-btn{
+  flex:1;text-align:center;padding:9px 0;border-radius:11px;border:none;
+  background:transparent;color:var(--ink-3);font-weight:700;font-size:12.5px;
+  font-family:inherit;cursor:pointer;
+}
+.tab-btn.active{background:var(--blue-glow);color:var(--blue);}
+
+/* Filter chip untuk tab aktivitas */
+.filter-row{position:relative;z-index:2;display:flex;gap:8px;margin:14px 20px 0;}
+.filter-chip{
+  padding:6px 13px;border-radius:20px;border:1px solid var(--border);
+  background:var(--bg-card);color:var(--ink-3);font-size:11.5px;font-weight:700;
+  font-family:inherit;cursor:pointer;
+}
+.filter-chip.active{background:var(--gold-dim);border-color:rgba(244,197,66,0.3);color:var(--gold);}
+
+/* Kartu aktivitas */
+.act-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:16px;padding:13px 14px;margin-bottom:9px;
+  display:flex;gap:11px;box-shadow:0 4px 16px rgba(0,0,0,0.2);
+}
+.act-icon{
+  width:36px;height:36px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.act-icon.create{background:var(--green-bg);}
+.act-icon.update{background:var(--amber-bg);}
+.act-icon.delete{background:var(--red-bg);}
+.act-icon.reset_password{background:var(--blue-glow);}
+.act-body{flex:1;min-width:0;}
+.act-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.act-actor{font-size:13px;font-weight:800;color:var(--ink);}
+.act-time{font-size:10px;color:var(--ink-3);white-space:nowrap;flex-shrink:0;}
+.act-detail{font-size:12px;color:var(--ink-2);margin-top:3px;line-height:1.4;}
+.act-entity-badge{
+  display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;
+  background:var(--bg-glass);color:var(--ink-3);margin-top:6px;text-transform:uppercase;letter-spacing:.4px;
+}
+
 /* Modal riwayat */
 .modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:flex-end;justify-content:center;z-index:200;}
 .modal-overlay.active{display:flex;}
@@ -160,15 +205,35 @@ body{
     <button class="refresh-btn" onclick="refreshLogs()" title="Muat ulang">🔄</button>
   </div>
 
-  <div class="summary-row">
-    <div class="summary-chip"><div class="num" id="sumTotal">-</div><div class="lbl">Akun</div></div>
-    <div class="summary-chip"><div class="num" id="sumToday">-</div><div class="lbl">Login Hari Ini</div></div>
-    <div class="summary-chip"><div class="num" id="sumNever">-</div><div class="lbl">Belum Pernah</div></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnLogin" onclick="switchTab('login')">🔐 Log Login</button>
+    <button class="tab-btn" id="tabBtnActivity" onclick="switchTab('activity')">📝 Log Aktivitas</button>
   </div>
 
-  <div class="section-label">Terakhir Login — Terbaru Dulu</div>
-  <div class="list-wrap" id="logList">
-    <div class="loading-msg">Memuat data log login...</div>
+  <div id="tabLoginPane">
+    <div class="summary-row">
+      <div class="summary-chip"><div class="num" id="sumTotal">-</div><div class="lbl">Akun</div></div>
+      <div class="summary-chip"><div class="num" id="sumToday">-</div><div class="lbl">Login Hari Ini</div></div>
+      <div class="summary-chip"><div class="num" id="sumNever">-</div><div class="lbl">Belum Pernah</div></div>
+    </div>
+
+    <div class="section-label">Terakhir Login — Terbaru Dulu</div>
+    <div class="list-wrap" id="logList">
+      <div class="loading-msg">Memuat data log login...</div>
+    </div>
+  </div>
+
+  <div id="tabActivityPane" style="display:none;">
+    <div class="filter-row">
+      <button class="filter-chip active" data-filter="" onclick="setActivityFilter('')">Semua</button>
+      <button class="filter-chip" data-filter="tegakan" onclick="setActivityFilter('tegakan')">Tegakan</button>
+      <button class="filter-chip" data-filter="akun" onclick="setActivityFilter('akun')">Akun</button>
+    </div>
+
+    <div class="section-label">Aktivitas Terbaru</div>
+    <div class="list-wrap" id="activityList">
+      <div class="loading-msg">Memuat log aktivitas...</div>
+    </div>
   </div>
 
 </div>
@@ -184,6 +249,10 @@ body{
 
 <script>
 let logAccounts = [];
+let activityItems = [];
+let activityFilter = "";
+let activityLoaded = false;
+let currentTab = "login";
 
 async function initPage(){
   if(!(await isLoggedIn())){ location.href="index.html"; return; }
@@ -192,15 +261,76 @@ async function initPage(){
   await loadLogs();
 }
 
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById("tabBtnLogin").classList.toggle("active", tab === "login");
+  document.getElementById("tabBtnActivity").classList.toggle("active", tab === "activity");
+  document.getElementById("tabLoginPane").style.display = tab === "login" ? "block" : "none";
+  document.getElementById("tabActivityPane").style.display = tab === "activity" ? "block" : "none";
+  if(tab === "activity" && !activityLoaded){
+    loadActivity();
+  }
+}
+
+function setActivityFilter(filter){
+  activityFilter = filter;
+  document.querySelectorAll(".filter-chip").forEach(el => {
+    el.classList.toggle("active", el.dataset.filter === filter);
+  });
+  loadActivity();
+}
+
 async function refreshLogs(){
-  document.getElementById("logList").innerHTML = `<div class="loading-msg">Memuat ulang...</div>`;
-  await loadLogs();
+  if(currentTab === "activity"){
+    document.getElementById("activityList").innerHTML = `<div class="loading-msg">Memuat ulang...</div>`;
+    await loadActivity();
+  } else {
+    document.getElementById("logList").innerHTML = `<div class="loading-msg">Memuat ulang...</div>`;
+    await loadLogs();
+  }
 }
 
 async function loadLogs(){
   logAccounts = await getLoginLogSummary();
   renderSummary();
   renderList();
+}
+
+async function loadActivity(){
+  document.getElementById("activityList").innerHTML = `<div class="loading-msg">Memuat log aktivitas...</div>`;
+  activityItems = await getActivityLog(activityFilter || undefined, 150);
+  activityLoaded = true;
+  renderActivity();
+}
+
+const ACT_ICON = { create: "➕", update: "✏️", delete: "🗑️", reset_password: "🔑" };
+const ACT_LABEL = { create: "Tambah", update: "Ubah", delete: "Hapus", reset_password: "Reset Password" };
+const ENTITY_LABEL = { tegakan: "Tegakan", akun: "Akun" };
+
+function renderActivity(){
+  const wrap = document.getElementById("activityList");
+  wrap.innerHTML = "";
+  if(!activityItems.length){
+    wrap.innerHTML = `<div class="empty-msg">Belum ada aktivitas tercatat.</div>`;
+    return;
+  }
+  for(const item of activityItems){
+    const card = document.createElement("div");
+    card.className = "act-card";
+    const iconClass = ACT_ICON[item.action] ? item.action : "update";
+    card.innerHTML = `
+      <div class="act-icon ${iconClass}">${ACT_ICON[item.action] || "•"}</div>
+      <div class="act-body">
+        <div class="act-top">
+          <div class="act-actor">${item.username || "?"} <span style="color:var(--ink-3);font-weight:600;">— ${ACT_LABEL[item.action] || item.action}</span></div>
+          <div class="act-time">${relativeTime(item.createdAt)}</div>
+        </div>
+        <div class="act-detail">${item.detail || "-"}</div>
+        <div class="act-entity-badge">${ENTITY_LABEL[item.entityType] || item.entityType}</div>
+      </div>
+    `;
+    wrap.appendChild(card);
+  }
 }
 
 function renderSummary(){
