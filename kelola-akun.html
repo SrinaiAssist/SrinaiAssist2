@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kelola Akun - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -423,6 +424,7 @@ async function addNewAccount(){
   document.getElementById("newWilayah").value="";
   newSelectedTowerIds=[]; newSelectedSpanIds=[];
   await renderNewPickers();
+  invalidateAccountsCache();
   await loadAccountsList();
 }
 
@@ -480,7 +482,7 @@ function cssId(name){ return name.replace(/[^a-zA-Z0-9]/g,"_"); }
 let accountsCache=[];
 
 async function loadAccountsList(){
-  const accounts = await getAllAccountsFull();
+  const accounts = await cachedGetAllAccountsFull();
   accountsCache  = accounts;
   const wrap     = document.getElementById("accountList");
   wrap.innerHTML = "";
@@ -535,6 +537,9 @@ async function loadAccountsList(){
     if(acc.foto){
       const av=document.getElementById("av-"+cssId(name));
       if(av) av.innerHTML=`<img src="${acc.foto}" alt="${name}">`;
+      // Segarkan cache foto khusus (24 jam) supaya dashboard/profil pakai
+      // foto yang sama tanpa fetch ulang dari Neon/Drive.
+      if(typeof _setFotoProfilCache === "function") _setFotoProfilCache(name, acc.foto);
     }
   }
 }
@@ -692,9 +697,13 @@ async function saveEdit(name){
     localStorage.setItem("srinaiUser", result.username||namaBaru);
     localStorage.setItem("lastLoginUser", result.username||namaBaru);
   }
+  if(fields.newUsername && typeof invalidateFotoProfilCache === "function"){
+    invalidateFotoProfilCache(name); // hapus cache foto username lama, sudah tidak dipakai
+  }
 
   alert("Data akun "+(result.username||namaBaru)+" berhasil disimpan.");
   toggleEdit(name);
+  invalidateAccountsCache();
   await loadAccountsList();
 }
 
@@ -702,6 +711,7 @@ async function toggleStatus(name){
   const acc=accountsCache.find(a=>a.username===name);
   if(!acc) return;
   await updateAccountProfile(name,{status:acc.status==="Aktif"?"Belum Aktif":"Aktif"});
+  invalidateAccountsCache();
   await loadAccountsList();
 }
 
@@ -715,6 +725,8 @@ async function deleteAccountLocal(name){
   if(name===getCurrentUser()){ alert("Tidak bisa menghapus akun yang sedang aktif."); return; }
   if(!confirm("Hapus akun "+name+"?")) return;
   await deleteAccount(name);
+  invalidateAccountsCache();
+  if(typeof invalidateFotoProfilCache === "function") invalidateFotoProfilCache(name);
   await loadAccountsList();
 }
 
