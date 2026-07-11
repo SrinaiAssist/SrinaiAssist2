@@ -350,6 +350,13 @@ async function _refreshBA() {
   }
 }
 
+/** Invalidate cache daftar akun — panggil setelah tambah/edit/hapus/toggle akun
+    di kelola-akun.html supaya loadAccountsList() berikutnya ambil data segar
+    (bukan cache lama), tanpa perlu hapus cache foto (foto tetap 24 jam). */
+function invalidateAccountsCache() {
+  _cacheClear(CACHE_KEYS.accounts);
+}
+
 /** Invalidate cache BA — panggil setelah upload/edit/hapus BA */
 function invalidateBACache() {
   _cacheClear(CACHE_KEYS.ba);
