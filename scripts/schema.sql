@@ -37,3 +37,19 @@ CREATE TABLE IF NOT EXISTS login_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_login_logs_username ON login_logs(username);
 CREATE INDEX IF NOT EXISTS idx_login_logs_login_at  ON login_logs(login_at DESC);
+
+-- ─────────────────────────────────────────────────────────
+-- MIGRASI: Log Aktivitas (admin — tegakan & akun: tambah/edit/hapus)
+-- Jalankan blok di bawah ini satu kali di Neon SQL editor.
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id          SERIAL PRIMARY KEY,
+    username    TEXT NOT NULL,          -- pelaku (bukan FK -- log harus tetap ada walau akun dihapus)
+    action      TEXT NOT NULL,          -- 'create' | 'update' | 'delete' | 'reset_password'
+    entity_type TEXT NOT NULL,          -- 'tegakan' | 'akun'
+    entity_id   TEXT,                   -- id tegakan / username akun terkait
+    detail      TEXT,                   -- ringkasan singkat, human-readable
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_entity     ON activity_logs(entity_type, entity_id);
