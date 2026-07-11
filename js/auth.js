@@ -76,6 +76,15 @@ async function getLoginHistory(username, limit) {
     return result && result.success ? result.history : [];
 }
 
+/** Feed log aktivitas (tegakan & akun) — terbaru dulu, default 100, maks 300 */
+async function getActivityLog(entityType, limit) {
+    let url = "/api/login?action=activity";
+    if (entityType) url += "&entityType=" + encodeURIComponent(entityType);
+    if (limit) url += "&limit=" + encodeURIComponent(limit);
+    const result = await apiRequest(url);
+    return result && result.success ? result.activities : [];
+}
+
 function getCurrentUser() {
     return localStorage.getItem("srinaiUser");
 }
@@ -348,14 +357,14 @@ async function getSpanMasterList(jalurId) {
 async function addAccount(username, password, role, profileFields) {
     return await apiRequest("/api/accounts", {
         method: "POST",
-        body: JSON.stringify({ username: username.trim(), password, role, profileFields })
+        body: JSON.stringify({ username: username.trim(), password, role, profileFields, actor: getCurrentUser() })
     });
 }
 
 async function updateAccountProfile(username, fields) {
     const result = await apiRequest("/api/accounts", {
         method: "PUT",
-        body: JSON.stringify({ username, fields })
+        body: JSON.stringify({ username, fields, actor: getCurrentUser() })
     });
     return result;
 }
@@ -373,7 +382,7 @@ async function deactivateAccount(username) {
 async function resetPassword(username) {
     const result = await apiRequest("/api/accounts?action=resetPassword", {
         method: "POST",
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username, actor: getCurrentUser() })
     });
     return result.success === true;
 }
@@ -391,7 +400,7 @@ async function changeRole(username, newRole) {
 }
 
 async function deleteAccount(username) {
-    const result = await apiRequest("/api/accounts?username=" + encodeURIComponent(username), {
+    const result = await apiRequest("/api/accounts?username=" + encodeURIComponent(username) + "&actor=" + encodeURIComponent(getCurrentUser() || ""), {
         method: "DELETE"
     });
 
@@ -652,12 +661,12 @@ async function addTegakan(fields) {
 async function updateTegakan(id, fields) {
     return await apiRequest("/api/tegakan", {
         method: "PUT",
-        body: JSON.stringify({ id, fields })
+        body: JSON.stringify({ id, fields, actor: getCurrentUser() })
     });
 }
 
 async function deleteTegakan(id) {
-    return await apiRequest("/api/tegakan?id=" + encodeURIComponent(id), {
+    return await apiRequest("/api/tegakan?id=" + encodeURIComponent(id) + "&actor=" + encodeURIComponent(getCurrentUser() || ""), {
         method: "DELETE"
     });
 }
