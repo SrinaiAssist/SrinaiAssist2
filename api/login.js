@@ -3,19 +3,25 @@
 //   Menggantikan fungsi loginUser() yang dulu baca localStorage langsung.
 //   Setiap login berhasil juga dicatat ke login_logs + accounts.last_login.
 //
-// GET  /api/login                    -> ringkasan log login semua akun
-//                                        (last_login, jumlah login) — dipakai
-//                                        fitur admin "Log Login".
-// GET  /api/login?username=X         -> riwayat login satu akun (terbaru dulu)
+// GET  /api/login                            -> ringkasan log login semua akun
+//                                                (last_login, jumlah login) — dipakai
+//                                                fitur admin "Log Login".
+// GET  /api/login?username=X                 -> riwayat login satu akun (terbaru dulu)
+// GET  /api/login?action=activity             -> feed log aktivitas (tegakan & akun),
+//                                                terbaru dulu — dipakai tab "Log Aktivitas"
+//                                                di halaman yang sama.
+//        query opsional: limit (default 100, maks 300), entityType ('tegakan'|'akun')
 //
-// GET & POST digabung di 1 file supaya tidak menambah jumlah serverless
-// function (limit slot di Vercel).
+// GET & POST digabung di 1 file (dan action=activity ikut nebeng di sini juga)
+// supaya tidak menambah jumlah serverless function (limit slot di Vercel).
 
 const { sql } = require('../lib/db');
 const bcrypt = require('bcryptjs');
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
+    const { action } = req.query || {};
+    if (action === 'activity') return handleGetActivity(req, res);
     return handleGetLogs(req, res);
   }
 
@@ -73,6 +79,33 @@ module.exports = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
   }
 };
+
+async function handleGetActivity(req, res) {
+  try {
+    const { limit, entityType } = req.query || {};
+    const lim = Math.min(parseInt(limit, 10) || 100, 300);
+
+    const rows = entityType
+      ? await sql`
+          SELECT username, action, entity_type AS "entityType", entity_id AS "entityId", detail, created_at AS "createdAt"
+          FROM activity_logs
+          WHERE entity_type = ${entityType}
+          ORDER BY created_at DESC
+          LIMIT ${lim}
+        `
+      : await sql`
+          SELECT username, action, entity_type AS "entityType", entity_id AS "entityId", detail, created_at AS "createdAt"
+          FROM activity_logs
+          ORDER BY created_at DESC
+          LIMIT ${lim}
+        `;
+
+    return res.status(200).json({ success: true, activities: rows });
+  } catch (err) {
+    console.error('Activity-log error:', err);
+    return res.status(500).json({ success: false, message: 'Terjadi kesalahan server.' });
+  }
+}
 
 async function handleGetLogs(req, res) {
   try {

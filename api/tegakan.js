@@ -7,8 +7,12 @@
 //                pemilikTelp, petugas, ttdType, ttdData, tanggal }
 // PUT    /api/tegakan                      -> edit tegakan (partial)
 //        body: { id, fields: { nama, idTegakan, pemilikNama, pemilikAlamat,
-//                pemilikTelp, ttdType, ttdData, tanggal } }
-// DELETE /api/tegakan?id=..                -> hapus satu tegakan
+//                pemilikTelp, ttdType, ttdData, tanggal }, actor }
+// DELETE /api/tegakan?id=..&actor=..       -> hapus satu tegakan
+//
+// "actor"/"petugas" dipakai untuk mencatat siapa yang melakukan perubahan
+// ke tabel activity_logs (lihat lib/activityLog.js) -- untuk fitur admin
+// Log Aktivitas.
 //
 // PENTING (kuota transfer Neon): sama seperti api/signature.js, kolom
 // ttd_data di sini SEKARANG tidak lagi menyimpan base64 mentah langsung ke
@@ -23,6 +27,7 @@
 
 const { sql } = require('../lib/db');
 const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+const { logActivity } = require('../lib/activityLog');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -80,7 +85,7 @@ function mapRow(r) {
 
 module.exports = async (req, res) => {
   try {
-    const { spanId: qSpanId, id: qId } = req.query || {};
+    const { spanId: qSpanId, id: qId, actor: qActor } = req.query || {};
 
     if (req.method === 'GET') {
       // Tanpa spanId -> ambil SEMUA tegakan (dipakai syncAll() untuk
@@ -141,20 +146,25 @@ module.exports = async (req, res) => {
           ${pemilikTelp || null}, ${petugas}, ${ttdType || null}, ${ttdDataToSave}, ${tanggal || null}
         )
       `;
+      logActivity({
+        username: petugas, action: 'create', entityType: 'tegakan', entityId: id,
+        detail: `Menambahkan tegakan "${nama}"${pemilikNama ? ` (pemilik: ${pemilikNama})` : ''} di span ${spanId}`,
+      });
       return res.status(200).json({ success: true, id, driveWarning: warning });
     }
 
     if (req.method === 'PUT') {
-      const { id, fields } = req.body || {};
+      const { id, fields, actor } = req.body || {};
       if (!id || !fields) {
         return res.status(400).json({ success: false, message: 'id dan fields wajib diisi.' });
       }
 
+      const existingRow = await sql`SELECT span_id, nama FROM tegakan WHERE id = ${id}`;
+      const spanIdForName = existingRow[0] ? existingRow[0].span_id : 'unknown';
+
       let ttdDataToSave = fields.ttdData ?? null;
       let warning = null;
       if (fields.ttdData !== undefined) {
-        const existing = await sql`SELECT span_id FROM tegakan WHERE id = ${id}`;
-        const spanIdForName = existing[0] ? existing[0].span_id : 'unknown';
         const resolved = await resolveTtdDataForSave(
           fields.ttdData, fields.ttdType || 'digital', `tegakan-${spanIdForName}`
         );
@@ -175,12 +185,23 @@ module.exports = async (req, res) => {
           updated_at     = now()
         WHERE id = ${id}
       `;
+      const namaForLog = fields.nama || (existingRow[0] ? existingRow[0].nama : '') || `#${id}`;
+      logActivity({
+        username: actor, action: 'update', entityType: 'tegakan', entityId: id,
+        detail: `Mengubah data tegakan "${namaForLog}"`,
+      });
       return res.status(200).json({ success: true, driveWarning: warning });
     }
 
     if (req.method === 'DELETE') {
       if (!qId) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+      const existingRow = await sql`SELECT nama, span_id FROM tegakan WHERE id = ${qId}`;
       await sql`DELETE FROM tegakan WHERE id = ${qId}`;
+      const row = existingRow[0];
+      logActivity({
+        username: qActor, action: 'delete', entityType: 'tegakan', entityId: qId,
+        detail: row ? `Menghapus tegakan "${row.nama}" di span ${row.span_id}` : `Menghapus tegakan #${qId}`,
+      });
       return res.status(200).json({ success: true });
     }
 

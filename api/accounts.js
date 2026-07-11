@@ -2,14 +2,19 @@
 //
 // GET    /api/accounts            -> list semua akun + profil (tanpa password_hash)
 // POST   /api/accounts             -> tambah akun baru
-//        body: { username, password, role, profileFields:{...} }
+//        body: { username, password, role, profileFields:{...}, actor }
 // PUT    /api/accounts             -> update akun/profil (role, status, jabatan, jalur, dst)
-//        body: { username, fields:{...} }
-// DELETE /api/accounts?username=.. -> hapus akun
+//        body: { username, fields:{...}, actor }
+// DELETE /api/accounts?username=..&actor=.. -> hapus akun
 //
 // Endpoint khusus password (dipisah agar jelas niatnya):
-// POST   /api/accounts?action=resetPassword   body:{ username }
+// POST   /api/accounts?action=resetPassword   body:{ username, actor }
 // POST   /api/accounts?action=changePassword  body:{ username, newPassword }
+//
+// "actor" = username yang melakukan aksi (dikirim dari js/auth.js lewat
+// getCurrentUser()), dicatat ke tabel activity_logs untuk fitur admin
+// Log Aktivitas (lihat lib/activityLog.js). changePassword sengaja TIDAK
+// dicatat (self-service ganti password sendiri, di luar cakupan fitur ini).
 //
 // PENTING (kuota transfer Neon): kolom foto profil (profiles.foto) sekarang
 // TIDAK lagi menyimpan base64 mentah langsung ke Postgres. Kalau foto yang
@@ -24,6 +29,7 @@
 const { sql } = require('../lib/db');
 const bcrypt = require('bcryptjs');
 const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+const { logActivity } = require('../lib/activityLog');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -83,7 +89,7 @@ async function listAccounts(filterUsername) {
 
 module.exports = async (req, res) => {
   try {
-    const { action, username: qUsername } = req.query || {};
+    const { action, username: qUsername, actor: qActor } = req.query || {};
 
     if (req.method === 'GET') {
       const accounts = await listAccounts(qUsername);
@@ -91,7 +97,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST' && action === 'resetPassword') {
-      const { username } = req.body || {};
+      const { username, actor } = req.body || {};
       if (!username) return res.status(400).json({ success: false, message: 'username wajib diisi.' });
 
       const passwordHash = await bcrypt.hash('123456', 10);
@@ -100,6 +106,10 @@ module.exports = async (req, res) => {
         RETURNING username
       `;
       if (result.length === 0) return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
+      logActivity({
+        username: actor, action: 'reset_password', entityType: 'akun', entityId: username,
+        detail: `Reset password akun "${username}" ke default`,
+      });
       return res.status(200).json({ success: true });
     }
 
@@ -120,7 +130,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       // Tambah akun baru
-      const { username, password, role, profileFields } = req.body || {};
+      const { username, password, role, profileFields, actor } = req.body || {};
       if (!username || !username.trim()) {
         return res.status(400).json({ success: false, message: 'Username wajib diisi.' });
       }
@@ -162,12 +172,16 @@ module.exports = async (req, res) => {
         )
       `;
 
+      logActivity({
+        username: actor, action: 'create', entityType: 'akun', entityId: trimmed,
+        detail: `Menambahkan akun baru "${trimmed}" (role: ${finalRole})`,
+      });
       return res.status(200).json({ success: true, driveWarning: fotoWarning });
     }
 
     if (req.method === 'PUT') {
       // Update akun + profil (menggantikan updateAccountProfile)
-      const { username: bodyUsername, fields } = req.body || {};
+      const { username: bodyUsername, fields, actor } = req.body || {};
       if (!bodyUsername || !fields) {
         return res.status(400).json({ success: false, message: 'username dan fields wajib diisi.' });
       }
@@ -182,6 +196,22 @@ module.exports = async (req, res) => {
       // proses rename berhasil, supaya update role/jabatan/dll di bawah
       // langsung kena ke baris yang baru.
       let username = bodyUsername;
+
+      // Ringkasan field yang berubah, dibangun dari body asli SEBELUM
+      // fields.newUsername/rename diproses -- dipakai untuk activity log.
+      const changedFieldLabels = [];
+      if (fields.newUsername !== undefined && String(fields.newUsername).trim() !== bodyUsername) {
+        changedFieldLabels.push(`ganti nama akun -> "${fields.newUsername}"`);
+      }
+      if (fields.role !== undefined) changedFieldLabels.push(`role -> ${fields.role}`);
+      if (fields.status !== undefined) changedFieldLabels.push(`status -> ${fields.status}`);
+      if (fields.jabatan !== undefined) changedFieldLabels.push('jabatan');
+      if (fields.jalur !== undefined) changedFieldLabels.push('jalur');
+      if (fields.jalurId !== undefined) changedFieldLabels.push('akses jalur');
+      if (fields.towerIds !== undefined) changedFieldLabels.push('penugasan tower');
+      if (fields.spanIds !== undefined) changedFieldLabels.push('penugasan span');
+      if (fields.wilayah !== undefined) changedFieldLabels.push('wilayah');
+      if (fields.foto !== undefined) changedFieldLabels.push('foto profil');
 
       // --- Rename akun (ganti username/nama login) ---
       // username adalah PRIMARY KEY dan direferensikan oleh tabel profiles
@@ -286,10 +316,18 @@ module.exports = async (req, res) => {
         }
 
         if (fotoWarning) {
+          logActivity({
+            username: actor, action: 'update', entityType: 'akun', entityId: username,
+            detail: changedFieldLabels.length ? `Mengubah ${changedFieldLabels.join(', ')}` : 'Update akun',
+          });
           return res.status(200).json({ success: true, username, driveWarning: fotoWarning });
         }
       }
 
+      logActivity({
+        username: actor, action: 'update', entityType: 'akun', entityId: username,
+        detail: changedFieldLabels.length ? `Mengubah ${changedFieldLabels.join(', ')}` : 'Update akun',
+      });
       return res.status(200).json({ success: true, username });
     }
 
@@ -299,6 +337,10 @@ module.exports = async (req, res) => {
 
       // ON DELETE CASCADE di tabel profiles akan ikut menghapus profil.
       await sql`DELETE FROM accounts WHERE username = ${username}`;
+      logActivity({
+        username: qActor, action: 'delete', entityType: 'akun', entityId: username,
+        detail: `Menghapus akun "${username}"`,
+      });
       return res.status(200).json({ success: true });
     }
 
