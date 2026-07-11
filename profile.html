@@ -334,7 +334,7 @@ async function initPage(){
 }
 
 async function loadProfileList(){
-  const accounts = await getAllAccountsFull();
+  const accounts = await cachedGetAllAccountsFull();
   const container = document.getElementById("profileList");
   container.innerHTML = "";
   accounts.map(a=>a.username).sort().forEach(name=>{
