@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Catatan Span - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/bastliga-font.js"></script>
 <style>
@@ -928,7 +929,7 @@ async function generateBA(selectedTegakan, ownerRef){
   // Nama & TTD petugas pada BA mengikuti PEMILIK SPAN (LW yang
   // di-assign ke span ini), bukan akun yang sedang login membuat BA.
   const spanOwnerUsername = (await getSpanOwner(spanId)) || currentUser;
-  const profile = await getFullProfile(spanOwnerUsername);
+  const profile = await cachedGetFullProfile(spanOwnerUsername);
   const now = new Date();
   const hariList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   const bulanList = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -1206,7 +1207,7 @@ async function generateBAPdfTemplate(selectedTegakan, ownerRef){
   // Nama & TTD petugas pada BA mengikuti PEMILIK SPAN (LW yang
   // di-assign ke span ini), bukan akun yang sedang login membuat BA.
   const spanOwnerUsername = (await getSpanOwner(spanId)) || currentUser;
-  const profile = await getFullProfile(spanOwnerUsername);
+  const profile = await cachedGetFullProfile(spanOwnerUsername);
   const now = new Date();
   const hariList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   const bulanList = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];

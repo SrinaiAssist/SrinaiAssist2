@@ -632,15 +632,18 @@ async function generateAutoSig(){
   sigHasContent = true;
 }
 
-document.getElementById("sigFotoInput").addEventListener("change", function(e){
+document.getElementById("sigFotoInput").addEventListener("change", async function(e){
   const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    sigFotoDataUrl = ev.target.result;
+  try {
+    // Foto TTD dipakai di dokumen BA resmi -> kompresi lebih ringan (sisi
+    // terpanjang 600px, quality lebih tinggi) supaya tanda tangan tetap
+    // jelas terbaca, sambil tetap jauh lebih kecil dari foto kamera asli.
+    sigFotoDataUrl = await compressImageFile(file, 600, 0.9);
     const preview = document.getElementById("sigFotoPreview");
     preview.src = sigFotoDataUrl; preview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+  } catch(err) {
+    alert("Gagal memproses foto TTD. Coba foto lain.");
+  }
 });
 
 function clearSig(){
