@@ -1126,6 +1126,13 @@ body{
         <div class="sub">Manajemen akun & role pengguna</div>
       </div>
     </a>
+    <a class="side-nav-item" id="sideLogLogin" href="log-login.html" style="display:none;">
+      <div class="icon">📋</div>
+      <div>
+        <div class="label">Log Login</div>
+        <div class="sub">Siapa saja yang login & kapan terakhir</div>
+      </div>
+    </a>
 
     <div class="side-settings-box" id="sideInfoSpanAccessBox" style="display:none;">
       <div class="side-settings-title">📍 Akses Informasi Span</div>
@@ -1532,6 +1539,7 @@ async function initPage(){
   if(typeof isAdmin === "function" && isAdmin()){
     document.getElementById("qrCetakBtn").style.display = "flex";
     document.getElementById("sideKelolaAkun").style.display = "flex";
+    document.getElementById("sideLogLogin").style.display = "flex";
     document.getElementById("sideInfoSpanAccessBox").style.display = "block";
     loadSideInfoSpanAccess();
   }
