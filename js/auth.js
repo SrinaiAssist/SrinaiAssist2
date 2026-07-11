@@ -62,6 +62,20 @@ function logoutUser() {
     localStorage.removeItem(LOGIN_CHECK_CACHE_KEY);
 }
 
+/** Ringkasan log login semua akun (admin) — last_login & jumlah login */
+async function getLoginLogSummary() {
+    const result = await apiRequest("/api/login");
+    return result && result.success ? result.accounts : [];
+}
+
+/** Riwayat login satu akun, terbaru dulu (default 50, maks 200) */
+async function getLoginHistory(username, limit) {
+    let url = "/api/login?username=" + encodeURIComponent(username);
+    if (limit) url += "&limit=" + encodeURIComponent(limit);
+    const result = await apiRequest(url);
+    return result && result.success ? result.history : [];
+}
+
 function getCurrentUser() {
     return localStorage.getItem("srinaiUser");
 }
