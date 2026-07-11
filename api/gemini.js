@@ -1,8 +1,8 @@
 export default async function handler(req, res) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKeys = getGeminiApiKeys();
 
-    if (!apiKey) {
+    if (apiKeys.length === 0) {
       return res.status(500).json({
         error: "GEMINI_API_KEY tidak ditemukan"
       });
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
        ia kenali dari contoh terisi. Balasan WAJIB berupa JSON murni.
     ========================================================= */
     if (body.mode === "analyzeLayout") {
-      return handleAnalyzeLayout(body, apiKey, res);
+      return handleAnalyzeLayout(body, apiKeys, res);
     }
 
     /* =========================================================
@@ -144,31 +144,25 @@ KONTEKS APLIKASI:
       { role: "user", parts: [{ text: message }] }
     ];
 
-    const response = await fetch(
+    const response = await fetchGeminiWithFallback(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-goog-api-key": apiKey
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
         },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          contents: contents
-        })
-      }
+        contents: contents
+      },
+      apiKeys
     );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API error:", data);
-      return res.status(response.status).json({
-        error: data?.error?.message || "Gagal menghubungi Gemini API."
+    if (response.error) {
+      console.error("Gemini API error (semua API key habis/gagal):", response.error.data);
+      return res.status(response.error.status).json({
+        error: response.error.data?.error?.message || "Gagal menghubungi Gemini API."
       });
     }
+
+    const data = response.data;
 
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
@@ -182,6 +176,87 @@ KONTEKS APLIKASI:
       error: error.message
     });
   }
+}
+
+/* =========================================================
+   FALLBACK MULTI API KEY
+   -----------------------------------------------------
+   Membaca semua API key Gemini yang tersedia dari env var:
+   - GEMINI_API_KEY    (utama)
+   - GEMINI_API_KEY_2  (cadangan pertama)
+   - GEMINI_API_KEY_3, GEMINI_API_KEY_4, dst (cadangan tambahan, opsional)
+
+   Kalau key utama kena limit/quota (429 atau pesan
+   "quota"/"rate limit"/"resource_exhausted"), otomatis coba key
+   berikutnya secara berurutan sampai salah satu berhasil atau
+   semua key habis dicoba. Error non-limit (400/401/dll) langsung
+   dikembalikan tanpa mencoba key lain, supaya tidak membuang kuota
+   key cadangan untuk kesalahan yang bukan soal limit.
+========================================================= */
+function getGeminiApiKeys() {
+  const keys = [];
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+
+  let i = 2;
+  while (process.env[`GEMINI_API_KEY_${i}`]) {
+    keys.push(process.env[`GEMINI_API_KEY_${i}`]);
+    i++;
+  }
+  return keys;
+}
+
+function isGeminiRateLimitError(status, data) {
+  if (status === 429) return true;
+  const msg = ((data && data.error && data.error.message) || "").toLowerCase();
+  return msg.includes("quota") || msg.includes("rate limit") || msg.includes("resource_exhausted");
+}
+
+/**
+ * POST ke Gemini generateContent, coba key berikutnya kalau key saat ini
+ * kena limit. Return { data } kalau berhasil, atau { error: { status, data } }
+ * kalau semua key gagal / error terakhir bukan soal limit.
+ */
+async function fetchGeminiWithFallback(url, bodyObj, apiKeys) {
+  let lastError = null;
+
+  for (let i = 0; i < apiKeys.length; i++) {
+    const key = apiKeys[i];
+    let response, data;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-goog-api-key": key
+        },
+        body: JSON.stringify(bodyObj)
+      });
+      data = await response.json();
+    } catch (networkErr) {
+      lastError = { status: 502, data: { error: { message: networkErr.message } } };
+      continue; // masalah jaringan -> tetap coba key berikutnya
+    }
+
+    if (response.ok) {
+      if (i > 0) {
+        console.warn(`Gemini: berhasil pakai API key cadangan ke-${i + 1} (key utama/sebelumnya kena limit).`);
+      }
+      return { data };
+    }
+
+    lastError = { status: response.status, data };
+
+    const isLastKey = i === apiKeys.length - 1;
+    if (!isGeminiRateLimitError(response.status, data) || isLastKey) {
+      // Error bukan soal limit (mis. API key invalid) -> jangan buang-buang
+      // coba key lain, langsung berhenti. Atau ini sudah key terakhir.
+      break;
+    }
+
+    console.warn(`Gemini: API key ke-${i + 1} kena limit/quota, mencoba key cadangan berikutnya...`);
+  }
+
+  return { error: lastError };
 }
 
 /* =========================================================
@@ -205,7 +280,7 @@ function parseDataUrl(dataUrl) {
   return { mimeType: match[1], data: match[2] };
 }
 
-async function handleAnalyzeLayout(body, apiKey, res) {
+async function handleAnalyzeLayout(body, apiKeys, res) {
   const exampleImage = parseDataUrl(body.exampleImage);
   const blankImage = parseDataUrl(body.blankImage);
 
@@ -262,31 +337,25 @@ Hanya sertakan field yang kamu temukan. Jangan sertakan field lain di luar dafta
   }
 
   try {
-    const response = await fetch(
+    const response = await fetchGeminiWithFallback(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: promptParts }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
-      }
+        contents: [{ role: "user", parts: promptParts }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      },
+      apiKeys
     );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API error (analyzeLayout):", data);
-      return res.status(response.status).json({
-        error: data?.error?.message || "Gagal menghubungi Gemini API."
+    if (response.error) {
+      console.error("Gemini API error (analyzeLayout, semua API key habis/gagal):", response.error.data);
+      return res.status(response.error.status).json({
+        error: response.error.data?.error?.message || "Gagal menghubungi Gemini API."
       });
     }
+
+    const data = response.data;
 
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
