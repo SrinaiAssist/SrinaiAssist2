@@ -390,15 +390,34 @@ async function fetchAppContext() {
       : `/api/span`;
     const [spanRes, tegakanRes] = await Promise.all([
       fetch(spanUrl),
-      fetch(`/api/tegakan`)
+      fetch(`/api/tegakan?includeTtd=false`)
     ]);
 
     const spanData  = spanRes.ok  ? await spanRes.json()  : { span: [] };
     const tegakanData = tegakanRes.ok ? await tegakanRes.json() : { tegakan: [] };
 
+    // PENTING: ttdData berisi foto tanda tangan dalam base64 (bisa ratusan
+    // KB per tegakan). AI tidak butuh lihat gambar TTD untuk jawab
+    // pertanyaan -- kalau ikut dikirim, sekali chat bisa langsung
+    // menghabiskan ratusan ribu token Gemini (ini penyebab utama error
+    // 429 "quota exceeded" yang sering muncul). Buang field ttdData
+    // sebelum digabung ke context, sisakan cuma metadata yang relevan.
+    const tegakanRingkas = (tegakanData.tegakan || []).map(t => ({
+      id: t.id,
+      spanId: t.spanId,
+      nama: t.nama,
+      idTegakan: t.idTegakan,
+      pemilikNama: t.pemilikNama,
+      pemilikAlamat: t.pemilikAlamat,
+      pemilikTelp: t.pemilikTelp,
+      petugas: t.petugas,
+      adaTtd: !!t.ttdData,
+      tanggal: t.tanggal,
+    }));
+
     // Gabungkan tegakan ke span masing-masing agar mudah dibaca AI
     const tegakanBySpan = {};
-    (tegakanData.tegakan || []).forEach(t => {
+    tegakanRingkas.forEach(t => {
       if (!tegakanBySpan[t.spanId]) tegakanBySpan[t.spanId] = [];
       tegakanBySpan[t.spanId].push(t);
     });
@@ -412,7 +431,7 @@ async function fetchAppContext() {
       profile,
       spans: enrichedSpan,
       totalSpan: enrichedSpan.length,
-      totalTegakan: (tegakanData.tegakan || []).length,
+      totalTegakan: tegakanRingkas.length,
       baData: JSON.parse(localStorage.getItem("baData") || "[]"),
       jadwal: JSON.parse(localStorage.getItem("jadwalData") || "[]"),
     };
