@@ -2,6 +2,11 @@
 //
 // GET    /api/tegakan?spanId=..            -> list tegakan untuk satu span
 // GET    /api/tegakan                      -> list SEMUA tegakan (untuk sinkron massal)
+// GET    /api/tegakan?includeTtd=false     -> sama seperti di atas, TAPI skip resolve
+//                                              foto TTD dari Google Drive (ttdData jadi
+//                                              true/null saja) -- jauh lebih cepat &
+//                                              hemat kuota Drive, dipakai saat cuma
+//                                              butuh metadata (mis. context AI chat).
 // POST   /api/tegakan                      -> tambah tegakan baru
 //        body: { spanId, nama, idTegakan, pemilikNama, pemilikAlamat,
 //                pemilikTelp, petugas, ttdType, ttdData, tanggal }
@@ -85,9 +90,14 @@ function mapRow(r) {
 
 module.exports = async (req, res) => {
   try {
-    const { spanId: qSpanId, id: qId, actor: qActor } = req.query || {};
+    const { spanId: qSpanId, id: qId, actor: qActor, includeTtd: qIncludeTtd } = req.query || {};
 
     if (req.method === 'GET') {
+      // includeTtd=false -> skip resolve foto TTD dari Google Drive (hemat
+      // waktu & kuota Drive API) untuk kasus yang cuma butuh metadata,
+      // misal context AI chat yang tidak menampilkan gambar TTD sama sekali.
+      const includeTtd = qIncludeTtd !== 'false' && qIncludeTtd !== '0';
+
       // Tanpa spanId -> ambil SEMUA tegakan (dipakai syncAll() untuk
       // sinkron massal sekali jalan, dikelompokkan per span di client).
       const rows = qSpanId
@@ -110,6 +120,11 @@ module.exports = async (req, res) => {
             FROM tegakan
             ORDER BY created_at ASC
           `;
+
+      if (!includeTtd) {
+        const stripped = rows.map(r => ({ ...r, ttdData: r.ttdData ? true : null }));
+        return res.status(200).json({ success: true, tegakan: stripped.map(mapRow) });
+      }
 
       // Resolve semua referensi Drive jadi base64 sebelum dikirim ke browser.
       const resolved = await Promise.all(
