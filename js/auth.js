@@ -10,6 +10,18 @@
    - getFullProfile() sekarang fetch master data dari API juga.
 ========================================================= */
 
+// Daftarkan service worker (js/../sw.js) supaya aplikasi bisa "Add to Home
+// Screen" / dibungkus jadi APK (PWA/TWA). Lihat manifest.json + sw.js di
+// root project. Aman untuk semua browser -- kalau tidak didukung, baris ini
+// cuma dilewati tanpa error.
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch((err) => {
+            console.warn("Gagal daftar service worker:", err);
+        });
+    });
+}
+
 const JALUR_LABEL = {
     "lembursitu-cianjur":   "Lembursitu - Cianjur",
     "lembursitu-semenjawa": "Lembursitu - Semenjawa"
