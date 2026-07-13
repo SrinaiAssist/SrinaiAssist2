@@ -55,8 +55,14 @@ async function resolveFotoForRead(fotoRaw) {
   try {
     return await downloadFileAsDataUrl(fileId, 'image/jpeg');
   } catch (err) {
-    console.error('Download foto profil dari Drive gagal:', err.message);
-    return '';
+    // Coba sekali lagi -- kegagalan pertama seringkali cuma hiccup jaringan
+    // sesaat ke Google Drive, bukan file yang benar-benar hilang/rusak.
+    try {
+      return await downloadFileAsDataUrl(fileId, 'image/jpeg');
+    } catch (err2) {
+      console.error('Download foto profil dari Drive gagal (2x percobaan):', err2.message);
+      return '';
+    }
   }
 }
 
