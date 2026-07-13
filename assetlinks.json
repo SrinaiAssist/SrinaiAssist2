@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.vercel.srinai_assist2.twa",
-        "sha256_cert_fingerprints": ["EC:B2:EF:BF:7B:DC:08:50:FC:58:72:FF:5C:87:51:AD:CA:D2:CA:C6:C9:31:37:66:84:0D:BF:2D:B4:50:74:7E"]
-      }
-    }]
