@@ -55,6 +55,13 @@ function _spanCacheStale(key) {
    dan tidak perlu download ulang dari Google Drive tiap buka dashboard. */
 const FOTO_CACHE_PREFIX = "srinai_cache_foto_";
 const FOTO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+// TTL jauh lebih pendek khusus untuk hasil KOSONG. Kalau foto kosong karena
+// benar-benar belum pernah upload, ini cuma bikin sedikit lebih sering
+// dicek ulang (murah, cuma 1 akun). Tapi kalau kosong itu SEBENARNYA gara-gara
+// server gagal download dari Google Drive sesaat (lihat resolveFotoForRead di
+// api/accounts.js), foto akan otomatis "pulih" dalam hitungan menit alih-alih
+// nyangkut kosong selama 24 jam penuh.
+const FOTO_EMPTY_CACHE_TTL_MS = 5 * 60 * 1000;
 function _fotoProfilKey(username) { return FOTO_CACHE_PREFIX + username; }
 
 /* ═══════════════════════════════════════════════════════
@@ -140,8 +147,11 @@ async function _refreshAccounts() {
 async function cachedGetFotoProfil(username) {
   const key = _fotoProfilKey(username);
   const cached = _cacheGet(key);
-  if (cached && (Date.now() - cached.ts) <= FOTO_CACHE_TTL_MS) {
-    return cached.data || "";
+  if (cached) {
+    const ttl = cached.data ? FOTO_CACHE_TTL_MS : FOTO_EMPTY_CACHE_TTL_MS;
+    if ((Date.now() - cached.ts) <= ttl) {
+      return cached.data || "";
+    }
   }
 
   // Coba pakai cache akun yang masih segar dulu supaya tidak dobel request
