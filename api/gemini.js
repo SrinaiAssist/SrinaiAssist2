@@ -1,3 +1,5 @@
+const { sql } = require('../lib/db');
+
 export default async function handler(req, res) {
   try {
     const apiKeys = getGeminiApiKeys();
@@ -168,6 +170,8 @@ KONTEKS APLIKASI:
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "Maaf, saya tidak bisa memberikan balasan saat ini.";
 
+    await incrementAiUsage();
+
     return res.status(200).json({ reply: reply });
 
   } catch (error) {
@@ -209,6 +213,29 @@ function isGeminiRateLimitError(status, data) {
   if (status === 429) return true;
   const msg = ((data && data.error && data.error.message) || "").toLowerCase();
   return msg.includes("quota") || msg.includes("rate limit") || msg.includes("resource_exhausted");
+}
+
+/* =========================================================
+   PENCATATAN PEMAKAIAN AI (untuk widget "Pemakaian AI" khusus
+   admin di Pengaturan). Nyimpen counter harian di app_settings
+   dengan key "ai_usage_YYYY-MM-DD", numpang tabel yang sudah ada
+   biar gak perlu bikin tabel baru. Dipanggil SETELAH Gemini
+   berhasil balas -- gagal simpan counter TIDAK BOLEH bikin
+   respons chat/analisis gagal, makanya errornya cuma di-log.
+========================================================= */
+async function incrementAiUsage() {
+  try {
+    const todayKey = 'ai_usage_' + new Date().toISOString().slice(0, 10);
+    await sql`
+      INSERT INTO app_settings (key, value)
+      VALUES (${todayKey}, '1')
+      ON CONFLICT (key) DO UPDATE
+        SET value = (COALESCE(app_settings.value, '0')::int + 1)::text,
+            updated_at = now()
+    `;
+  } catch (err) {
+    console.error('Gagal mencatat pemakaian AI:', err.message);
+  }
 }
 
 /**
@@ -389,6 +416,8 @@ Hanya sertakan field yang kamu temukan. Jangan sertakan field lain di luar dafta
         error: "SrinAI tidak berhasil mengenali posisi field dari gambar yang diberikan. Pastikan gambar jelas dan coba lagi."
       });
     }
+
+    await incrementAiUsage();
 
     return res.status(200).json({ layout: validated });
 
