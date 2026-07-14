@@ -10,7 +10,8 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Jadwal - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/sync.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -295,7 +296,7 @@ async function muatDropdownPetugas(){
   }
 
   try{
-    const accounts = await getAllAccountsFull();
+    const accounts = await cachedGetAllAccountsFull();
     accounts
       .filter(a => a.status === "Aktif" && a.role === "lw")
       .map(a => a.username)
@@ -429,13 +430,13 @@ const HARI_PER_BLOK  = 7; // 1 blok = 1 "minggu jadwal" (7 tanggal berurutan, ik
 // Ambil daftar nomor tower milik petugas (dari akun terdaftar), diurutkan naik.
 // Mendukung 2 skema data akun: assignment baru (tower_ids) atau lama (tower_awal..tower_akhir).
 async function ambilPoolTowerPetugas(namaPetugas){
-  const accounts = await getAllAccountsFull();
+  const accounts = await cachedGetAllAccountsFull();
   const akun = accounts.find(a => a.username.trim().toLowerCase() === namaPetugas.trim().toLowerCase());
   if(!akun) return { error: `Akun petugas "${namaPetugas}" tidak ditemukan. Pastikan nama sesuai username akun.` };
 
   const towerIds = akun.tower_ids || [];
   if(towerIds.length > 0){
-    const towerMaster = await getTowerMasterList(akun.jalur_id);
+    const towerMaster = await cachedGetTowerMasterList(akun.jalur_id);
     const nums = towerMaster.filter(t => towerIds.includes(t.id)).map(t => t.nomor).sort((a,b)=>a-b);
     if(nums.length === 0) return { error: `Tower milik "${namaPetugas}" belum ditemukan di master tower.` };
     return { pool: nums };

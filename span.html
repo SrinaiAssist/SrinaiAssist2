@@ -449,7 +449,7 @@ async function initPage(){
 
   // Bangun map spanId → nama petugas (hanya untuk admin/klw/monitor)
   if(isFullAccess){
-    const allAccounts = await getAllAccountsFull();
+    const allAccounts = await cachedGetAllAccountsFull();
     allAccounts.forEach(acc => {
       if(acc.role === "lw" && acc.span_ids && acc.span_ids.length){
         acc.span_ids.forEach(sid => {

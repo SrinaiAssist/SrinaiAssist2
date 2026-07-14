@@ -11,7 +11,7 @@
 <title>Kelola Akun - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
 <script src="js/sync.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -324,9 +324,9 @@ window.addEventListener("pageshow", (e) => {
 });
 
 /* ── Helpers ── */
-async function getJalurList(){ return (await getJalurMasterList()).filter(j=>j.aktif); }
-async function getTowerByJalur(jalurId){ return (await getTowerMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
-async function getSpanByJalur(jalurId){ return (await getSpanMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
+async function getJalurList(){ return (await cachedGetJalurMasterList()).filter(j=>j.aktif); }
+async function getTowerByJalur(jalurId){ return (await cachedGetTowerMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
+async function getSpanByJalur(jalurId){ return (await cachedGetSpanMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
 
 async function populateJalurSelect(selectEl, selectedId){
   const jalurList = await getJalurList();
@@ -492,9 +492,9 @@ async function loadAccountsList(){
   wrap.innerHTML = "";
   if(!accounts.length){ wrap.innerHTML=`<div class="empty-msg">Belum ada akun.</div>`; return; }
 
-  const jalurList = await getJalurMasterList();
-  const towerList = await getTowerMasterList();
-  const spanList  = await getSpanMasterList();
+  const jalurList = await cachedGetJalurMasterList();
+  const towerList = await cachedGetTowerMasterList();
+  const spanList  = await cachedGetSpanMasterList();
 
   const sorted = [...accounts].sort((a,b)=>a.username.localeCompare(b.username));
 
@@ -562,9 +562,9 @@ function toggleEdit(name){
 async function renderEditBox(name, box){
   const acc=accountsCache.find(a=>a.username===name);
   if(!acc) return;
-  const jalurList  = await getJalurMasterList();
-  const towerList  = await getTowerMasterList();
-  const spanList   = await getSpanMasterList();
+  const jalurList  = await cachedGetJalurMasterList();
+  const towerList  = await cachedGetTowerMasterList();
+  const spanList   = await cachedGetSpanMasterList();
   const profile    = await buildProfileFromAccountRow(acc, jalurList, towerList, spanList);
   const id=cssId(name);
 

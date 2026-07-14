@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <style>
 :root{
   --bg-deep:   #080F1E;
@@ -548,7 +548,7 @@ async function initPage(){
 
   // Bangun map towerId → nama petugas (hanya untuk admin/klw/monitor)
   if(isFullAccess){
-    const allAccounts = await getAllAccountsFull();
+    const allAccounts = await cachedGetAllAccountsFull();
     allAccounts.forEach(acc => {
       if(acc.role === "lw" && acc.tower_ids && acc.tower_ids.length){
         acc.tower_ids.forEach(tid => { petugasTowerMap[tid] = acc.username; });

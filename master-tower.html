@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Master Data Tower - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -191,7 +192,7 @@ async function initPage(){
 let jalurListCache = [];
 
 async function loadJalurChips(){
-  jalurListCache = (await getJalurMasterList()).filter(j=>j.aktif);
+  jalurListCache = (await cachedGetJalurMasterList()).filter(j=>j.aktif);
   const wrap = document.getElementById("jalurChips");
   wrap.innerHTML = "";
 
@@ -281,6 +282,7 @@ async function addTower(){
   document.getElementById("newTowerNomor").value = "";
   document.getElementById("towerCodePreviewWrap").innerHTML = "";
 
+  invalidateTowerCache();
   await render();
   alert(`Tower ${assetCodeTower(jalur.code, nomor)} berhasil ditambahkan.`);
 }
@@ -312,7 +314,7 @@ async function loadTowerList(){
     return;
   }
 
-  const towers = await getTowerMasterList(jalur.id);
+  const towers = await cachedGetTowerMasterList(jalur.id);
   towers.sort((a,b)=>a.nomor-b.nomor);
   towerListCache = towers;
 
@@ -374,6 +376,7 @@ async function editTower(id){
     body: JSON.stringify({ id: id, fields: { jenis, isolator, renceng, status } })
   });
 
+  invalidateTowerCache();
   await loadTowerList();
 }
 
@@ -389,6 +392,7 @@ async function deleteTower(id){
     method: "DELETE"
   });
 
+  invalidateTowerCache();
   await loadTowerList();
 }
 

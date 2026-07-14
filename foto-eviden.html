@@ -532,11 +532,11 @@ async function populateCamLokasi(){
   const sel = document.getElementById("camLokasi");
   sel.innerHTML = `<option value="">Memuat daftar tower &amp; span...</option>`;
   try{
-    const profile = await getFullProfile(getCurrentUser());
-    const jalurList = await getJalurMasterList();
+    const profile = await cachedGetFullProfile(getCurrentUser());
+    const jalurList = await cachedGetJalurMasterList();
     const [towerMaster, spanMaster] = await Promise.all([
-      getTowerMasterList(profile?.jalurId),
-      getSpanMasterList(profile?.jalurId)
+      cachedGetTowerMasterList(profile?.jalurId),
+      cachedGetSpanMasterList(profile?.jalurId)
     ]);
     const jalurMatch = jalurList.find(j => j.id === profile?.jalurId);
     const jalurCode = jalurMatch ? jalurMatch.code : "";
@@ -775,7 +775,7 @@ async function submitCamEvidence(){
 async function initPage(){
   if(!(await isLoggedIn())){ location.href = "index.html"; return; }
 
-  const profile = await getFullProfile(getCurrentUser());
+  const profile = await cachedGetFullProfile(getCurrentUser());
   document.getElementById("pageSub").textContent = profile?.jabatan
     ? profile.jabatan + " · Arsip foto bukti lapangan"
     : "Arsip foto bukti lapangan";

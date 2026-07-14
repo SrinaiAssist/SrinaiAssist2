@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Master Data Span - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -192,7 +193,7 @@ async function initPage(){
 let jalurListCache = [];
 
 async function loadJalurChips(){
-  jalurListCache = (await getJalurMasterList()).filter(j=>j.aktif);
+  jalurListCache = (await cachedGetJalurMasterList()).filter(j=>j.aktif);
   const wrap = document.getElementById("jalurChips");
   wrap.innerHTML = "";
 
@@ -282,6 +283,7 @@ async function addSpan(){
   document.getElementById("newSpanNomor").value = "";
   document.getElementById("spanCodePreviewWrap").innerHTML = "";
 
+  invalidateSpanCache();
   await render();
   alert(`Span ${assetCodeSpan(jalur.code, nomor)} berhasil ditambahkan.`);
 }
@@ -313,7 +315,7 @@ async function loadSpanList(){
     return;
   }
 
-  const spans = await getSpanMasterList(jalur.id);
+  const spans = await cachedGetSpanMasterList(jalur.id);
   spans.sort((a,b)=>a.nomor-b.nomor);
   spanListCache = spans;
 
@@ -373,6 +375,7 @@ async function editSpan(id){
     body: JSON.stringify({ id: id, fields: { spacer, joint, status } })
   });
 
+  invalidateSpanCache();
   await loadSpanList();
 }
 
@@ -388,6 +391,7 @@ async function deleteSpan(id){
     method: "DELETE"
   });
 
+  invalidateSpanCache();
   await loadSpanList();
 }
 
