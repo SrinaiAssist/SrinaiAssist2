@@ -120,17 +120,22 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST' && action === 'changePassword') {
-      const { username, newPassword } = req.body || {};
-      if (!username || !newPassword) {
-        return res.status(400).json({ success: false, message: 'username dan newPassword wajib diisi.' });
+      const { username, oldPassword, newPassword } = req.body || {};
+      if (!username || !oldPassword || !newPassword) {
+        return res.status(400).json({ success: false, message: 'username, oldPassword, dan newPassword wajib diisi.' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password baru minimal 6 karakter.' });
       }
 
+      const rows = await sql`SELECT password_hash FROM accounts WHERE username = ${username}`;
+      if (rows.length === 0) return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
+
+      const cocok = await bcrypt.compare(oldPassword, rows[0].password_hash);
+      if (!cocok) return res.status(401).json({ success: false, message: 'Password lama salah.' });
+
       const passwordHash = await bcrypt.hash(newPassword, 10);
-      const result = await sql`
-        UPDATE accounts SET password_hash = ${passwordHash} WHERE username = ${username}
-        RETURNING username
-      `;
-      if (result.length === 0) return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
+      await sql`UPDATE accounts SET password_hash = ${passwordHash} WHERE username = ${username}`;
       return res.status(200).json({ success: true });
     }
 
