@@ -399,12 +399,12 @@ async function resetPassword(username) {
     return result.success === true;
 }
 
-async function changePassword(username, newPassword) {
+async function changePassword(username, oldPassword, newPassword) {
     const result = await apiRequest("/api/accounts?action=changePassword", {
         method: "POST",
-        body: JSON.stringify({ username, newPassword })
+        body: JSON.stringify({ username, oldPassword, newPassword })
     });
-    return result.success === true;
+    return result || { success: false, message: "Gagal menghubungi server." };
 }
 
 async function changeRole(username, newRole) {
