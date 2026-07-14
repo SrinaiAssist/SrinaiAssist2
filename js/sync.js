@@ -363,6 +363,20 @@ async function _refreshBA() {
 /** Invalidate cache daftar akun — panggil setelah tambah/edit/hapus/toggle akun
     di kelola-akun.html supaya loadAccountsList() berikutnya ambil data segar
     (bukan cache lama), tanpa perlu hapus cache foto (foto tetap 24 jam). */
+
+/** Invalidate cache jalur/tower/span — panggil setelah tambah/edit/hapus
+    data master di master-jalur.html, master-tower.html, master-span.html,
+    supaya halaman itu (dan halaman lain yang baca cache) langsung dapat
+    data segar di load berikutnya, bukan menunggu TTL 30 menit habis. */
+function invalidateJalurCache() {
+  _cacheClear(CACHE_KEYS.jalur);
+}
+function invalidateTowerCache() {
+  _cacheClear(CACHE_KEYS.tower);
+}
+function invalidateSpanCache() {
+  _cacheClear(CACHE_KEYS.span);
+}
 function invalidateAccountsCache() {
   _cacheClear(CACHE_KEYS.accounts);
 }
