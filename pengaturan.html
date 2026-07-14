@@ -120,6 +120,27 @@ textarea.field-input{
   resize:none;outline:none;
 }
 textarea.field-input:focus{border-color:rgba(74,142,245,0.4);}
+input.field-input{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:11px;padding:11px 13px;
+  color:var(--ink);font-family:inherit;font-size:13.5px;outline:none;
+}
+input.field-input:focus{border-color:rgba(74,142,245,0.4);}
+
+/* Widget pemakaian AI (mirip db-storage-card di dashboard.html) */
+.ai-usage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ai-usage-count{font-size:11px;color:var(--ink-3);}
+.ai-usage-percent{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+.ai-usage-percent.is-warn{color:var(--gold);}
+.ai-usage-percent.is-danger{color:var(--red);}
+.ai-usage-bar{height:6px;border-radius:20px;background:rgba(255,255,255,0.07);overflow:hidden;}
+.ai-usage-bar-fill{
+  height:100%;border-radius:20px;width:0%;
+  background:linear-gradient(90deg, var(--teal), var(--blue));
+  transition:width .6s cubic-bezier(.2,.8,.2,1), background .3s;
+}
+.ai-usage-bar-fill.is-warn{background:linear-gradient(90deg, var(--gold), #e8b32a);}
+.ai-usage-bar-fill.is-danger{background:linear-gradient(90deg, var(--red), #c94545);}
 
 .hidden{display:none;}
 
@@ -191,6 +212,23 @@ textarea.field-input:focus{border-color:rgba(74,142,245,0.4);}
         <div class="card-title">📢 Pengumuman Sistem</div>
         <textarea class="field-input" id="noticeText" placeholder="Tulis pengumuman..."></textarea>
         <button class="btn btn-primary" onclick="saveNotice()">💾 Simpan Pengumuman</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title gold">🤖 Pemakaian AI (SrinAI)</div>
+        <div class="card-desc">Perkiraan jumlah request Gemini API yang terpakai hari ini dari SEMUA pengguna (chat SrinAI + analisis tata letak BA). Hanya admin yang bisa melihat ini.</div>
+        <div class="ai-usage-top">
+          <span class="ai-usage-percent" id="aiUsagePercent">–%</span>
+          <span class="ai-usage-count" id="aiUsageCount">Memuat...</span>
+        </div>
+        <div class="ai-usage-bar"><div class="ai-usage-bar-fill" id="aiUsageBarFill"></div></div>
+
+        <label class="upload-label" style="margin-top:14px;">Batas Harian (limit AI)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="number" class="field-input" id="aiLimitInput" min="1" placeholder="mis. 250">
+          <button class="btn-small" onclick="saveAiLimit()">💾</button>
+        </div>
+        <div class="compress-note">📌 Google tidak selalu menampilkan limit akun secara pasti dan angkanya bisa berubah. Sesuaikan dengan limit yang terlihat di akun Google AI Studio Anda. Hitungan ini reset otomatis tiap pukul 00:00 (bukan tengah malam waktu Pasifik seperti limit asli Google), jadi anggap sebagai perkiraan.</div>
       </div>
 
       <div class="card">
@@ -344,12 +382,51 @@ async function initPage(){
   if(isAdmin()){
     await loadLoginPreview("logo");
     await loadLoginPreview("background");
+    loadAiUsage();
   }
 }
 
 async function saveNotice(){
   await setAppSetting("systemNotice", document.getElementById("noticeText").value);
   alert("Pengumuman berhasil disimpan.");
+}
+
+/* ===== Pemakaian AI (widget admin) ===== */
+async function loadAiUsage(){
+  try{
+    const res = await fetch("/api/settings?stats=ai");
+    const data = await res.json();
+    if(!data.success) throw new Error(data.message || "gagal");
+
+    const pct = Math.max(0, Math.min(100, data.percent));
+    const fillEl = document.getElementById("aiUsageBarFill");
+    const pctEl  = document.getElementById("aiUsagePercent");
+
+    fillEl.style.width = pct + "%";
+    pctEl.textContent = pct.toFixed(1) + "%";
+
+    fillEl.classList.remove("is-warn","is-danger");
+    pctEl.classList.remove("is-warn","is-danger");
+    if(pct >= 90){
+      fillEl.classList.add("is-danger"); pctEl.classList.add("is-danger");
+    } else if(pct >= 70){
+      fillEl.classList.add("is-warn"); pctEl.classList.add("is-warn");
+    }
+
+    document.getElementById("aiUsageCount").textContent = `${data.used} dari ${data.limit} request hari ini`;
+    document.getElementById("aiLimitInput").value = data.limit;
+  } catch(err){
+    console.error("Gagal memuat pemakaian AI:", err);
+    document.getElementById("aiUsageCount").textContent = "Gagal memuat data";
+  }
+}
+
+async function saveAiLimit(){
+  const val = parseInt(document.getElementById("aiLimitInput").value, 10);
+  if(!val || val < 1){ alert("Masukkan angka limit yang valid."); return; }
+  await setAppSetting("ai_daily_limit", String(val));
+  await loadAiUsage();
+  alert("Batas harian AI berhasil disimpan.");
 }
 
 async function backupData(){
