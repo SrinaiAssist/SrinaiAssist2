@@ -98,6 +98,12 @@ const DB_STORAGE_LIMIT_BYTES = 0.5 * 1024 * 1024 * 1024;
 // persentase yang tampil di dashboard karena itu sifatnya PERKIRAAN saja.
 const DRIVE_STORAGE_LIMIT_BYTES = 15 * 1024 * 1024 * 1024;
 
+// Default batas harian request Gemini API (widget "Pemakaian AI" di
+// Pengaturan, admin only). Angka resmi Google sering berubah dan beda-beda
+// per akun/tier, jadi ini cuma default -- admin bisa override lewat setting
+// "ai_daily_limit" (disimpan sebagai string angka biasa di app_settings).
+const AI_DAILY_LIMIT_DEFAULT = 250;
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats } = req.query || {};
@@ -124,6 +130,26 @@ module.exports = async (req, res) => {
         bytes,
         mb: +(bytes / (1024 * 1024)).toFixed(1),
         limitMb: +(DRIVE_STORAGE_LIMIT_BYTES / (1024 * 1024)).toFixed(0),
+        percent: +percent.toFixed(1),
+      });
+    }
+
+    if (req.method === 'GET' && qStats === 'ai') {
+      const todayKey = 'ai_usage_' + new Date().toISOString().slice(0, 10);
+      const rows = await sql`
+        SELECT key, value FROM app_settings WHERE key IN (${todayKey}, 'ai_daily_limit')
+      `;
+      const map = {};
+      for (const r of rows) map[r.key] = r.value;
+
+      const used = parseInt(map[todayKey], 10) || 0;
+      const limit = parseInt(map['ai_daily_limit'], 10) || AI_DAILY_LIMIT_DEFAULT;
+      const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+
+      return res.status(200).json({
+        success: true,
+        used,
+        limit,
         percent: +percent.toFixed(1),
       });
     }
