@@ -221,6 +221,20 @@ body{
 .sig-status img{width:50px;height:30px;object-fit:contain;background:rgba(255,255,255,0.05);border-radius:6px;border:1px solid var(--border);}
 .sig-status.empty{background:var(--amber-bg);color:var(--amber);border-color:rgba(244,197,66,0.2);}
 
+.form-input{
+  width:100%;padding:11px 13px;border:1px solid var(--border);
+  border-radius:11px;font-size:13.5px;font-family:inherit;
+  background:var(--bg-card2);color:var(--ink);outline:none;margin-bottom:10px;
+}
+.form-input:focus{border-color:rgba(74,142,245,0.4);}
+.form-input::placeholder{color:var(--ink-3);}
+.pw-msg{
+  font-size:12px;border-radius:11px;padding:9px 12px;margin-bottom:10px;display:none;
+}
+.pw-msg.show{display:block;}
+.pw-msg.err{background:var(--red-bg);color:var(--red);}
+.pw-msg.ok{background:var(--green-bg);color:var(--green);}
+
 .hidden{display:none;}
 .file-input-hidden{display:none;}
 </style>
@@ -269,6 +283,15 @@ body{
         <div class="info-note">📌 Jabatan, jalur, range tower, wilayah, role &amp; status akun hanya dapat diubah Admin melalui Kelola Akun. Anda hanya dapat memperbarui foto profil.</div>
         <button id="saveBtn" class="btn btn-primary" onclick="saveProfile()">💾 Simpan Foto Profil</button>
         <a id="editAkunBtn" href="kelola-akun.html" class="btn btn-gold hidden" style="display:none;text-align:center;text-decoration:none;margin-top:8px;">✏️ Edit Data Akun di Kelola Akun</a>
+      </div>
+
+      <div class="card hidden" id="pwSection">
+        <div class="card-title gold">🔒 Ganti Password</div>
+        <div class="pw-msg" id="pwMsg"></div>
+        <input type="password" id="pwOld" class="form-input" placeholder="Password lama" autocomplete="current-password">
+        <input type="password" id="pwNew" class="form-input" placeholder="Password baru (min. 6 karakter)" autocomplete="new-password">
+        <input type="password" id="pwConfirm" class="form-input" placeholder="Ulangi password baru" autocomplete="new-password">
+        <button id="pwBtn" class="btn btn-gold" onclick="submitChangePassword()">🔑 Simpan Password Baru</button>
       </div>
 
     </div>
@@ -408,6 +431,14 @@ async function showProfile(){
     await loadSignature();
   }
 
+  if(selectedUser === currentUser){
+    document.getElementById("pwSection").classList.remove("hidden");
+    document.getElementById("pwOld").value = "";
+    document.getElementById("pwNew").value = "";
+    document.getElementById("pwConfirm").value = "";
+    document.getElementById("pwMsg").className = "pw-msg";
+  }
+
   applyPermissions();
 }
 
@@ -490,6 +521,42 @@ async function saveProfile(){
     alert("Foto profil berhasil disimpan.");
   } else {
     alert("Gagal menyimpan foto profil. Periksa koneksi internet.");
+  }
+}
+
+/* ===== Ganti Password ===== */
+function showPwMsg(text, ok){
+  const el = document.getElementById("pwMsg");
+  el.textContent = text;
+  el.className = "pw-msg show " + (ok ? "ok" : "err");
+}
+
+async function submitChangePassword(){
+  const oldPw = document.getElementById("pwOld").value;
+  const newPw = document.getElementById("pwNew").value;
+  const confirmPw = document.getElementById("pwConfirm").value;
+
+  if(!oldPw || !newPw || !confirmPw){ showPwMsg("Semua kolom wajib diisi.", false); return; }
+  if(newPw.length < 6){ showPwMsg("Password baru minimal 6 karakter.", false); return; }
+  if(newPw !== confirmPw){ showPwMsg("Konfirmasi password baru tidak cocok.", false); return; }
+  if(newPw === oldPw){ showPwMsg("Password baru tidak boleh sama dengan password lama.", false); return; }
+
+  const btn = document.getElementById("pwBtn");
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+
+  const result = await changePassword(selectedUser, oldPw, newPw);
+
+  btn.disabled = false;
+  btn.textContent = "🔑 Simpan Password Baru";
+
+  if(result && result.success){
+    document.getElementById("pwOld").value = "";
+    document.getElementById("pwNew").value = "";
+    document.getElementById("pwConfirm").value = "";
+    showPwMsg("Password berhasil diubah.", true);
+  } else {
+    showPwMsg((result && result.message) || "Gagal mengubah password.", false);
   }
 }
 
