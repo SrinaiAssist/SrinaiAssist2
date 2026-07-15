@@ -72,11 +72,29 @@ export default async function handler(req, res) {
       });
     }
 
-    const contextBlock = body.context
+    // Batas token Groq (free tier) cukup ketat (8000 TPM), jadi context & histori
+    // yang dikirim ke Groq wajib dipangkas. Gemini (fallback) jauh lebih longgar,
+    // jadi tetap dikasih versi lengkap.
+    const GROQ_MAX_CONTEXT_CHARS = 1200;
+    const GROQ_MAX_HISTORY_MESSAGES = 4;
+    const GROQ_MAX_MESSAGE_CHARS = 500;
+
+    function truncateText(text, maxChars) {
+      if (!text) return text;
+      return text.length > maxChars
+        ? text.slice(0, maxChars) + "\n...(dipotong, teks asli lebih panjang)"
+        : text;
+    }
+
+    const fullContextBlock = body.context
       ? `\n\n=== DATA APLIKASI (snapshot dari perangkat user) ===\n${body.context}\n=== AKHIR DATA ===`
       : "";
 
-    const systemPrompt =
+    const groqContextBlock = body.context
+      ? `\n\n=== DATA APLIKASI (ringkas, dipotong agar muat limit token Groq) ===\n${truncateText(body.context, GROQ_MAX_CONTEXT_CHARS)}\n=== AKHIR DATA ===`
+      : "";
+
+    const personaPrompt =
       body.systemPrompt ||
 `Kamu adalah SrinAI — AI paling males sedunia yang somehow tetep berguna. Tugasnya bantu petugas lapangan SRINAI ASSIST (inspeksi tower & span SUTT 150 kV). Bukan customer service, bukan robot formal — kamu itu kayak temen kerja yang udah capek tapi masih mau bantu karena ya... udah terlanjur ada di sini.
 
@@ -126,7 +144,17 @@ KONTEKS APLIKASI:
 - Data Tegakan: nama pohon, ID tegakan, nama & alamat pemilik, TTD pemilik.
 - BA (Berita Acara) Sosialisasi Tegakan = dokumen resmi PLN dari data tegakan, disimpan di menu SOS.
 - Aturan jarak bebas SUTT/SUTET → rujuk Permen ESDM No 13/2025 kalau relevan.
-- Kamu boleh bantu jelaskan cara pakai fitur, aturan teknis, atau prosedur — tapi gak bisa hapus data apa pun.${contextBlock}`;
+- Kamu boleh bantu jelaskan cara pakai fitur, aturan teknis, atau prosedur — tapi gak bisa hapus data apa pun.`;
+
+    const geminiSystemPrompt = personaPrompt + fullContextBlock;
+    const groqSystemPrompt = personaPrompt + groqContextBlock;
+
+    const groqHistory = history
+      .slice(-GROQ_MAX_HISTORY_MESSAGES)
+      .map(item => ({
+        role: item.role,
+        text: truncateText(item.text, GROQ_MAX_MESSAGE_CHARS)
+      }));
 
     const groqKey = process.env.GROQ_API_KEY;
     const geminiFallbackKey = process.env.GEMINI_API_KEY_2;
@@ -134,9 +162,10 @@ KONTEKS APLIKASI:
     let reply = null;
     let lastError = null;
 
-    // 1) Coba Groq dulu (provider utama untuk chat)
+    // 1) Coba Groq dulu (provider utama untuk chat), pakai versi context/histori
+    //    yang sudah dipangkas supaya muat limit token Groq.
     if (groqKey) {
-      const groqResult = await fetchGroqChat(systemPrompt, history, message, groqKey);
+      const groqResult = await fetchGroqChat(groqSystemPrompt, groqHistory, message, groqKey);
       if (!groqResult.error) {
         reply = groqResult.data;
       } else {
@@ -168,9 +197,9 @@ KONTEKS APLIKASI:
       ];
 
       const geminiResponse = await fetchGeminiWithFallback(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
         {
-          systemInstruction: { parts: [{ text: systemPrompt }] },
+          systemInstruction: { parts: [{ text: geminiSystemPrompt }] },
           contents: contents
         },
         [geminiFallbackKey]
@@ -430,7 +459,7 @@ Hanya sertakan field yang kamu temukan. Jangan sertakan field lain di luar dafta
 
   try {
     const response = await fetchGeminiWithFallback(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
       {
         contents: [{ role: "user", parts: promptParts }],
         generationConfig: {
