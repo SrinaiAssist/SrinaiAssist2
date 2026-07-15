@@ -1,15 +1,18 @@
 const { sql } = require('../lib/db');
 
+/* =========================================================
+   PEMBAGIAN API KEY (per Juli 2026)
+   -----------------------------------------------------
+   - GEMINI_API_KEY    : khusus BA (analyzeLayout di pengaturan.html)
+   - GEMINI_API_KEY_2  : cadangan FLEKSIBEL — dipakai kalau BA gagal
+                         ATAU kalau Groq gagal/limit di mode chat
+   - GEMINI_API_KEY_3, dst (opsional) : cadangan tambahan khusus BA
+   - GROQ_API_KEY      : utama untuk mode chat (SrinAI di ai.html +
+                         @SrinAI di chat grup / chat.html)
+========================================================= */
+
 export default async function handler(req, res) {
   try {
-    const apiKeys = getGeminiApiKeys();
-
-    if (apiKeys.length === 0) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY tidak ditemukan"
-      });
-    }
-
     if (req.method !== "POST") {
       return res.status(405).json({
         error: "Method tidak diizinkan. Gunakan POST."
@@ -22,7 +25,7 @@ export default async function handler(req, res) {
         : (req.body || {});
 
     /* =========================================================
-       MODE: analyzeLayout
+       MODE: analyzeLayout — KHUSUS BA / pengaturan.html
        -----------------------------------------------------
        Dipakai oleh pengaturan.html (tombol "Analisis Tata Letak
        dengan SrinAI"). Menerima DUA gambar:
@@ -30,39 +33,34 @@ export default async function handler(req, res) {
        - blankImage:   foto/scan formulir BA KOSONG (background)
        Keduanya base64 data URL (data:image/...;base64,xxxx).
 
-       Gemini diminta membandingkan kedua gambar dan mengembalikan
-       posisi (xPct, yPct dalam persen 0-100, relatif terhadap
-       gambar blankImage) untuk tiap field standar yang berhasil
-       ia kenali dari contoh terisi. Balasan WAJIB berupa JSON murni.
+       Provider: Gemini SAJA (key-1 utama, key-2 cadangan), karena
+       butuh kemampuan vision yang belum tentu sekuat/semurah di Groq.
     ========================================================= */
     if (body.mode === "analyzeLayout") {
-      return handleAnalyzeLayout(body, apiKeys, res);
+      const baKeys = getBaGeminiKeys();
+      if (baKeys.length === 0) {
+        return res.status(500).json({
+          error: "GEMINI_API_KEY tidak ditemukan"
+        });
+      }
+      return handleAnalyzeLayout(body, baKeys, res);
     }
 
     /* =========================================================
-       FORMAT REQUEST dari ai.html:
+       MODE: chat — dipakai oleh ai.html (SrinAI) DAN chat.html
+       (mention @SrinAI di chat grup, lewat callGeminiForGroup()).
+
+       Provider: Groq DULUAN (cepat, murah), kalau gagal/limit baru
+       fallback ke Gemini key-2 (yang juga dipakai sebagai cadangan
+       BA). Key-1 Gemini TIDAK dipakai di sini.
+
+       FORMAT REQUEST:
        {
          message  : string          — pesan user
          history  : array           — riwayat chat (role+text)
          context  : string (opsional) — snapshot data localStorage
                     dalam bentuk teks/JSON, disisipkan ke system
                     prompt supaya SrinAI bisa "baca" data aplikasi.
-                    Contoh pengiriman dari ai.html:
-                    ----------------------------------------
-                    const appData = {
-                      profile    : getFullProfile(currentUser),
-                      spans      : getSpanMasterList(),
-                      towers     : getTowerMasterList(),
-                      catatan    : JSON.parse(localStorage.getItem("catatanSpan")) || {},
-                      tegakan    : getTegakanData(),
-                      jadwal     : JSON.parse(localStorage.getItem("jadwalData")) || [],
-                    };
-                    body: JSON.stringify({
-                      message : text,
-                      history : buildHistory(),
-                      context : JSON.stringify(appData, null, 2)
-                    })
-                    ----------------------------------------
        }
     ========================================================= */
     const message = body.message || body.prompt || "";
@@ -74,8 +72,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // System prompt default — bisa dioverride dari body.systemPrompt jika perlu
-    // Data konteks dari localStorage bisa dikirim via body.context (JSON string)
     const contextBlock = body.context
       ? `\n\n=== DATA APLIKASI (snapshot dari perangkat user) ===\n${body.context}\n=== AKHIR DATA ===`
       : "";
@@ -132,43 +128,65 @@ KONTEKS APLIKASI:
 - Aturan jarak bebas SUTT/SUTET → rujuk Permen ESDM No 13/2025 kalau relevan.
 - Kamu boleh bantu jelaskan cara pakai fitur, aturan teknis, atau prosedur — tapi gak bisa hapus data apa pun.${contextBlock}`;
 
-    // Susun histori jadi format "contents" Gemini API:
-    // setiap item harus { role: "user" | "model", parts: [{ text }] }
-    const historyContents = history
-      .filter(item => item && typeof item.text === "string" && item.text.trim())
-      .map(item => ({
-        role: item.role === "model" ? "model" : "user",
-        parts: [{ text: item.text }]
-      }));
+    const groqKey = process.env.GROQ_API_KEY;
+    const geminiFallbackKey = process.env.GEMINI_API_KEY_2;
 
-    const contents = [
-      ...historyContents,
-      { role: "user", parts: [{ text: message }] }
-    ];
+    let reply = null;
+    let lastError = null;
 
-    const response = await fetchGeminiWithFallback(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-      {
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        contents: contents
-      },
-      apiKeys
-    );
-
-    if (response.error) {
-      console.error("Gemini API error (semua API key habis/gagal):", response.error.data);
-      return res.status(response.error.status).json({
-        error: response.error.data?.error?.message || "Gagal menghubungi Gemini API."
-      });
+    // 1) Coba Groq dulu (provider utama untuk chat)
+    if (groqKey) {
+      const groqResult = await fetchGroqChat(systemPrompt, history, message, groqKey);
+      if (!groqResult.error) {
+        reply = groqResult.data;
+      } else {
+        lastError = groqResult.error;
+        console.warn("Groq gagal/limit, mencoba fallback ke Gemini cadangan (key-2):", groqResult.error);
+      }
+    } else {
+      console.warn("GROQ_API_KEY tidak ditemukan, langsung pakai Gemini cadangan (key-2).");
     }
 
-    const data = response.data;
+    // 2) Fallback ke Gemini key-2 kalau Groq gagal/tidak ada
+    if (reply === null) {
+      if (!geminiFallbackKey) {
+        return res.status(500).json({
+          error: "Chat AI tidak tersedia: GROQ_API_KEY gagal dan GEMINI_API_KEY_2 tidak ditemukan."
+        });
+      }
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Maaf, saya tidak bisa memberikan balasan saat ini.";
+      const historyContents = history
+        .filter(item => item && typeof item.text === "string" && item.text.trim())
+        .map(item => ({
+          role: item.role === "model" ? "model" : "user",
+          parts: [{ text: item.text }]
+        }));
+
+      const contents = [
+        ...historyContents,
+        { role: "user", parts: [{ text: message }] }
+      ];
+
+      const geminiResponse = await fetchGeminiWithFallback(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: contents
+        },
+        [geminiFallbackKey]
+      );
+
+      if (geminiResponse.error) {
+        console.error("Gemini cadangan (key-2) juga gagal:", geminiResponse.error.data);
+        return res.status(geminiResponse.error.status).json({
+          error: geminiResponse.error.data?.error?.message || "Gagal menghubungi AI (Groq maupun Gemini cadangan)."
+        });
+      }
+
+      reply =
+        geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Maaf, saya tidak bisa memberikan balasan saat ini.";
+    }
 
     await incrementAiUsage();
 
@@ -183,21 +201,68 @@ KONTEKS APLIKASI:
 }
 
 /* =========================================================
-   FALLBACK MULTI API KEY
+   GROQ — provider utama untuk chat SrinAI & chat grup
    -----------------------------------------------------
-   Membaca semua API key Gemini yang tersedia dari env var:
-   - GEMINI_API_KEY    (utama)
-   - GEMINI_API_KEY_2  (cadangan pertama)
-   - GEMINI_API_KEY_3, GEMINI_API_KEY_4, dst (cadangan tambahan, opsional)
+   Format OpenAI-compatible: https://api.groq.com/openai/v1/chat/completions
+   Return { data: string } kalau sukses, atau { error } kalau gagal
+   (network error, rate limit 429, key invalid, dll — semua dianggap
+   "gagal" supaya langsung fallback ke Gemini key-2 tanpa dibedakan).
+========================================================= */
+async function fetchGroqChat(systemPrompt, history, message, apiKey) {
+  try {
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...history
+        .filter(item => item && typeof item.text === "string" && item.text.trim())
+        .map(item => ({
+          role: item.role === "model" ? "assistant" : "user",
+          content: item.text
+        })),
+      { role: "user", content: message }
+    ];
 
-   Kalau key utama kena limit/quota (429 atau pesan
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: messages,
+        temperature: 0.8
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { error: data };
+    }
+
+    const text = data?.choices?.[0]?.message?.content;
+    if (!text) {
+      return { error: "Groq tidak mengembalikan balasan yang valid." };
+    }
+
+    return { data: text };
+  } catch (networkErr) {
+    return { error: networkErr.message };
+  }
+}
+
+/* =========================================================
+   FALLBACK MULTI API KEY — KHUSUS GEMINI (dipakai untuk BA,
+   dan juga dipanggil dengan 1 key saat fallback chat ke key-2)
+   -----------------------------------------------------
+   Kalau key kena limit/quota (429 atau pesan
    "quota"/"rate limit"/"resource_exhausted"), otomatis coba key
    berikutnya secara berurutan sampai salah satu berhasil atau
    semua key habis dicoba. Error non-limit (400/401/dll) langsung
    dikembalikan tanpa mencoba key lain, supaya tidak membuang kuota
    key cadangan untuk kesalahan yang bukan soal limit.
 ========================================================= */
-function getGeminiApiKeys() {
+function getBaGeminiKeys() {
   const keys = [];
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
 
@@ -219,9 +284,9 @@ function isGeminiRateLimitError(status, data) {
    PENCATATAN PEMAKAIAN AI (untuk widget "Pemakaian AI" khusus
    admin di Pengaturan). Nyimpen counter harian di app_settings
    dengan key "ai_usage_YYYY-MM-DD", numpang tabel yang sudah ada
-   biar gak perlu bikin tabel baru. Dipanggil SETELAH Gemini
-   berhasil balas -- gagal simpan counter TIDAK BOLEH bikin
-   respons chat/analisis gagal, makanya errornya cuma di-log.
+   biar gak perlu bikin tabel baru. Dipanggil SETELAH AI berhasil
+   balas -- gagal simpan counter TIDAK BOLEH bikin respons chat/
+   analisis gagal, makanya errornya cuma di-log.
 ========================================================= */
 async function incrementAiUsage() {
   try {
@@ -266,7 +331,7 @@ async function fetchGeminiWithFallback(url, bodyObj, apiKeys) {
 
     if (response.ok) {
       if (i > 0) {
-        console.warn(`Gemini: berhasil pakai API key cadangan ke-${i + 1} (key utama/sebelumnya kena limit).`);
+        console.warn(`Gemini: berhasil pakai API key cadangan ke-${i + 1} (key sebelumnya kena limit).`);
       }
       return { data };
     }
