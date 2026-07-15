@@ -562,6 +562,9 @@ async function initPage(){
 
   const params = new URLSearchParams(window.location.search);
   spanId = params.get("span");
+  const autoBA = params.get("autoBA");
+  const autoIds = params.get("ids");
+  const autoMode = params.get("mode") || "background";
 
   if(!spanId){
     alert("Span tidak ditentukan.");
@@ -614,6 +617,27 @@ async function initPage(){
     optBg.querySelector("input").disabled = true;
     const tmpl = document.querySelector('input[name="modePick"][value="template"]');
     if(tmpl) tmpl.checked = true;
+  }
+
+  // ── Auto-generate BA kalau datang dari link ACTION SrinAI ──────────────
+  // (mis. "tolong buatkan BA di span 50, 2 id saja, kelapa & albasia").
+  // SrinAI sudah pilihkan tegakan yang cocok di ai.html, di sini tinggal
+  // dicentang otomatis lalu langsung jalankan alur generate BA yang sama
+  // persis dengan yang dipakai kalau user pilih manual.
+  if(autoBA === "1" && autoIds){
+    showSub("tegakan");
+    await loadTegakan();
+    const idSet = new Set(autoIds.split(",").map(s=>s.trim()).filter(Boolean));
+    document.querySelectorAll(".tegakan-check").forEach(cb=>{
+      if(idSet.has(cb.dataset.id)) cb.checked = true;
+    });
+    updateFloatbar();
+    try{
+      await openPemilihPemilik(autoMode === "template" ? "template" : "background");
+    } catch(err){
+      hideBALoading();
+      alert("⚠️ Gagal membuat BA otomatis dari SrinAI: " + err.message);
+    }
   }
 }
 

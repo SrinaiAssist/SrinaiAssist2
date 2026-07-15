@@ -474,7 +474,7 @@ async function callGeminiBackend(message){
     if(!data || typeof data.reply !== "string" || !data.reply.trim()){
       throw new Error("Format balasan dari server tidak sesuai.");
     }
-    return data.reply;
+    return { reply: data.reply, action: data.action || null, appContext: appContext };
 
   } catch(err){
     clearTimeout(timeoutId);
@@ -533,6 +533,85 @@ function isAskingForBA(text){
   return mentionsBA && t.match(/\d/);
 }
 
+/* =========================================================
+   Deteksi permintaan MEMBUATKAN BA baru (bukan sekadar cari BA
+   yang sudah ada). Kalau ini kena, jangan potong ke handleCariBA
+   — biarkan lanjut ke AI supaya AI keluarkan ACTION BLOCK.
+========================================================= */
+function isRequestingBAGeneration(text){
+  const t = text.toLowerCase();
+  const mentionsBA = /\bba\b/.test(t) || t.includes("berita acara");
+  const buatKeywords = ["buatkan", "buat ba", "bikinkan", "bikinin", "bikin ba", "generate ba", "generatekan", "buatin"];
+  return mentionsBA && buatKeywords.some(k=>t.includes(k));
+}
+
+/* =========================================================
+   EKSEKUSI ACTION generate_ba DARI SrinAI
+   Data span+tegakan diambil dari appContext yang sudah di-fetch
+   bareng saat kirim pesan ke backend (tidak perlu fetch ulang).
+========================================================= */
+function findSpanByNomor(appContext, spanNomor){
+  if(!appContext || !Array.isArray(appContext.spans) || !spanNomor) return null;
+  const target = String(spanNomor).trim().replace(/^0+/, "");
+  return appContext.spans.find(s => String(s.nomor).trim().replace(/^0+/, "") === target) || null;
+}
+
+function pickTegakanForBA(span, jenisPohon, maxTotal){
+  const jenisLower = Array.isArray(jenisPohon) ? jenisPohon.filter(Boolean).map(j=>String(j).toLowerCase()) : [];
+  const pool = (span.tegakan || []).filter(t => t.adaTtd && t.pemilikNama && t.pemilikAlamat);
+
+  const candidates = jenisLower.length
+    ? pool.filter(t => jenisLower.some(j => (t.nama||"").toLowerCase().includes(j)))
+    : pool;
+
+  const result = [];
+  // Utamakan minimal 1 wakil per jenis yang diminta, biar semua jenis kebagian
+  jenisLower.forEach(j=>{
+    const found = candidates.find(t => (t.nama||"").toLowerCase().includes(j) && !result.includes(t));
+    if(found) result.push(found);
+  });
+  // Sisanya isi dari kandidat lain sampai batas maxTotal
+  candidates.forEach(t=>{
+    if(!result.includes(t)) result.push(t);
+  });
+
+  const limit = (typeof maxTotal === "number" && maxTotal > 0) ? maxTotal : result.length;
+  return result.slice(0, limit);
+}
+
+function handleGenerateBaAction(action, appContext){
+  if(!action || action.type !== "generate_ba") return;
+
+  const span = findSpanByNomor(appContext, action.span);
+  if(!span){
+    chatData.push({ user:"SrinAI 🤖", text: action.span
+      ? `Span ${action.span} gak ketemu di data jalur kamu bos, cek lagi nomornya.`
+      : `Span-nya mau yang mana bos? Sebutin nomornya ya.` });
+    saveChat(); loadChat();
+    return;
+  }
+
+  const picked = pickTegakanForBA(span, action.jenisPohon, action.maxTotal);
+  if(picked.length === 0){
+    const jenisTxt = Array.isArray(action.jenisPohon) && action.jenisPohon.length ? action.jenisPohon.join(", ") : "";
+    chatData.push({ user:"SrinAI 🤖", text: `Data tegakan span ${span.nomor}${jenisTxt ? ` (${jenisTxt})` : ""} belum lengkap (nama pemilik/alamat/TTD) bos. Lengkapi dulu di Catatan Span, baru gas bikin BA-nya.` });
+    saveChat(); loadChat();
+    return;
+  }
+
+  const mode = action.mode === "template" ? "template" : "background";
+  chatData.push({
+    user:"SYSTEM",
+    text: "GENERATE_BA_LINK_" + JSON.stringify({
+      spanId: span.id,
+      ids: picked.map(t=>t.id).join(","),
+      mode: mode,
+      label: `Span ${span.nomor} — ${picked.length} tegakan (${picked.map(t=>t.nama).join(", ")})`
+    })
+  });
+  saveChat(); loadChat();
+}
+
 async function sendMessage(){
   const input = document.getElementById("message");
   const sendBtn = document.getElementById("sendBtn");
@@ -552,7 +631,7 @@ async function sendMessage(){
   loadChat();
   input.value="";
 
-  if(isAskingForBA(text)){
+  if(!isRequestingBAGeneration(text) && isAskingForBA(text)){
     handleCariBA(text);
     return;
   }
@@ -571,11 +650,14 @@ async function sendMessage(){
   showTypingIndicator();
 
   try{
-    const reply = await callGeminiBackend(text);
+    const result = await callGeminiBackend(text);
     removeTypingIndicator();
-    aiResponse(reply);
+    aiResponse(result.reply);
     saveChat();
     loadChat();
+    if(result.action){
+      handleGenerateBaAction(result.action, result.appContext);
+    }
   } catch(err){
     removeTypingIndicator();
     chatData.push({ user:"SrinAI 🤖", text:"⚠️ Maaf, saya sedang tidak bisa terhubung ke server AI. " + err.message });
@@ -599,6 +681,26 @@ function loadChat(){
             <a href="sos.html?span=${span}" class="open-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
               Buka SOS untuk Span ${span}
+            </a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if(item.user==="SYSTEM" && item.text.startsWith("GENERATE_BA_LINK_")){
+      let info = null;
+      try{ info = JSON.parse(item.text.replace("GENERATE_BA_LINK_","")); }catch(e){ info = null; }
+      if(!info) return;
+      area.innerHTML += `
+        <div class="bubble-row theirs">
+          <div class="sys-msg">
+            <div class="ba-result-card">
+              <div class="ba-result-meta">🤖 Siap digenerate</div>
+              <div class="ba-result-title">${info.label}</div>
+            </div>
+            <a href="catatan-span.html?span=${encodeURIComponent(info.spanId)}&autoBA=1&mode=${encodeURIComponent(info.mode)}&ids=${encodeURIComponent(info.ids)}" class="open-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+              Buat BA-nya sekarang
             </a>
           </div>
         </div>`;
