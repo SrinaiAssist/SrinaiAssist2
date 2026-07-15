@@ -558,7 +558,8 @@ function findSpanByNomor(appContext, spanNomor){
 
 function pickTegakanForBA(span, jenisPohon, maxTotal){
   const jenisLower = Array.isArray(jenisPohon) ? jenisPohon.filter(Boolean).map(j=>String(j).toLowerCase()) : [];
-  const pool = (span.tegakan || []).filter(t => t.adaTtd && t.pemilikNama && t.pemilikAlamat);
+  const all = span.tegakan || [];
+  const pool = all.filter(t => t.adaTtd && t.pemilikNama && t.pemilikAlamat);
 
   const candidates = jenisLower.length
     ? pool.filter(t => jenisLower.some(j => (t.nama||"").toLowerCase().includes(j)))
@@ -576,7 +577,27 @@ function pickTegakanForBA(span, jenisPohon, maxTotal){
   });
 
   const limit = (typeof maxTotal === "number" && maxTotal > 0) ? maxTotal : result.length;
-  return result.slice(0, limit);
+  const picked = result.slice(0, limit);
+
+  // Diagnostik kenapa hasilnya kosong (kalau kosong), supaya pesan ke user akurat:
+  // - totalTegakan: 0        -> span ini memang belum ada data tegakan sama sekali
+  // - pool kosong             -> ada tegakan, tapi belum ada yang datanya lengkap
+  // - candidates kosong       -> ada tegakan lengkap, tapi tidak ada yang cocok jenisPohon yang diminta
+  let reason = null;
+  if(picked.length === 0){
+    if(all.length === 0){
+      reason = "no_tegakan";
+    } else if(pool.length === 0){
+      reason = "incomplete_data";
+    } else if(jenisLower.length && candidates.length === 0){
+      reason = "jenis_not_found";
+    } else {
+      reason = "incomplete_data";
+    }
+  }
+
+  const namaTersedia = [...new Set(pool.map(t=>t.nama).filter(Boolean))];
+  return { picked, reason, namaTersedia };
 }
 
 function handleGenerateBaAction(action, appContext){
@@ -591,10 +612,20 @@ function handleGenerateBaAction(action, appContext){
     return;
   }
 
-  const picked = pickTegakanForBA(span, action.jenisPohon, action.maxTotal);
+  const { picked, reason, namaTersedia } = pickTegakanForBA(span, action.jenisPohon, action.maxTotal);
   if(picked.length === 0){
     const jenisTxt = Array.isArray(action.jenisPohon) && action.jenisPohon.length ? action.jenisPohon.join(", ") : "";
-    chatData.push({ user:"SrinAI 🤖", text: `Data tegakan span ${span.nomor}${jenisTxt ? ` (${jenisTxt})` : ""} belum lengkap (nama pemilik/alamat/TTD) bos. Lengkapi dulu di Catatan Span, baru gas bikin BA-nya.` });
+    let msg;
+    if(reason === "no_tegakan"){
+      msg = `Span ${span.nomor} belum ada data tegakan sama sekali bos. Catat dulu tegakannya di Catatan Span.`;
+    } else if(reason === "jenis_not_found"){
+      msg = namaTersedia.length
+        ? `Gak nemu tegakan jenis "${jenisTxt}" di span ${span.nomor} bos. Yang ada di situ: ${namaTersedia.join(", ")}. Mungkin maksudnya bukan jenis pohon?`
+        : `Gak nemu tegakan jenis "${jenisTxt}" di span ${span.nomor} bos, dan tegakan yang datanya lengkap juga belum ada. Cek lagi ya.`;
+    } else {
+      msg = `Data tegakan span ${span.nomor}${jenisTxt ? ` (${jenisTxt})` : ""} belum lengkap (nama pemilik/alamat/TTD) bos. Lengkapi dulu di Catatan Span, baru gas bikin BA-nya.`;
+    }
+    chatData.push({ user:"SrinAI 🤖", text: msg });
     saveChat(); loadChat();
     return;
   }
