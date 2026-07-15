@@ -63,6 +63,28 @@ export default async function handler(req, res) {
                     prompt supaya SrinAI bisa "baca" data aplikasi.
        }
     ========================================================= */
+    /* =========================================================
+       Parser ACTION BLOCK — dipakai supaya AI bisa "memanggil fungsi"
+       (function calling ringan) tanpa perlu API khusus dari Groq/Gemini.
+       Model diinstruksikan (lihat personaPrompt) untuk menaruh blok
+       [[ACTION]]{...json...}[[/ACTION]] di awal balasan kalau user minta
+       generate BA. Kita parse & buang blok itu dari teks yang dilihat
+       user, sisakan JSON-nya sebagai field `action` terpisah.
+    ========================================================= */
+    function extractAction(text) {
+      if (!text || typeof text !== "string") return { cleanText: text, action: null };
+      const match = text.match(/\[\[ACTION\]\]([\s\S]*?)\[\[\/ACTION\]\]/);
+      if (!match) return { cleanText: text, action: null };
+      let action = null;
+      try {
+        action = JSON.parse(match[1].trim());
+      } catch (e) {
+        console.warn("Gagal parse ACTION BLOCK dari AI:", e.message, match[1]);
+      }
+      const cleanText = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
+      return { cleanText: cleanText || "sip, bentar ya bos...", action };
+    }
+
     const message = body.message || body.prompt || "";
     const history = Array.isArray(body.history) ? body.history : [];
 
@@ -144,7 +166,16 @@ KONTEKS APLIKASI:
 - Data Tegakan: nama pohon, ID tegakan, nama & alamat pemilik, TTD pemilik.
 - BA (Berita Acara) Sosialisasi Tegakan = dokumen resmi PLN dari data tegakan, disimpan di menu SOS.
 - Aturan jarak bebas SUTT/SUTET → rujuk Permen ESDM No 13/2025 kalau relevan.
-- Kamu boleh bantu jelaskan cara pakai fitur, aturan teknis, atau prosedur — tapi gak bisa hapus data apa pun.`;
+- Kamu boleh bantu jelaskan cara pakai fitur, aturan teknis, atau prosedur — tapi gak bisa hapus data apa pun.
+
+AKSI: BUATKAN BA (generate_ba)
+- Kalau user MINTA DIBUATKAN/DIGENERATEKAN BA (kata kunci: "buatkan BA", "bikinin BA", "buat BA", "generate BA"), jangan cuma jelasin caranya — keluarkan sebuah ACTION BLOCK supaya sistem yang eksekusi otomatis.
+- Format ACTION BLOCK WAJIB PERSIS begini, di baris PALING AWAL balasanmu, sebelum teks apa pun lain:
+[[ACTION]]{"type":"generate_ba","span":"<nomor span sebagai string, mis. \\"50\\">","jenisPohon":["<jenis pohon lowercase, kosongkan array kalau user tidak sebut jenis tertentu>"],"maxTotal":<jumlah maksimal tegakan/ID yang diminta, angka, null kalau user tidak sebut batas>,"mode":"background atau template, default background"}[[/ACTION]]
+- Setelah ACTION BLOCK itu, lanjutkan dengan balasan singkat & santai seperti biasa (gaya SrinAI), MISALNYA "sip, gue cariin tegakannya dulu ya bos...". Jangan jelaskan isi JSON-nya ke user, jangan pakai code fence/markdown untuk ACTION BLOCK.
+- Kalau user cuma NANYA/CARI BA yang SUDAH ADA (bukan minta dibuatkan baru), JANGAN keluarkan ACTION BLOCK — itu ditangani terpisah oleh sistem.
+- Kalau info span/jenis pohon/jumlah tidak lengkap dari user, tetap keluarkan ACTION BLOCK dengan field yang kamu tahu, isi field yang tidak disebut dengan null/array kosong — sistem yang akan validasi & kasih tau ke user kalau datanya belum lengkap/ketemu.
+- ACTION BLOCK HANYA untuk permintaan generate BA. Jangan pernah pakai ini untuk hal lain.`;
 
     const geminiSystemPrompt = personaPrompt + fullContextBlock;
     const groqSystemPrompt = personaPrompt + groqContextBlock;
@@ -219,7 +250,9 @@ KONTEKS APLIKASI:
 
     await incrementAiUsage();
 
-    return res.status(200).json({ reply: reply });
+    const { cleanText, action } = extractAction(reply);
+
+    return res.status(200).json({ reply: cleanText, action: action || undefined });
 
   } catch (error) {
     console.error(error);
