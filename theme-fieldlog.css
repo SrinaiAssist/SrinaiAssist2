@@ -1,0 +1,131 @@
+/* =========================================================
+   TEMA "BUKU LAPANGAN" — override warna untuk halaman-halaman
+   yang masih pakai desain gelap bawaan (bg-card / navy family).
+   Cara pakai: tambahkan class "theme-fieldlog" ke <html> saat
+   localStorage.srinai_theme === "fieldlog" (lihat js/theme-loader.js).
+   Karena hampir semua halaman sudah dibangun dengan CSS custom
+   properties (var(--bg-card), var(--ink), dst), cukup timpa nilai
+   variabelnya di sini — tidak perlu ubah tiap file satu-satu.
+========================================================= */
+
+html.theme-fieldlog{
+  /* ---- keluarga "bg-card" (tower, span, jadwal, profile,
+     pengaturan, sos, foto-eviden, catatan-span, catatan-tower,
+     informasi-span, kelola-akun, log-login, master-jalur) ---- */
+  --bg-deep:   #DED2AF;
+  --bg-card:   #F1EAD6;
+  --bg-card2:  #E7DDC2;
+  --bg-glass:  rgba(43,42,34,0.05);
+  --border:    rgba(43,42,34,0.18);
+  --gold:      #A8842E;
+  --gold-dim:  rgba(168,132,46,0.15);
+  --blue:      #C1522A;
+  --blue-glow: rgba(193,82,42,0.22);
+  --teal:      #4F6B4A;
+  --violet:      #C1522A;
+  --violet-2:    #8F3F1F;
+  --violet-glow: rgba(193,82,42,0.28);
+  --ink:    #2B2A22;
+  --ink-2:  rgba(43,42,34,0.62);
+  --ink-3:  rgba(43,42,34,0.38);
+  --green:     #4F6B4A;
+  --green-bg:  rgba(79,107,74,0.15);
+  --amber:     #A8842E;
+  --amber-bg:  rgba(168,132,46,0.12);
+  --red:       #C1522A;
+  --red-bg:    rgba(193,82,42,0.13);
+
+  /* ---- keluarga "navy" terang (ai, master-span, master-tower,
+     pengaturan-ba) — sudah berlatar terang, jadi tinggal dihangatkan ---- */
+  --navy:      #2B2A22;
+  --navy-deep: #1C1B16;
+  --surface:   #F1EAD6;
+  --bg:        #DED2AF;
+  --muted:     rgba(43,42,34,0.58);
+  --line:      rgba(43,42,34,0.18);
+  --gold-deep: #8A6C22;
+  --teal-bg:   rgba(79,107,74,0.12);
+}
+
+html.theme-fieldlog body{
+  font-family:'Inter',Arial,sans-serif !important;
+}
+
+/* Navigasi bawah bawaan (gelap) tidak cocok dipakai di tema Buku Lapangan
+   dan ikonnya jadi tidak kelihatan (gelap di atas gelap). Dashboard sudah
+   punya navigasi bawah sendiri (dashboard-fieldlog.html tidak memuat file
+   CSS ini), jadi di halaman lain navigasi bawah cukup disembunyikan. */
+html.theme-fieldlog .bottomnav,
+html.theme-fieldlog .bottom-nav,
+html.theme-fieldlog .bottom-menu{
+  display:none !important;
+}
+
+/* Kartu/box umum: bingkai solid, hilangkan bayangan kaca/blur ala tema gelap */
+html.theme-fieldlog [class*="card"],
+html.theme-fieldlog [class*="-box"],
+html.theme-fieldlog [class*="modal-sheet"],
+html.theme-fieldlog [class*="sheet"]{
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* =========================================================
+   CATATAN.HTML — halaman lama tanpa CSS variable (warna
+   di-hardcode), jadi ditimpa langsung per-selector. Dibatasi
+   dengan atribut data-page supaya tidak menyentuh halaman lain.
+========================================================= */
+html.theme-fieldlog[data-page="catatan"] body,
+html.theme-fieldlog[data-page="catatan"] .container,
+html.theme-fieldlog[data-page="catatan"] .bottom-menu{
+  background:#DED2AF !important;
+}
+html.theme-fieldlog[data-page="catatan"] .header{
+  background:#C1522A !important;
+}
+html.theme-fieldlog[data-page="catatan"] .subtab-btn{
+  background:#E7DDC2 !important; color:#2B2A22 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .subtab-btn.active{
+  background:#2B2A22 !important; color:#F1EAD6 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .card{
+  background:#F1EAD6 !important; border:1.5px dashed #2B2A22 !important; border-radius:4px !important;
+}
+html.theme-fieldlog[data-page="catatan"] .card h2{ color:#2B2A22 !important; }
+html.theme-fieldlog[data-page="catatan"] .save-btn{
+  background:#2B2A22 !important; color:#F1EAD6 !important; border-radius:4px !important;
+}
+html.theme-fieldlog[data-page="catatan"] .note-card{
+  background:#F1EAD6 !important; border:1px solid rgba(43,42,34,0.18) !important;
+}
+html.theme-fieldlog[data-page="catatan"] .note-user{ color:#C1522A !important; }
+html.theme-fieldlog[data-page="catatan"] .edit-btn{ background:#8F3F1F !important; }
+html.theme-fieldlog[data-page="catatan"] .delete-btn{ background:#A33A2E !important; }
+html.theme-fieldlog[data-page="catatan"] .back-btn{
+  background:#A8842E !important; color:#2B2A22 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .tegakan-intro,
+html.theme-fieldlog[data-page="catatan"] .select-hint,
+html.theme-fieldlog[data-page="catatan"] .empty-state{
+  color:rgba(43,42,34,0.6) !important;
+}
+html.theme-fieldlog[data-page="catatan"] .tegakan-add-btn{
+  background:#A8842E !important; color:#F1EAD6 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .tegakan-card{
+  background:#F1EAD6 !important; border-left-color:#4F6B4A !important;
+}
+html.theme-fieldlog[data-page="catatan"] .tegakan-card.kosong{ border-left-color:#A8842E !important; }
+html.theme-fieldlog[data-page="catatan"] .tegakan-name{ color:#2B2A22 !important; }
+html.theme-fieldlog[data-page="catatan"] .ba-floatbar{
+  background:#F1EAD6 !important; border-color:#2B2A22 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .ba-floatbar-info{ color:#2B2A22 !important; }
+html.theme-fieldlog[data-page="catatan"] .ba-floatbar-btn{
+  background:#A8842E !important; color:#2B2A22 !important;
+}
+html.theme-fieldlog[data-page="catatan"] .modal-box{ background:#F1EAD6 !important; }
+html.theme-fieldlog[data-page="catatan"] .modal-title{ color:#2B2A22 !important; }
+html.theme-fieldlog[data-page="catatan"] .modal-btn-confirm{ background:#2B2A22 !important; }
