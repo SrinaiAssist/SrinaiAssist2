@@ -305,6 +305,60 @@ body{
 }
 .side-settings-note{font-family:'JetBrains Mono';font-size:8.5px;color:var(--moss);margin-top:6px;display:none;}
 .side-settings-note.show{display:block;}
+
+/* ---------- animasi ---------- */
+@keyframes fadeSlideUp{
+  from{ opacity:0; transform:translateY(14px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.topbar{ animation:fadeSlideUp .45s ease both; }
+.postmark{ animation:fadeSlideUp .45s .06s ease both; }
+.log-wrap{ animation:fadeSlideUp .45s .12s ease both; }
+.section-label{ animation:fadeSlideUp .45s ease both; }
+.stampgrid{ animation:fadeSlideUp .45s .05s ease both; }
+.ledger{ animation:fadeSlideUp .45s ease both; }
+.storage-strip{ animation:fadeSlideUp .45s .05s ease both; }
+.radiobar{ animation:fadeSlideUp .45s .1s ease both; }
+.note{ animation:fadeSlideUp .45s ease both; }
+
+@keyframes stampIn{
+  0%{ opacity:0; transform:scale(1.6) rotate(-14deg); }
+  60%{ opacity:1; transform:scale(0.92) rotate(-2deg); }
+  100%{ opacity:1; transform:scale(1) rotate(-4deg); }
+}
+.log-badge{ animation:stampIn .55s .35s cubic-bezier(.34,1.4,.64,1) both; }
+
+@keyframes markPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(43,42,34,0.12); }
+  50%{ box-shadow:0 0 0 5px rgba(43,42,34,0); }
+}
+.brand-mark{ animation:markPulse 2.8s ease-in-out infinite; }
+
+.stamp{ transition:transform .15s ease; }
+.stamp:active{ transform:scale(0.9); }
+.stamp-circle{ transition:border-color .2s ease, background .2s ease; }
+.stamp:active .stamp-circle{ background:var(--paper-2); }
+
+@keyframes barLive{
+  0%,100%{ transform:scaleY(1); opacity:1; }
+  50%{ transform:scaleY(0.35); opacity:.6; }
+}
+.bars div{ transform-origin:bottom; animation:barLive 1.1s ease-in-out infinite; }
+.bars div:nth-child(1){ animation-delay:0s; }
+.bars div:nth-child(2){ animation-delay:.15s; }
+.bars div:nth-child(3){ animation-delay:.3s; }
+.bars div:nth-child(4){ animation-delay:.45s; }
+
+.send-btn{ transition:transform .15s ease; }
+.send-btn:active{ transform:scale(0.95); }
+
+.trail-pin{ transition:transform .2s ease; }
+.log-ai-line{ transition:opacity .15s ease; }
+.log-ai-line:active{ opacity:.6; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; }
+}
 </style>
 </head>
 <body>
@@ -779,8 +833,10 @@ async function loadStats(){
       return parts.length === 3 && parts[1] === bulanIni && parts[2] === tahunIni;
     }).length;
 
-    document.getElementById("statTegakanValue").innerHTML = totalTegakan.toLocaleString("id-ID") + "<span>phn</span>";
-    document.getElementById("statBaValue").innerHTML = totalBA.toLocaleString("id-ID") + "<span>dok</span>";
+    document.getElementById("statTegakanValue").innerHTML = "0<span>phn</span>";
+    document.getElementById("statBaValue").innerHTML = "0<span>dok</span>";
+    animateCountUp("statTegakanValue", totalTegakan, "phn");
+    animateCountUp("statBaValue", totalBA, "dok");
 
     document.getElementById("statTegakanSub").textContent =
       totalSpanTercatat > 0 ? `TERSEBAR DI ${totalSpanTercatat} SPAN` : "BELUM ADA DATA TEGAKAN";
@@ -792,6 +848,29 @@ async function loadStats(){
     document.getElementById("statTegakanSub").textContent = "GAGAL MEMUAT DATA";
     document.getElementById("statBaSub").textContent = "GAGAL MEMUAT DATA";
   }
+}
+
+function animateCountUp(elementId, target, unit, duration){
+  duration = duration || 900;
+  const el = document.getElementById(elementId);
+  if(!el) return;
+
+  if(target <= 0){
+    el.innerHTML = "0<span>" + unit + "</span>";
+    return;
+  }
+
+  const start = performance.now();
+  function tick(now){
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const current = Math.round(eased * target);
+    el.innerHTML = current.toLocaleString("id-ID") + "<span>" + unit + "</span>";
+    if(progress < 1){
+      requestAnimationFrame(tick);
+    }
+  }
+  requestAnimationFrame(tick);
 }
 
 async function loadDbStorage(){
