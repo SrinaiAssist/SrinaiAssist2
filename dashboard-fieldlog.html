@@ -79,6 +79,16 @@ body{
 }
 .postmark .stamp-live{display:flex;align-items:center;gap:5px;color:var(--moss);font-weight:600;}
 .postmark .stamp-live.offline{color:var(--route);}
+.postmark .tick-sec{
+  display:inline-block;margin-left:3px;min-width:15px;color:var(--route);font-weight:700;
+  transform-origin:center;
+}
+@keyframes secTick{
+  0%{ opacity:0.35; transform:translateY(-2px) scale(0.85); }
+  40%{ opacity:1; transform:translateY(0) scale(1.08); }
+  100%{ opacity:1; transform:translateY(0) scale(1); }
+}
+.tick-sec.tick{ animation:secTick .5s ease; }
 .stamp-dot{width:6px;height:6px;border-radius:50%;background:var(--moss);}
 .stamp-live.offline .stamp-dot{background:var(--route);}
 
@@ -374,7 +384,7 @@ body{
       </div>
       <div class="brand-text">
         <div class="brand-name">SRINAI <span>ASSIST</span></div>
-        <div class="brand-sub">Buku Log Inspeksi SUTT 150kV</div>
+        <div class="brand-sub">Buku Log ROW dan BA SUTT 150kV</div>
       </div>
     </div>
     <div class="topbar-actions">
@@ -458,7 +468,7 @@ body{
   </div>
 
   <div class="postmark">
-    <span id="datetimeText">Memuat...</span>
+    <span id="datetimeText">Memuat...</span><span class="tick-sec" id="datetimeSeconds">00</span><span class="postmark-tz"> WIB</span>
     <span class="stamp-live" id="statusLive"><span class="stamp-dot"></span>DI LAPANGAN</span>
   </div>
 
@@ -679,8 +689,16 @@ function updateDatetime(){
   const thn   = now.getFullYear();
   const jam   = String(now.getHours()).padStart(2,"0");
   const mnt   = String(now.getMinutes()).padStart(2,"0");
+  const dtk   = String(now.getSeconds()).padStart(2,"0");
+
   document.getElementById("datetimeText").textContent =
-    `${hari} · ${tgl} ${bln} ${thn} · ${jam}:${mnt} WIB`;
+    `${hari} · ${tgl} ${bln} ${thn} · ${jam}:${mnt}:`;
+
+  const secEl = document.getElementById("datetimeSeconds");
+  secEl.textContent = dtk;
+  secEl.classList.remove("tick");
+  void secEl.offsetWidth; // paksa reflow supaya animasi bisa diputar ulang tiap detik
+  secEl.classList.add("tick");
 
   const liveEl = document.getElementById("statusLive");
   if(navigator.onLine){
@@ -710,7 +728,7 @@ async function initPage(){
   }
 
   updateDatetime();
-  setInterval(updateDatetime, 30000);
+  setInterval(updateDatetime, 1000);
 
   const hour = new Date().getHours();
   let greet = "Selamat Malam";
