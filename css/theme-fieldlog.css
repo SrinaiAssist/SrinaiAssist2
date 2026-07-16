@@ -51,6 +51,16 @@ html.theme-fieldlog body{
   font-family:'Inter',Arial,sans-serif !important;
 }
 
+/* Navigasi bawah bawaan (gelap) tidak cocok dipakai di tema Buku Lapangan
+   dan ikonnya jadi tidak kelihatan (gelap di atas gelap). Dashboard sudah
+   punya navigasi bawah sendiri (dashboard-fieldlog.html tidak memuat file
+   CSS ini), jadi di halaman lain navigasi bawah cukup disembunyikan. */
+html.theme-fieldlog .bottomnav,
+html.theme-fieldlog .bottom-nav,
+html.theme-fieldlog .bottom-menu{
+  display:none !important;
+}
+
 /* Kartu/box umum: bingkai solid, hilangkan bayangan kaca/blur ala tema gelap */
 html.theme-fieldlog [class*="card"],
 html.theme-fieldlog [class*="-box"],
