@@ -216,6 +216,95 @@ body{
   width:38px;height:38px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;margin-bottom:2px;
 }
 .nav-item.center .nav-circle svg{stroke:var(--paper);width:17px;height:17px;}
+
+/* ---------- hamburger / sidebar ---------- */
+.hamburger-toggle{
+  width:36px;height:36px;border:1.5px solid var(--ink);border-radius:50%;
+  display:none;align-items:center;justify-content:center;position:relative;background:var(--paper);cursor:pointer;flex-shrink:0;
+}
+.hamburger-toggle .bar{position:absolute;width:14px;height:1.5px;background:var(--ink);transition:transform .25s ease, opacity .2s ease, top .25s ease;}
+.hamburger-toggle .bar:nth-child(1){top:13px;}
+.hamburger-toggle .bar:nth-child(2){top:17.5px;}
+.hamburger-toggle .bar:nth-child(3){top:22px;}
+.hamburger-toggle.active .bar:nth-child(1){top:17.5px;transform:rotate(45deg);}
+.hamburger-toggle.active .bar:nth-child(2){opacity:0;}
+.hamburger-toggle.active .bar:nth-child(3){top:17.5px;transform:rotate(-45deg);}
+
+.side-scrim{
+  position:absolute;inset:0;background:rgba(43,42,34,0.35);
+  opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:60;
+}
+.side-scrim.open{opacity:1;pointer-events:auto;}
+
+.side-sheet{
+  position:absolute;top:0;left:0;
+  width:64%;max-width:270px;
+  background:var(--paper);color:var(--ink);
+  border-right:1.5px dashed var(--ink);
+  box-shadow:6px 10px 24px rgba(43,42,34,0.25);
+  transform:translateY(-105%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  z-index:65;
+  padding:66px 14px 20px;
+  max-height:100vh;overflow-y:auto;
+}
+.side-sheet.open{transform:translateY(0);}
+.side-profile-strip{
+  display:flex;align-items:center;gap:10px;
+  padding:11px;border:1.5px solid var(--ink);
+  background:var(--ink);margin-bottom:14px;cursor:pointer;text-decoration:none;
+}
+.side-profile-avatar{
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  background:rgba(241,234,214,0.14);border:1.5px solid rgba(241,234,214,0.5);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-family:'Bitter';font-size:14px;font-weight:800;color:var(--paper);
+}
+.side-profile-avatar img{width:100%;height:100%;object-fit:cover;}
+.side-profile-info{min-width:0;}
+.side-profile-name{
+  font-family:'Bitter';font-size:13px;font-weight:800;color:var(--paper);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.side-profile-role{
+  font-family:'JetBrains Mono';font-size:9px;font-weight:600;color:rgba(241,234,214,0.65);
+  text-transform:uppercase;letter-spacing:.5px;margin-top:2px;
+}
+.side-sheet-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.side-sheet-title{
+  font-family:'JetBrains Mono';font-size:9.5px;font-weight:700;color:var(--ink-faint);
+  text-transform:uppercase;letter-spacing:1px;
+}
+.side-close-btn{
+  width:26px;height:26px;border:1.5px solid var(--ink);flex-shrink:0;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;
+}
+.side-nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px;border:1px solid var(--line);
+  margin-bottom:8px;cursor:pointer;text-decoration:none;color:var(--ink);
+}
+.side-nav-item .icon{
+  width:28px;height:28px;flex-shrink:0;border:1.5px solid var(--ink);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--paper);
+}
+.side-nav-item .label{font-family:'Bitter';font-size:12px;font-weight:700;}
+.side-nav-item .sub{font-family:'JetBrains Mono';font-size:8.5px;color:var(--ink-faint);margin-top:1px;line-height:1.4;}
+
+.side-settings-box{
+  border:1.5px dashed var(--ink);padding:11px;margin-top:4px;margin-bottom:9px;
+}
+.side-settings-title{font-family:'Bitter';font-size:11px;font-weight:800;margin-bottom:2px;}
+.side-settings-desc{font-family:'JetBrains Mono';font-size:8.5px;color:var(--ink-faint);line-height:1.5;margin-bottom:8px;}
+.side-toggle-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;color:var(--ink);cursor:pointer;}
+.side-toggle-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--moss);flex-shrink:0;cursor:pointer;}
+.side-settings-save{
+  width:100%;padding:9px;border:1.5px solid var(--ink);border-radius:0;
+  font-family:'Bitter';font-size:11px;font-weight:700;cursor:pointer;
+  background:var(--ink);color:var(--paper);margin-top:6px;text-transform:uppercase;letter-spacing:.3px;
+}
+.side-settings-note{font-family:'JetBrains Mono';font-size:8.5px;color:var(--moss);margin-top:6px;display:none;}
+.side-settings-note.show{display:block;}
 </style>
 </head>
 <body>
@@ -223,6 +312,9 @@ body{
 
   <div class="topbar">
     <div class="brand">
+      <div class="hamburger-toggle" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Menu">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </div>
       <div class="brand-mark" id="brandMark">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M12 7l2.5 4.5L9.5 16.5 12 7z"/></svg>
       </div>
@@ -237,6 +329,77 @@ body{
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         <div class="notif-dot" id="noticeDot"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR (Admin/KLW) -->
+  <div class="side-scrim" id="sideScrim" onclick="closeSidebar()"></div>
+  <div class="side-sheet" id="sideSheet">
+    <a class="side-profile-strip" id="sideProfileStrip" href="profile.html">
+      <div class="side-profile-avatar" id="sideProfileAvatar">??</div>
+      <div class="side-profile-info">
+        <div class="side-profile-name" id="sideProfileName">—</div>
+        <div class="side-profile-role" id="sideProfileRole">—</div>
+      </div>
+    </a>
+    <div class="side-sheet-top">
+      <div class="side-sheet-title">Menu</div>
+      <div class="side-close-btn" id="sideCloseBtn" onclick="closeSidebar()" title="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <a class="side-nav-item" href="informasi-span.html">
+      <div class="icon">📍</div>
+      <div>
+        <div class="label">Informasi Span</div>
+        <div class="sub">Seluruh data span, semua jalur (read only)</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sideMasterData" href="master-jalur.html" style="display:none;">
+      <div class="icon">🗂️</div>
+      <div>
+        <div class="label">Master Data</div>
+        <div class="sub">Kelola jalur, tower, dan span</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sidePengaturanBa" href="pengaturan-ba.html" style="display:none;">
+      <div class="icon">📄</div>
+      <div>
+        <div class="label">Pengaturan BA</div>
+        <div class="sub">Background, contoh, dan logo BA</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sideKelolaAkun" href="kelola-akun.html" style="display:none;">
+      <div class="icon">👥</div>
+      <div>
+        <div class="label">Kelola Akun</div>
+        <div class="sub">Manajemen akun & role pengguna</div>
+      </div>
+    </a>
+    <a class="side-nav-item" id="sideLogLogin" href="log-login.html" style="display:none;">
+      <div class="icon">📋</div>
+      <div>
+        <div class="label">Log Login</div>
+        <div class="sub">Siapa saja yang login & kapan terakhir</div>
+      </div>
+    </a>
+
+    <div class="side-settings-box" id="sideInfoSpanAccessBox" style="display:none;">
+      <div class="side-settings-title">📍 Akses Informasi Span</div>
+      <div class="side-settings-desc">Atur siapa yang boleh membuka halaman Informasi Span (read only).</div>
+
+      <label class="side-toggle-row">
+        <input type="checkbox" id="sideInfoSpanPublic" onchange="toggleSideInfoSpanPublicUI()">
+        <span>Bisa diakses publik (tanpa login)</span>
+      </label>
+
+      <div id="sideInfoSpanRolesBox">
+        <label class="side-toggle-row"><input type="checkbox" class="sideInfoSpanRole" value="admin"><span>Admin</span></label>
+        <label class="side-toggle-row"><input type="checkbox" class="sideInfoSpanRole" value="klw"><span>Koordinator (KLW)</span></label>
+      </div>
+
+      <button class="side-settings-save" onclick="saveSideInfoSpanAccess()">Simpan</button>
+      <div class="side-settings-note" id="sideInfoSpanNote">Tersimpan.</div>
     </div>
   </div>
 
@@ -393,6 +556,58 @@ function switchTheme(theme){
   location.href = "dashboard.html";
 }
 
+function toggleSidebar(){
+  const sheet = document.getElementById("sideSheet");
+  const scrim = document.getElementById("sideScrim");
+  const btn   = document.getElementById("sidebarToggleBtn");
+  const willOpen = !sheet.classList.contains("open");
+  sheet.classList.toggle("open", willOpen);
+  scrim.classList.toggle("open", willOpen);
+  btn.classList.toggle("active", willOpen);
+}
+
+function closeSidebar(){
+  document.getElementById("sideSheet").classList.remove("open");
+  document.getElementById("sideScrim").classList.remove("open");
+  document.getElementById("sidebarToggleBtn").classList.remove("active");
+}
+
+function toggleSideInfoSpanPublicUI(){
+  const isPublic = document.getElementById("sideInfoSpanPublic").checked;
+  document.getElementById("sideInfoSpanRolesBox").style.opacity = isPublic ? "0.4" : "1";
+  document.querySelectorAll(".sideInfoSpanRole").forEach(cb => cb.disabled = isPublic);
+}
+
+async function loadSideInfoSpanAccess(){
+  let setting = null;
+  try{
+    const raw = await getAppSetting("infoSpanAccess");
+    setting = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+  }catch(e){ setting = null; }
+
+  const roles = (setting && Array.isArray(setting.roles)) ? setting.roles : ["admin", "klw"];
+  const isPublic = !!(setting && setting.public);
+
+  document.getElementById("sideInfoSpanPublic").checked = isPublic;
+  document.querySelectorAll(".sideInfoSpanRole").forEach(cb => {
+    cb.checked = roles.includes(cb.value);
+  });
+  toggleSideInfoSpanPublicUI();
+}
+
+async function saveSideInfoSpanAccess(){
+  const isPublic = document.getElementById("sideInfoSpanPublic").checked;
+  const roles = Array.from(document.querySelectorAll(".sideInfoSpanRole"))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  await setAppSetting("infoSpanAccess", JSON.stringify({ public: isPublic, roles }));
+
+  const note = document.getElementById("sideInfoSpanNote");
+  note.classList.add("show");
+  setTimeout(() => note.classList.remove("show"), 2200);
+}
+
 function doLogout(){
   if(confirm("Yakin ingin keluar?")){
     logoutUser();
@@ -458,6 +673,32 @@ async function initPage(){
   if(profile.foto){
     const quickIconEl = document.getElementById("quickProfilIcon");
     quickIconEl.innerHTML = `<img src="${profile.foto}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  }
+
+  /* --- Sidebar profile strip --- */
+  const sideInitials = profile.nama.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  const sideAvatarEl = document.getElementById("sideProfileAvatar");
+  if(profile.foto){
+    sideAvatarEl.innerHTML = `<img src="${profile.foto}" alt="Foto">`;
+  } else {
+    sideAvatarEl.textContent = sideInitials;
+  }
+  document.getElementById("sideProfileName").textContent = profile.nama;
+  document.getElementById("sideProfileRole").textContent = (profile.role || "-").toUpperCase();
+
+  /* --- Role-based menu visibility --- */
+  if(typeof isAdmin === "function" && isAdmin()){
+    document.getElementById("sideKelolaAkun").style.display = "flex";
+    document.getElementById("sideLogLogin").style.display = "flex";
+    document.getElementById("sideInfoSpanAccessBox").style.display = "block";
+    loadSideInfoSpanAccess();
+  }
+  if(typeof isAdmin === "function" && typeof isKLW === "function" && (isAdmin() || isKLW())){
+    document.getElementById("sideMasterData").style.display = "flex";
+    document.getElementById("sidebarToggleBtn").style.display = "flex";
+  }
+  if(typeof isAdmin === "function" && isAdmin()){
+    document.getElementById("sidePengaturanBa").style.display = "flex";
   }
 
   const notice = await cachedGetAppSetting("systemNotice");
