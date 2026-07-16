@@ -138,7 +138,9 @@ async function handleBackupExport(res) {
   for (const t of BACKUP_TABLES) {
     // t.name selalu berasal dari whitelist tetap di atas, bukan dari input
     // request, jadi aman diselipkan langsung ke query.
-    const rows = await sql.query(`SELECT * FROM ${t.name}`);
+    // CATATAN: client `sql` dari @neondatabase/serverless TIDAK punya method
+    // .query() -- dipanggil langsung sebagai fungsi: sql(text, params?).
+    const rows = await sql(`SELECT * FROM ${t.name}`);
     tables[t.name] = rows;
   }
   return res.status(200).json({
@@ -187,7 +189,7 @@ async function handleBackupRestore(req, res) {
           : `INSERT INTO ${t.name} (${quotedCols}) VALUES (${placeholders})
              ON CONFLICT (${t.pk}) DO NOTHING`;
 
-        await sql.query(query, values);
+        await sql(query, values);
         ok++;
       } catch (rowErr) {
         console.error(`Restore baris di tabel "${t.name}" gagal:`, rowErr.message);
