@@ -260,8 +260,8 @@ async function getFullProfile(username) {
 
     let jumlahTower, jumlahSpan, towerLabel;
 
-    if (account.role === "admin") {
-        // Admin melihat semua data berdasarkan jalur miliknya
+    if (account.role === "admin" || account.role === "monitor") {
+        // Admin & Monitor melihat semua data berdasarkan jalur miliknya
         const [towerMaster, spanMaster] = await Promise.all([
             getTowerMasterList(account.jalur_id),
             getSpanMasterList(account.jalur_id)

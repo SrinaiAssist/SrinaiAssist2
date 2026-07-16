@@ -220,7 +220,7 @@ async function cachedGetFullProfile(username) {
 
   let jumlahTower, jumlahSpan, towerLabel;
 
-  const isFullJalurRole = (account.role === "admin" || account.role === "klw");
+  const isFullJalurRole = (account.role === "admin" || account.role === "klw" || account.role === "monitor");
 
   if (isFullJalurRole) {
     // Admin & KLW: akses SEMUA jalur, termasuk yang baru dibuat.
