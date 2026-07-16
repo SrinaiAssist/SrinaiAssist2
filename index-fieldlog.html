@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#DED2AF">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>SRINAI ASSIST — Buku Log</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1EAD6;
+  --paper-2:#E7DDC2;
+  --paper-3:#DED2AF;
+  --ink:#2B2A22;
+  --ink-soft: rgba(43,42,34,0.62);
+  --ink-faint: rgba(43,42,34,0.38);
+  --route:#C1522A;
+  --route-bg: rgba(193,82,42,0.1);
+  --moss:#4F6B4A;
+  --moss-bg: rgba(79,107,74,0.1);
+  --line: rgba(43,42,34,0.18);
+  --gold:#A8842E;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',Arial,sans-serif;
+  background:var(--paper-3);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:
+    radial-gradient(rgba(43,42,34,0.05) 1px, transparent 1px) 0 0/14px 14px,
+    var(--paper);
+  padding:0 0 36px;position:relative;overflow-x:hidden;
+  border-left:1px solid var(--line);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+
+/* ---------- theme switcher ---------- */
+.theme-switch{display:flex;gap:8px;padding:18px 18px 0;}
+.theme-pill{
+  flex:1;text-align:center;padding:9px 6px;border:1.5px solid var(--ink);border-radius:20px;
+  font-family:'JetBrains Mono';font-size:10px;letter-spacing:0.6px;text-transform:uppercase;
+  background:var(--paper);color:var(--ink-soft);cursor:pointer;transition:all 150ms ease;
+}
+.theme-pill.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+/* ---------- topbar / brand ---------- */
+.topbar{display:flex;flex-direction:column;align-items:center;padding:26px 18px 0;text-align:center;}
+.brand-mark{
+  width:56px;height:56px;border-radius:50%;border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;
+}
+.brand-mark svg{width:28px;height:28px;stroke:var(--ink);}
+.brand-name{font-family:'Bitter';font-weight:800;font-size:24px;letter-spacing:0.2px;}
+.brand-name span{color:var(--route);}
+.brand-sub{font-family:'JetBrains Mono';font-size:9.5px;color:var(--ink-soft);letter-spacing:1px;margin-top:6px;text-transform:uppercase;}
+.brand-quote{
+  font-size:12.5px;font-style:italic;color:var(--ink-soft);
+  margin:14px auto 0;max-width:320px;line-height:1.55;
+}
+
+/* ---------- login log card ---------- */
+.login-wrap{padding:22px 18px 0;}
+.login-card{
+  border:1.5px dashed var(--ink);padding:20px 18px 18px;position:relative;background:var(--paper);
+}
+.login-badge{
+  position:absolute;top:-11px;right:16px;background:var(--paper);padding:0 8px;
+  font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:1px;color:var(--moss);
+  border:1.5px solid var(--moss);border-radius:20px;text-transform:uppercase;
+}
+.login-eyebrow{font-family:'JetBrains Mono';font-size:9px;letter-spacing:1.5px;color:var(--ink-faint);text-transform:uppercase;}
+.login-title{font-family:'Bitter';font-weight:800;font-size:19px;margin-top:5px;}
+
+.field{margin-top:16px;}
+.field label{
+  display:block;font-family:'JetBrains Mono';font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:7px;
+}
+.field select, .field input{
+  width:100%;padding:12px 13px;border:1.5px solid var(--ink);border-radius:2px;
+  background:var(--paper);color:var(--ink);font-size:14.5px;font-family:'Inter',sans-serif;
+  outline:none;appearance:none;
+}
+.field select:focus, .field input:focus{border-color:var(--route);}
+
+.login-btn{
+  width:100%;margin-top:20px;padding:14px;border:none;border-radius:2px;cursor:pointer;
+  font-family:'Bitter';font-weight:700;font-size:14px;letter-spacing:0.4px;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform 120ms ease, opacity 120ms ease;
+}
+.login-btn:active{transform:scale(0.98);}
+.login-btn svg{width:13px;height:13px;stroke:var(--paper);}
+
+.footer-stamp{
+  text-align:center;font-family:'JetBrains Mono';font-size:9px;color:var(--ink-faint);
+  padding:24px 18px 0;letter-spacing:0.6px;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.stamp-dot{width:6px;height:6px;border-radius:50%;background:var(--moss);}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div>
+    <div class="theme-switch">
+      <div class="theme-pill" onclick="switchTheme('default')">Tema Klasik</div>
+      <div class="theme-pill active">Buku Lapangan</div>
+    </div>
+
+    <div class="topbar">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M12 7l2.5 4.5L9.5 16.5 12 7z"/></svg>
+      </div>
+      <div class="brand-name">SRINAI <span>ASSIST</span></div>
+      <div class="brand-sub">Buku Log Inspeksi SUTT 150kV</div>
+      <p class="brand-quote">&ldquo;Setiap tower yang diperiksa hari ini adalah keandalan sistem yang terjaga esok hari.&rdquo;</p>
+    </div>
+
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-badge">MASUK LOG</div>
+        <div class="login-eyebrow">Verifikasi Petugas</div>
+        <div class="login-title">Isi Buku Kehadiran</div>
+
+        <div class="field">
+          <label for="user">Akun Petugas</label>
+          <select id="user">
+            <option value="">Pilih Akun</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="password">Kata Sandi</label>
+          <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') login()">
+        </div>
+
+        <button class="login-btn" onclick="login()" id="btnMasuk">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Catat Kehadiran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-stamp"><span class="stamp-dot"></span>STATUS GRID: ONLINE · v1.0.0</div>
+</div>
+
+<script>
+function switchTheme(theme){
+  localStorage.setItem("srinai_theme", theme);
+  location.href = "index.html";
+}
+
+(async function init() {
+  // Redirect jika sudah login
+  if (typeof isLoggedIn === "function" && await isLoggedIn()) {
+    location.href = "dashboard-fieldlog.html";
+    return;
+  }
+
+  // Load akun aktif dari server
+  const userSelect = document.getElementById("user");
+  const activeUsernames = await getActiveUsernames();
+  activeUsernames.forEach(username => {
+    const option = document.createElement("option");
+    option.value = username;
+    option.textContent = username;
+    userSelect.appendChild(option);
+  });
+})();
+
+async function login() {
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("password").value;
+  if (!username) { alert("Pilih akun!"); return; }
+  if (!password) { alert("Masukkan password!"); return; }
+
+  const btn = document.getElementById("btnMasuk");
+  const originalHTML = btn.innerHTML;
+  btn.style.opacity = "0.7";
+  btn.innerHTML = "Memeriksa…";
+
+  const result = await loginUser(username, password);
+  if (result.success) {
+    localStorage.setItem("srinai_theme", "fieldlog");
+    location.href = "dashboard-fieldlog.html";
+    return;
+  }
+  btn.style.opacity = "1";
+  btn.innerHTML = originalHTML;
+  alert(result.message || "Login gagal.");
+}
+</script>
+
+</body>
+</html>

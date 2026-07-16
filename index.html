@@ -205,6 +205,17 @@
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; }
   }
+
+  /* ---------- theme switcher ---------- */
+  .theme-switch{
+    display:flex; gap:8px; width:100%; max-width:520px; padding:18px 24px 0; z-index:2; position:relative;
+  }
+  .theme-pill{
+    flex:1; text-align:center; padding:9px 6px; border-radius:20px; cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.6px; text-transform:uppercase;
+    border:1px solid rgba(140,160,179,0.3); color:var(--steel-mist); transition:all 150ms ease;
+  }
+  .theme-pill.active{ background:var(--voltage-amber); color:#161009; border-color:var(--voltage-amber); font-weight:700; }
 </style>
 </head>
 <body>
@@ -212,6 +223,11 @@
 <div id="loginPage">
 
   <div class="grid-dots"></div>
+
+  <div class="theme-switch">
+    <div class="theme-pill active">Tema Klasik</div>
+    <div class="theme-pill" onclick="switchTheme('fieldlog')">Buku Lapangan</div>
+  </div>
 
   <div class="stage">
 
@@ -272,7 +288,18 @@
 </div>
 
 <script>
+function switchTheme(theme){
+  localStorage.setItem("srinai_theme", theme);
+  location.href = "index-fieldlog.html";
+}
+
 (async function init() {
+  // Kalau tema tersimpan adalah "fieldlog", arahkan ke halaman login tema Buku Lapangan
+  if (localStorage.getItem("srinai_theme") === "fieldlog") {
+    location.href = "index-fieldlog.html";
+    return;
+  }
+
   // Redirect jika sudah login
   if (typeof isLoggedIn === "function" && await isLoggedIn()) {
     location.href = "dashboard.html";
@@ -317,6 +344,7 @@ async function login() {
 
   const result = await loginUser(username, password);
   if (result.success) {
+    localStorage.setItem("srinai_theme", "default");
     location.href = "dashboard.html";
     return;
   }

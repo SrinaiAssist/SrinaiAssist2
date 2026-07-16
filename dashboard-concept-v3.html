@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konsep Dashboard v3 — SRINAI ASSIST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1EAD6;
+  --paper-2:#E7DDC2;
+  --paper-3:#DED2AF;
+  --ink:#2B2A22;
+  --ink-soft: rgba(43,42,34,0.62);
+  --ink-faint: rgba(43,42,34,0.38);
+  --route:#C1522A;
+  --route-bg: rgba(193,82,42,0.1);
+  --moss:#4F6B4A;
+  --moss-bg: rgba(79,107,74,0.1);
+  --line: rgba(43,42,34,0.18);
+  --gold:#A8842E;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',Arial,sans-serif;
+  background:var(--paper-3);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:
+    radial-gradient(rgba(43,42,34,0.05) 1px, transparent 1px) 0 0/14px 14px,
+    var(--paper);
+  padding-bottom:100px;position:relative;overflow-x:hidden;
+  border-left:1px solid var(--line);border-right:1px solid var(--line);
+}
+
+/* ---------- topbar ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 18px 0;}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand-mark{
+  width:38px;height:38px;border-radius:50%;border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;
+}
+.brand-mark svg{width:20px;height:20px;stroke:var(--ink);}
+.brand-text{font-family:'Bitter';line-height:1;}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:0.2px;}
+.brand-name span{color:var(--route);}
+.brand-sub{font-family:'JetBrains Mono';font-size:8.8px;color:var(--ink-soft);letter-spacing:0.8px;margin-top:4px;text-transform:uppercase;}
+.icon-btn{
+  width:36px;height:36px;border:1.5px solid var(--ink);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;position:relative;background:var(--paper);
+}
+.icon-btn svg{width:15px;height:15px;stroke:var(--ink);}
+.notif-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;background:var(--route);border-radius:50%;border:1.5px solid var(--paper);}
+
+/* ---------- postmark date ---------- */
+.postmark{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 18px 0;font-family:'JetBrains Mono';font-size:10px;color:var(--ink-soft);letter-spacing:0.4px;
+}
+.postmark .stamp-live{display:flex;align-items:center;gap:5px;color:var(--moss);font-weight:600;}
+.stamp-dot{width:6px;height:6px;border-radius:50%;background:var(--moss);}
+
+/* ---------- log entry card ---------- */
+.log-wrap{padding:14px 18px 0;}
+.log-card{
+  border:1.5px dashed var(--ink);padding:16px 16px 6px;position:relative;
+}
+.log-eyebrow{font-family:'JetBrains Mono';font-size:9px;letter-spacing:1.5px;color:var(--ink-faint);text-transform:uppercase;}
+.log-greet{font-family:'Bitter';font-weight:800;font-size:23px;line-height:1.15;margin-top:5px;}
+.log-greet span{color:var(--route);}
+.log-badge{
+  position:absolute;top:-11px;right:14px;background:var(--paper);padding:0 8px;
+  font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:1px;color:var(--moss);
+  border:1.5px solid var(--moss);border-radius:20px;text-transform:uppercase;
+}
+
+/* ---------- trail route ---------- */
+.trail{display:flex;align-items:flex-start;justify-content:space-between;margin:18px 0 14px;position:relative;}
+.trail::before{
+  content:"";position:absolute;top:8px;left:8%;right:8%;height:0;
+  border-top:2px dotted var(--ink-faint);z-index:0;
+}
+.trail-stop{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;width:33%;}
+.trail-pin{
+  width:17px;height:17px;border-radius:50%;background:var(--paper);border:2px solid var(--route);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono';font-size:8px;font-weight:700;color:var(--route);
+}
+.trail-stop:nth-child(2) .trail-pin{border-color:var(--moss);color:var(--moss);}
+.trail-stop:nth-child(3) .trail-pin{border-color:var(--gold);color:var(--gold);}
+.trail-label{font-family:'JetBrains Mono';font-size:7.5px;letter-spacing:0.8px;color:var(--ink-faint);text-transform:uppercase;}
+.trail-value{font-family:'Bitter';font-weight:700;font-size:13.5px;text-align:center;}
+
+/* ---------- section label ---------- */
+.section-label{
+  display:flex;align-items:center;gap:8px;padding:22px 18px 12px;
+  font-family:'JetBrains Mono';font-size:10px;letter-spacing:1.5px;color:var(--ink-soft);text-transform:uppercase;
+}
+.section-label::before{content:"§";color:var(--route);font-weight:700;}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* ---------- stamp grid ---------- */
+.stampgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;padding:0 18px;}
+.stamp{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.stamp-circle{
+  width:56px;height:56px;border-radius:50%;
+  border:2px solid var(--ink);position:relative;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--paper);
+}
+.stamp-circle::before{
+  content:"";position:absolute;inset:4px;border-radius:50%;border:1px solid var(--ink-faint);
+}
+.stamp-circle svg{width:20px;height:20px;stroke:var(--route);}
+.stamp:nth-child(2) .stamp-circle svg, .stamp:nth-child(6) .stamp-circle svg{stroke:var(--moss);}
+.stamp:nth-child(3) .stamp-circle svg, .stamp:nth-child(7) .stamp-circle svg{stroke:var(--gold);}
+.stamp-label{font-family:'Bitter';font-weight:700;font-size:10.5px;text-align:center;letter-spacing:0.1px;}
+
+/* ---------- ledger stats ---------- */
+.ledger{margin:16px 18px 0;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);}
+.ledger-row{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-bottom:1px dashed var(--line);}
+.ledger-row:last-child{border-bottom:none;}
+.ledger-left{display:flex;flex-direction:column;}
+.ledger-title{font-family:'Bitter';font-weight:700;font-size:14px;}
+.ledger-sub{font-family:'JetBrains Mono';font-size:9px;color:var(--ink-soft);margin-top:2px;}
+.ledger-value{font-family:'JetBrains Mono';font-weight:700;font-size:22px;}
+.ledger-value span{font-size:10px;color:var(--ink-faint);font-weight:500;margin-left:2px;}
+
+/* ---------- radio check-in ---------- */
+.radiobar{
+  margin:16px 18px 0;border:1.5px solid var(--ink);padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.radio-left{display:flex;align-items:center;gap:10px;}
+.bars{display:flex;align-items:flex-end;gap:2px;height:16px;}
+.bars div{width:3px;background:var(--moss);}
+.bars div:nth-child(1){height:40%;}
+.bars div:nth-child(2){height:65%;}
+.bars div:nth-child(3){height:90%;}
+.bars div:nth-child(4){height:50%;opacity:0.3;}
+.radio-text{font-family:'JetBrains Mono';font-size:9.5px;color:var(--ink-soft);}
+.radio-text b{display:block;font-family:'Bitter';font-size:13.5px;font-weight:700;color:var(--ink);}
+.send-btn{
+  font-family:'Bitter';font-weight:700;font-size:12px;letter-spacing:0.3px;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:none;padding:9px 14px;display:flex;align-items:center;gap:6px;border-radius:2px;
+}
+.send-btn svg{width:12px;height:12px;stroke:var(--paper);}
+
+/* ---------- pinned note ---------- */
+.note{
+  margin:16px 18px 0;padding:12px 12px 12px 16px;background:var(--route-bg);
+  border-left:3px solid var(--route);position:relative;
+}
+.note::before{
+  content:"";position:absolute;top:-5px;left:10px;width:9px;height:9px;border-radius:50%;background:var(--route);
+  box-shadow:0 0 0 2px var(--paper);
+}
+.note-title{font-family:'Bitter';font-weight:700;font-size:12.5px;color:var(--route);text-transform:uppercase;letter-spacing:0.3px;}
+.note-body{font-size:11.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+
+.footer-stamp{
+  text-align:center;font-family:'JetBrains Mono';font-size:9px;color:var(--ink-faint);
+  padding:26px 18px 0;letter-spacing:0.6px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M12 7l2.5 4.5L9.5 16.5 12 7z"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">SRINAI <span>ASSIST</span></div>
+        <div class="brand-sub">Buku Log Inspeksi SUTT 150kV</div>
+      </div>
+    </div>
+    <div class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+  </div>
+
+  <div class="postmark">
+    <span>SEN · 06 JUL 2026 · 09:24 WIB</span>
+    <span class="stamp-live"><span class="stamp-dot"></span>DI LAPANGAN</span>
+  </div>
+
+  <div class="log-wrap">
+    <div class="log-card">
+      <div class="log-badge">ENTRI HARI INI</div>
+      <div class="log-eyebrow">Catatan Lapangan</div>
+      <div class="log-greet">Selamat Pagi, <span>Yasa Pratama</span></div>
+
+      <div class="trail">
+        <div class="trail-stop">
+          <div class="trail-pin">A</div>
+          <div class="trail-label">Jalur</div>
+          <div class="trail-value">Lbrstu–Cjr</div>
+        </div>
+        <div class="trail-stop">
+          <div class="trail-pin">B</div>
+          <div class="trail-label">Tower</div>
+          <div class="trail-value">T.070</div>
+        </div>
+        <div class="trail-stop">
+          <div class="trail-pin">C</div>
+          <div class="trail-label">Span</div>
+          <div class="trail-value">069–070</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Akses Cepat</div>
+  <div class="stampgrid">
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div><div class="stamp-label">Tower</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg></div><div class="stamp-label">Span</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="stamp-label">Tegakan</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="1"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div><div class="stamp-label">Jadwal</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M9 15l2 2 4-4"/></svg></div><div class="stamp-label">Berita Acara</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="stamp-label">Foto Eviden</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="stamp-label">Chat</div></div>
+    <div class="stamp"><div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div><div class="stamp-label">Pengaturan</div></div>
+  </div>
+
+  <div class="section-label">Ringkasan</div>
+  <div class="ledger">
+    <div class="ledger-row">
+      <div class="ledger-left">
+        <div class="ledger-title">Tegakan Tercatat</div>
+        <div class="ledger-sub">6 SPAN SUDAH DICATAT</div>
+      </div>
+      <div class="ledger-value">128<span>phn</span></div>
+    </div>
+    <div class="ledger-row">
+      <div class="ledger-left">
+        <div class="ledger-title">Berita Acara</div>
+        <div class="ledger-sub">2 MENUNGGU TANDA TANGAN</div>
+      </div>
+      <div class="ledger-value">14<span>dok</span></div>
+    </div>
+  </div>
+
+  <div class="radiobar">
+    <div class="radio-left">
+      <div class="bars"><div></div><div></div><div></div><div></div></div>
+      <div class="radio-text">STATUS KIRIM DATA<b>3 tertunda</b></div>
+    </div>
+    <button class="send-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Kirim
+    </button>
+  </div>
+
+  <div class="note">
+    <div class="note-title">Perhatian</div>
+    <div class="note-body">Tower T.070 melewati jadwal inspeksi triwulan.</div>
+  </div>
+
+  <div class="footer-stamp">— KONSEP TAMPILAN V3 · DATA CONTOH —</div>
+</div>
+</body>
+</html>
