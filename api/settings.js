@@ -104,9 +104,112 @@ const DRIVE_STORAGE_LIMIT_BYTES = 15 * 1024 * 1024 * 1024;
 // "ai_daily_limit" (disimpan sebagai string angka biasa di app_settings).
 const AI_DAILY_LIMIT_DEFAULT = 250;
 
+// ─────────────────────────────────────────────────────────
+// BACKUP & RESTORE (fitur "Backup Data" di pengaturan.html)
+// GET  /api/settings?action=backup   -> ekspor SELURUH tabel di bawah ini
+// POST /api/settings?action=backup   -> body: { tables:{...} }, upsert per tabel
+//
+// Urutan array di bawah SENGAJA accounts lebih dulu dari profiles/
+// profile_signatures (keduanya punya FK REFERENCES accounts(username)),
+// supaya restore tidak kena foreign key violation.
+// ─────────────────────────────────────────────────────────
+const BACKUP_TABLES = [
+  { name: 'accounts', pk: 'username' },
+  { name: 'profiles', pk: 'username' },
+  { name: 'jalur', pk: 'id' },
+  { name: 'tower', pk: 'id' },
+  { name: 'span', pk: 'id' },
+  { name: 'tegakan', pk: 'id' },
+  { name: 'catatan_span', pk: 'id' },
+  { name: 'ba_dokumen', pk: 'id' },
+  { name: 'pemilik_signatures', pk: 'nama_key' },
+  { name: 'profile_signatures', pk: 'username' },
+  { name: 'chat_messages', pk: 'id' },
+  { name: 'app_settings', pk: 'key' },
+];
+
+// Hanya izinkan nama kolom huruf/angka/underscore (row dari file backup
+// upload-an user) -- dipakai langsung sebagai identifier di query dinamis
+// di bawah, jadi wajib divalidasi supaya tidak bisa dipakai untuk injection.
+const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+async function handleBackupExport(res) {
+  const tables = {};
+  for (const t of BACKUP_TABLES) {
+    // t.name selalu berasal dari whitelist tetap di atas, bukan dari input
+    // request, jadi aman diselipkan langsung ke query.
+    const rows = await sql.query(`SELECT * FROM ${t.name}`);
+    tables[t.name] = rows;
+  }
+  return res.status(200).json({
+    success: true,
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    tables,
+  });
+}
+
+async function handleBackupRestore(req, res) {
+  const { tables } = req.body || {};
+  if (!tables || typeof tables !== 'object') {
+    return res.status(400).json({ success: false, message: 'tables wajib diisi.' });
+  }
+
+  const summary = {};
+  for (const t of BACKUP_TABLES) {
+    const rows = tables[t.name];
+    if (!Array.isArray(rows)) {
+      summary[t.name] = { skipped: true };
+      continue;
+    }
+
+    let ok = 0;
+    let failed = 0;
+    for (const row of rows) {
+      try {
+        const cols = Object.keys(row || {}).filter((c) => SAFE_COLUMN_RE.test(c));
+        if (cols.length === 0 || !cols.includes(t.pk)) { failed++; continue; }
+
+        const values = cols.map((c) => {
+          const v = row[c];
+          return (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+        });
+        const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+        const updateSet = cols
+          .filter((c) => c !== t.pk)
+          .map((c) => `${c} = EXCLUDED.${c}`)
+          .join(', ');
+        const quotedCols = cols.map((c) => `"${c}"`).join(', ');
+
+        const query = updateSet
+          ? `INSERT INTO ${t.name} (${quotedCols}) VALUES (${placeholders})
+             ON CONFLICT (${t.pk}) DO UPDATE SET ${updateSet}`
+          : `INSERT INTO ${t.name} (${quotedCols}) VALUES (${placeholders})
+             ON CONFLICT (${t.pk}) DO NOTHING`;
+
+        await sql.query(query, values);
+        ok++;
+      } catch (rowErr) {
+        console.error(`Restore baris di tabel "${t.name}" gagal:`, rowErr.message);
+        failed++;
+      }
+    }
+    summary[t.name] = { total: rows.length, ok, failed };
+  }
+
+  return res.status(200).json({ success: true, summary });
+}
+
 module.exports = async (req, res) => {
   try {
-    const { key: qKey, keys: qKeys, stats: qStats } = req.query || {};
+    const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
+
+    if (qAction === 'backup') {
+      if (req.method === 'GET') return await handleBackupExport(res);
+      if (req.method === 'POST') return await handleBackupRestore(req, res);
+      res.setHeader('Allow', 'GET, POST');
+      return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+    }
 
     if (req.method === 'GET' && qStats === 'db') {
       const rows = await sql`SELECT pg_database_size(current_database()) AS bytes`;
