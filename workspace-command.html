@@ -131,6 +131,42 @@ body{
   margin-top:8px;padding:10px 20px;background:var(--gold);color:var(--navy-deep);
   border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;
 }
+
+/* ===== Konsol jalankan command ===== */
+.console-toggle{
+  margin:6px 16px 0;padding:12px 14px;border-radius:14px;background:rgba(244,180,0,.08);
+  border:1px solid rgba(244,180,0,.25);display:flex;align-items:center;gap:10px;cursor:pointer;
+}
+.console-toggle .icon{font-size:18px;}
+.console-toggle .txt{flex:1;}
+.console-toggle .txt b{font-size:13px;display:block;}
+.console-toggle .txt span{font-size:10.5px;color:var(--muted);}
+.console-toggle .chev{transition:transform .2s;color:var(--muted);}
+.console-toggle.open .chev{transform:rotate(180deg);}
+
+.console-panel{margin:10px 16px 0;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);overflow:hidden;}
+.console-warn{
+  padding:10px 12px;font-size:10.5px;line-height:1.5;color:rgba(255,255,255,.65);
+  background:rgba(224,80,74,.08);border-bottom:1px solid rgba(224,80,74,.2);
+}
+.console-msgs{max-height:320px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.console-empty{font-size:11.5px;color:var(--muted);text-align:center;padding:16px 0;}
+.console-bubble{max-width:88%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.console-bubble.user{align-self:flex-end;background:var(--gold);color:var(--navy-deep);font-weight:600;border-bottom-right-radius:4px;font-family:'JetBrains Mono',monospace;}
+.console-bubble.bot{align-self:flex-start;background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);border-bottom-left-radius:4px;}
+.console-bubble.bot.error{background:rgba(224,80,74,.12);color:#ffb3af;}
+.console-tag{font-size:9px;color:var(--muted);margin-top:3px;}
+.console-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);}
+.console-input{
+  flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;color:white;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;
+}
+.console-input::placeholder{color:var(--muted);font-family:'Plus Jakarta Sans',Arial,sans-serif;}
+.console-send{
+  padding:0 16px;border-radius:10px;background:var(--gold);color:var(--navy-deep);border:none;
+  font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0;
+}
+.console-send:disabled{opacity:.5;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -187,6 +223,28 @@ body{
     <div id="errorBox"></div>
     <div id="cmdList" class="cmd-list"></div>
 
+    <div class="console-toggle" id="consoleToggle" onclick="toggleConsole()">
+      <div class="icon">🖥️</div>
+      <div class="txt">
+        <b>Coba Jalankan Command</b>
+        <span>Kirim teks seolah kamu chat ke bot — command testing/live bisa dicoba di sini</span>
+      </div>
+      <div class="chev">▾</div>
+    </div>
+
+    <div class="console-panel hidden" id="consolePanel">
+      <div class="console-warn">
+        ⚠️ Bukan simulasi. Kalau command yang dijalankan menulis data (mis. /tambahtegakan), datanya beneran tersimpan lewat API SrinaiAssist2 yang sama dipakai bot Telegram. Command berstatus <b>draft</b> tidak bisa dijalankan dari sini.
+      </div>
+      <div class="console-msgs" id="consoleMsgs">
+        <div class="console-empty" id="consoleEmpty">Belum ada percakapan. Coba ketik <span class="mono">/jalur</span> atau <span class="mono">/ping</span>.</div>
+      </div>
+      <div class="console-input-row">
+        <input type="text" class="console-input" id="consoleInput" placeholder="/ping" onkeydown="if(event.key==='Enter') sendConsoleMessage();">
+        <button class="console-send" id="consoleSendBtn" onclick="sendConsoleMessage()">Kirim</button>
+      </div>
+    </div>
+
   </div>
 
   <div id="deniedContent" class="hidden">
@@ -203,6 +261,9 @@ body{
 <script>
 let allCommands = [];
 let activeFilter = "all";
+let consoleChatId = "web-console";
+let consoleUsername = "admin";
+let consoleSending = false;
 
 async function initPage(){
   if(!(await isLoggedIn())){
@@ -216,6 +277,9 @@ async function initPage(){
     document.getElementById("deniedContent").classList.remove("hidden");
     return;
   }
+
+  consoleUsername = getCurrentUser() || "admin";
+  consoleChatId = "web:" + consoleUsername;
 
   document.getElementById("mainContent").classList.remove("hidden");
   await loadCommands();
@@ -321,6 +385,74 @@ function escapeHtml(str){
   const div = document.createElement("div");
   div.textContent = str == null ? "" : String(str);
   return div.innerHTML;
+}
+
+function toggleConsole(){
+  const panel = document.getElementById("consolePanel");
+  const toggle = document.getElementById("consoleToggle");
+  panel.classList.toggle("hidden");
+  toggle.classList.toggle("open");
+  if(!panel.classList.contains("hidden")){
+    document.getElementById("consoleInput").focus();
+  }
+}
+
+function appendConsoleBubble(role, text, tag){
+  const msgs = document.getElementById("consoleMsgs");
+  const empty = document.getElementById("consoleEmpty");
+  if(empty) empty.remove();
+
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.flexDirection = "column";
+  wrap.style.alignItems = role === "user" ? "flex-end" : "flex-start";
+
+  const bubble = document.createElement("div");
+  bubble.className = "console-bubble " + role + (tag === "error" ? " error" : "");
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+
+  if(tag && role === "bot"){
+    const tagEl = document.createElement("div");
+    tagEl.className = "console-tag";
+    tagEl.textContent = tag === "error" ? "gagal" : ("command: " + tag);
+    wrap.appendChild(tagEl);
+  }
+
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendConsoleMessage(){
+  if(consoleSending) return;
+  const input = document.getElementById("consoleInput");
+  const text = input.value.trim();
+  if(!text) return;
+
+  appendConsoleBubble("user", text);
+  input.value = "";
+
+  consoleSending = true;
+  const btn = document.getElementById("consoleSendBtn");
+  btn.disabled = true;
+  btn.textContent = "...";
+
+  const result = await apiRequest("/api/settings?action=botConsole", {
+    method: "POST",
+    body: JSON.stringify({ text, chatId: consoleChatId, username: consoleUsername }),
+  });
+
+  consoleSending = false;
+  btn.disabled = false;
+  btn.textContent = "Kirim";
+
+  if(!result.success){
+    appendConsoleBubble("bot", result.message || "Gagal menghubungi bot.", "error");
+    return;
+  }
+
+  appendConsoleBubble("bot", result.replyText || "(tidak ada balasan)", result.matchedCommand);
+  input.focus();
 }
 
 initPage();
