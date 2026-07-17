@@ -8,10 +8,15 @@
 // DELETE /api/jalur?id=..          -> hapus jalur (cascade ke tower & span)
 
 const { sql } = require('../lib/db');
+const { isBotRequestValid } = require('../lib/bot-auth');
 
 module.exports = async (req, res) => {
   try {
     const { id: qId } = req.query || {};
+
+    if (req.method !== 'GET' && !isBotRequestValid(req)) {
+      return res.status(401).json({ success: false, message: 'Bot key tidak valid.' });
+    }
 
     if (req.method === 'GET') {
       const rows = await sql`
