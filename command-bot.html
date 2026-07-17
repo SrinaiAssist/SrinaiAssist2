@@ -28,6 +28,7 @@
   --line:rgba(255,255,255,.08);
   --red:#E0504A;
   --teal:#3FD9C7;
+  --green:#3DDC84;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
@@ -85,6 +86,8 @@ body{
   display:flex;gap:8px;align-items:flex-start;
 }
 .sync-badge svg{flex-shrink:0;margin-top:1px;}
+.sync-badge.connected{background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.25);color:rgba(255,255,255,.7);}
+.sync-badge.error{background:rgba(224,80,74,.08);border:1px solid rgba(224,80,74,.25);color:rgba(255,255,255,.75);}
 
 /* ===== Chat area ===== */
 .chat-area{flex:1;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:3px;}
@@ -181,9 +184,9 @@ textarea::placeholder{color:rgba(255,255,255,.4);}
     <svg preserveAspectRatio="none" viewBox="0 0 400 14"><path d="M0 7 Q 50 14, 100 7 T 200 7 T 300 7 T 400 7" stroke="#1C3D7A" stroke-width="1.5" fill="none" opacity="0.8"/></svg>
   </div>
 
-  <div class="sync-badge">
+  <div class="sync-badge" id="syncBadge">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    <span>Tahap 1: tampilan CommandBot. Command belum tersambung ke data live — balasan masih simulasi sampai tahap sinkronisasi ke Ruang Kerja SrinAI selesai.</span>
+    <span>Menyambungkan ke Ruang Kerja SrinAI...</span>
   </div>
 
   <div id="chatArea" class="chat-area"></div>
@@ -203,23 +206,16 @@ textarea::placeholder{color:rgba(255,255,255,.4);}
 </div>
 
 <script>
-let currentUser, currentRole;
+let currentUser, currentRole, consoleChatId;
 
 /*
- * TAHAP 1 — daftar command masih statis (hardcode) di sini.
- * TAHAP 2 (sinkronisasi) akan mengganti COMMAND_MENU ini dengan hasil fetch
- * ke /api/settings?action=botCommands (endpoint yang sudah ada, dipakai juga
- * oleh workspace-command.html) supaya nomor & daftar otomatis mengikuti
- * command yang statusnya "live" di Botlab, tanpa perlu edit file ini lagi.
+ * TAHAP 2 — SINKRON. Daftar command diambil live dari
+ * /api/settings?action=botCommands (endpoint yang sama dipakai
+ * workspace-command.html), difilter yang status-nya "live" di Botlab.
+ * Balasan tiap command diambil live dari /api/settings?action=botConsole
+ * (dikirim ke bot Telegram/Botlab, bukan simulasi lagi).
  */
-const COMMAND_MENU = [
-  { number: 1, label: "Info Span" },
-  { number: 2, label: "Info Tegakan" },
-  { number: 3, label: "Info Tower" },
-  { number: 4, label: "Info Jalur" },
-  { number: 5, label: "Tambah Tegakan" },
-  { number: 6, label: "Buat BA" },
-];
+let botCommands = [];
 
 const GREETING_INTRO = "Halo! 👋 Data apa yang mau kamu cek atau kerjakan? Balas dengan angkanya:";
 const BOT_NAME = "CommandBot";
@@ -233,8 +229,30 @@ async function initPage(){
   currentUser = getCurrentUser();
   currentRole = getCurrentRole();
   document.getElementById("userInfo").innerHTML = currentUser + " · " + currentRole.toUpperCase();
+  consoleChatId = "web:" + currentUser;
 
+  await loadCommands();
   showMenu(false);
+}
+
+async function loadCommands(){
+  const badge = document.getElementById("syncBadge");
+  const result = await apiRequest("/api/settings?action=botCommands", { method: "GET" });
+
+  if(!result.success){
+    botCommands = [];
+    badge.className = "sync-badge error";
+    badge.innerHTML =
+      `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>` +
+      `<span>Gagal sinkron ke Ruang Kerja SrinAI: ${escapeHtml(result.message || "kesalahan tidak diketahui")}. Kamu masih bisa ketik command, tapi menu nomor di bawah belum bisa dimuat.</span>`;
+    return;
+  }
+
+  botCommands = (result.commands || []).filter(c => c.status === "live");
+  badge.className = "sync-badge connected";
+  badge.innerHTML =
+    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>` +
+    `<span>Tersambung ke Ruang Kerja SrinAI — ${botCommands.length} command live siap dipakai. Balasan diambil langsung dari Botlab.</span>`;
 }
 
 function getTimeLabel(){
@@ -279,9 +297,12 @@ function addMyRow(text){
 }
 
 function menuChipsHtml(){
-  return `<div class="menu-chips">` + COMMAND_MENU.map(c =>
-    `<button class="menu-chip" onclick="pickNumber(${c.number})">
-      <span class="num">${c.number}</span><span class="txt">${escapeHtml(c.label)}</span>
+  if(botCommands.length === 0){
+    return `<div class="menu-chips"><div class="menu-chip" style="cursor:default;"><span class="txt">Belum ada command live dari Ruang Kerja SrinAI saat ini.</span></div></div>`;
+  }
+  return `<div class="menu-chips">` + botCommands.map((c, i) =>
+    `<button class="menu-chip" onclick="pickNumber(${i + 1})">
+      <span class="num">${i + 1}</span><span class="txt">${escapeHtml(c.name || c.description || c.triggerText)}</span>
     </button>`
   ).join("") + `</div>`;
 }
@@ -315,7 +336,8 @@ function removeTyping(){
 }
 
 function pickNumber(n){
-  document.getElementById("message").value = String(n);
+  const cmd = botCommands[n - 1];
+  document.getElementById("message").value = cmd ? (cmd.triggerText || String(n)) : String(n);
   sendMessage();
 }
 
@@ -328,39 +350,33 @@ async function sendMessage(){
   input.value = "";
   autoGrow(input);
 
-  const sendBtn = document.getElementById("sendBtn");
-  sendBtn.disabled = true;
-  showTyping();
-
-  await new Promise(r => setTimeout(r, 500));
-  removeTyping();
-  handleReply(text);
-
-  sendBtn.disabled = false;
-}
-
-function handleReply(rawText){
-  const text = rawText.trim().toLowerCase();
-
-  if(text === "menu" || text === "help" || text === "bantuan"){
+  const lower = text.toLowerCase();
+  if(lower === "menu" || lower === "help" || lower === "bantuan"){
     showMenu(true);
     return;
   }
 
-  const asNumber = Number(text);
-  const match = COMMAND_MENU.find(c => c.number === asNumber);
+  const sendBtn = document.getElementById("sendBtn");
+  sendBtn.disabled = true;
+  showTyping();
 
-  if(match){
+  const result = await apiRequest("/api/settings?action=botConsole", {
+    method: "POST",
+    body: JSON.stringify({ text, chatId: consoleChatId, username: currentUser }),
+  });
+
+  removeTyping();
+
+  if(!result.success){
     addBotRow(
-      `🔧 <b>${escapeHtml(match.label)}</b><br>` +
-      `Command ini belum tersambung ke data live ya — masih tahap 1 (tampilan saja). ` +
-      `Begitu tahap sinkronisasi ke Ruang Kerja SrinAI selesai, ketik <b>${match.number}</b> di sini bakal langsung ambil datanya. 🙏`
+      `⚠️ Gagal menghubungi Botlab: ${escapeHtml(result.message || "kesalahan tidak diketahui")}.<br>` +
+      `Coba lagi, atau ketik <b>menu</b> untuk lihat daftar command.`
     );
   } else {
-    addBotRow(
-      `Nomor <b>${escapeHtml(rawText)}</b> gak dikenali. Ketik salah satu nomor di daftar, atau ketik <b>menu</b> untuk lihat lagi.`
-    );
+    addBotRow(escapeHtml(result.replyText || "(tidak ada balasan dari bot)"));
   }
+
+  sendBtn.disabled = false;
 }
 
 function escapeHtml(str){
