@@ -202,6 +202,69 @@ async function handleBackupRestore(req, res) {
   return res.status(200).json({ success: true, summary });
 }
 
+// ─────────────────────────────────────────────────────────
+// KATALOG COMMAND BOT (halaman workspace-command.html, admin only)
+// GET /api/settings?action=botCommands
+//
+// Botlab (bot Telegram) adalah project & Neon database TERPISAH dari
+// SrinaiAssist2 -- jadi ini BUKAN query ke DB sendiri, melainkan proxy
+// server-to-server ke endpoint GET /api/commands milik Botlab, yang
+// sudah lebih dulu ada dan dipakai dashboard Botlab.
+//
+// Kenapa diproxy lewat sini, bukan browser fetch langsung ke Botlab?
+// 1. Botlab tidak mengizinkan CORS dari origin lain -- fetch langsung
+//    dari browser SrinaiAssist2 akan diblokir.
+// 2. BOTLAB_ADMIN_KEY (dipakai buat auth ke Botlab) jadi tetap di
+//    server, tidak pernah terkirim/terlihat di browser.
+//
+// Env var yang WAJIB diisi di Vercel project SrinaiAssist2 (Project
+// Settings > Environment Variables), belum ada sebelumnya:
+//   BOTLAB_API_URL   -> URL deploy Botlab, mis. https://botlab-xxx.vercel.app
+//   BOTLAB_ADMIN_KEY -> HARUS SAMA PERSIS dengan BOTLAB_ADMIN_KEY yang
+//                       sudah diset di project Botlab (itu yang dipakai
+//                       lib/auth.js Botlab buat cek header x-botlab-key).
+//
+// CATATAN: sama seperti endpoint admin lain di app ini (kelola-akun,
+// log-login, dst), proteksi "hanya admin" di sini dilakukan di SISI
+// KLIEN (workspace-command.html cek isAdmin() sebelum manggil endpoint
+// ini) -- bukan lewat token sesi server, karena app ini memang belum
+// pakai session token di server. Konsisten dengan pola yang sudah ada,
+// bukan celah baru.
+async function handleBotCommandsCatalog(res) {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+
+  if (!botlabUrl || !botlabKey) {
+    return res.status(500).json({
+      success: false,
+      message: 'BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.',
+    });
+  }
+
+  try {
+    const upstream = await fetch(`${botlabUrl.replace(/\/+$/, '')}/api/commands`, {
+      method: 'GET',
+      headers: { 'x-botlab-key': botlabKey },
+    });
+    const data = await upstream.json();
+
+    if (!upstream.ok || !data.success) {
+      return res.status(upstream.status || 502).json({
+        success: false,
+        message: data.message || 'Botlab menolak permintaan (cek BOTLAB_ADMIN_KEY cocok di kedua project).',
+      });
+    }
+
+    return res.status(200).json({ success: true, commands: data.commands || [] });
+  } catch (err) {
+    console.error('Gagal ambil katalog command dari Botlab:', err);
+    return res.status(502).json({
+      success: false,
+      message: 'Tidak bisa menghubungi Botlab: ' + err.message,
+    });
+  }
+}
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
@@ -211,6 +274,14 @@ module.exports = async (req, res) => {
       if (req.method === 'POST') return await handleBackupRestore(req, res);
       res.setHeader('Allow', 'GET, POST');
       return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+    }
+
+    if (qAction === 'botCommands') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotCommandsCatalog(res);
     }
 
     if (req.method === 'GET' && qStats === 'db') {
