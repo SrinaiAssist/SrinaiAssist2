@@ -265,6 +265,71 @@ async function handleBotCommandsCatalog(res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────
+// JALANKAN COMMAND BOT DARI WEB (workspace-command.html, admin only)
+// POST /api/settings?action=botConsole
+// body: { text, chatId, username }
+//
+// Proxy server-to-server ke POST /api/lab-console milik Botlab (endpoint
+// ini SUDAH ADA sebelumnya, dipakai dashboard Botlab sendiri buat "chat"
+// simulasi tanpa Telegram). Router Botlab menganggap source ini sebagai
+// 'lab-console' -- artinya command berstatus 'testing' MAUPUN 'live' bisa
+// dijalankan (draft tetap tidak bisa).
+//
+// PENTING: INI BUKAN SANDBOX. Kalau command yang dijalankan menulis data
+// (mis. /tambahtegakan, /edittegakan), datanya BENERAN tersimpan lewat API
+// SrinaiAssist2 yang sama persis dipakai bot Telegram -- bukan simulasi.
+// Sesi command multi-langkah (mis. /catatan yang nunggu beberapa balasan)
+// tetap nyambung selama chatId+username yang dikirim frontend konsisten
+// antar pesan (lihat workspace-command.html: dipakai "web:<username>").
+//
+// Env var: pakai BOTLAB_API_URL & BOTLAB_ADMIN_KEY yang sama dengan
+// handleBotCommandsCatalog di atas.
+async function handleBotConsole(req, res) {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+
+  if (!botlabUrl || !botlabKey) {
+    return res.status(500).json({
+      success: false,
+      message: 'BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.',
+    });
+  }
+
+  const { text, chatId, username } = req.body || {};
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, message: 'text wajib diisi.' });
+  }
+
+  try {
+    const upstream = await fetch(`${botlabUrl.replace(/\/+$/, '')}/api/lab-console`, {
+      method: 'POST',
+      headers: { 'x-botlab-key': botlabKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, chatId, username }),
+    });
+    const data = await upstream.json();
+
+    if (!upstream.ok || !data.success) {
+      return res.status(upstream.status || 502).json({
+        success: false,
+        message: data.message || 'Botlab menolak permintaan (cek BOTLAB_ADMIN_KEY cocok di kedua project).',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      replyText: data.replyText,
+      matchedCommand: data.matchedCommand,
+    });
+  } catch (err) {
+    console.error('Gagal jalankan command lewat Botlab lab-console:', err);
+    return res.status(502).json({
+      success: false,
+      message: 'Tidak bisa menghubungi Botlab: ' + err.message,
+    });
+  }
+}
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
@@ -282,6 +347,14 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBotCommandsCatalog(res);
+    }
+
+    if (qAction === 'botConsole') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotConsole(req, res);
     }
 
     if (req.method === 'GET' && qStats === 'db') {
