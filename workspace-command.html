@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Ruang Kerja SrinAI - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A5E;
+  --navy-deep:#051433;
+  --gold:#F4B400;
+  --gold-deep:#C98E00;
+  --bg:#0D1B36;
+  --green:#3DDC84;
+  --red:#E0504A;
+  --muted:#7C8AAE;
+  --line:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(244,180,0,.10), transparent 45%),
+    radial-gradient(circle at 100% 30%, rgba(28,61,122,.35), transparent 55%),
+    var(--bg);
+  color:white;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.hidden{display:none !important;}
+.container{max-width:560px;margin:auto;min-height:100vh;display:flex;flex-direction:column;}
+
+.header{
+  flex-shrink:0;background:linear-gradient(165deg, var(--navy) 0%, var(--navy-deep) 100%);
+  padding:18px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.header-row{display:flex;align-items:center;gap:12px;}
+.back-circle{
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+}
+.header-text{flex:1;min-width:0;}
+.header-text h1{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+.header-text p{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+.refresh-circle{
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border:none;color:white;
+}
+.refresh-circle.spinning svg{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.note-strip{
+  margin:14px 16px 0;padding:10px 12px;border-radius:12px;font-size:11px;line-height:1.5;
+  background:rgba(244,180,0,.08);border:1px solid rgba(244,180,0,.2);color:rgba(255,255,255,.7);
+}
+
+/* ===== Stat strip ===== */
+.stat-strip{display:flex;gap:8px;padding:14px 16px 0;flex-shrink:0;}
+.stat-card{
+  flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:14px;padding:11px 12px;
+}
+.stat-card .num{font-size:20px;font-weight:800;}
+.stat-card .label{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.stat-card.live .num{color:var(--green);}
+.stat-card.testing .num{color:var(--gold);}
+
+/* ===== Filter bar ===== */
+.filter-bar{display:flex;gap:8px;padding:14px 16px;flex-shrink:0;overflow-x:auto;}
+.filter-chip{
+  padding:8px 14px;border-radius:20px;background:rgba(255,255,255,.06);
+  border:1px solid var(--line);font-size:12.5px;font-weight:600;color:rgba(255,255,255,.7);
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+}
+.filter-chip.active{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.search-row{padding:0 16px 14px;flex-shrink:0;}
+.search-input{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);
+  border-radius:12px;padding:10px 14px;color:white;font-size:13px;font-family:inherit;outline:none;
+}
+.search-input::placeholder{color:var(--muted);}
+
+/* ===== Command list ===== */
+.cmd-list{flex:1;padding:0 16px 24px;display:flex;flex-direction:column;gap:8px;}
+.cmd-card{
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  border-radius:14px;padding:13px 14px;
+}
+.cmd-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.cmd-trigger{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;color:var(--gold);}
+.cmd-status{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+  padding:3px 8px;border-radius:6px;flex-shrink:0;white-space:nowrap;
+}
+.cmd-status.live{background:rgba(61,220,132,.15);color:var(--green);}
+.cmd-status.testing{background:rgba(244,180,0,.15);color:var(--gold);}
+.cmd-status.draft{background:rgba(255,255,255,.08);color:var(--muted);}
+.cmd-desc{font-size:12px;color:rgba(255,255,255,.65);margin-top:5px;line-height:1.5;}
+.cmd-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.cmd-meta span{font-size:10px;color:var(--muted);background:rgba(255,255,255,.05);padding:3px 8px;border-radius:8px;}
+
+.empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:var(--muted);padding:60px 30px;gap:10px;
+}
+.empty-state svg{width:40px;height:40px;opacity:.35;}
+.empty-state b{color:rgba(255,255,255,.65);font-size:14px;}
+
+.error-state{
+  margin:14px 16px 0;padding:14px;border-radius:12px;background:rgba(224,80,74,.08);
+  border:1px solid rgba(224,80,74,.25);font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;
+}
+
+.access-denied{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px;gap:14px;
+}
+.access-denied svg{width:48px;height:48px;color:var(--red);}
+.access-denied b{font-size:16px;}
+.access-denied span{font-size:13px;color:var(--muted);max-width:280px;line-height:1.5;}
+.access-denied a{
+  margin-top:8px;padding:10px 20px;background:var(--gold);color:var(--navy-deep);
+  border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <div class="header-row">
+      <a href="dashboard.html" class="back-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="header-text">
+        <h1>🧰 Ruang Kerja SrinAI</h1>
+        <p id="userInfo"></p>
+      </div>
+      <button class="refresh-circle" id="refreshBtn" onclick="loadCommands()" title="Muat ulang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="mainContent" class="hidden">
+
+    <div class="note-strip">
+      Katalog ini menampilkan seluruh command bot Telegram (Botlab) apa adanya — read only, diambil langsung dari database Botlab. Untuk menambah/ubah/hapus command, tetap dari dashboard Botlab.
+    </div>
+
+    <div class="stat-strip">
+      <div class="stat-card live">
+        <div class="num" id="statLive">0</div>
+        <div class="label">Live</div>
+      </div>
+      <div class="stat-card testing">
+        <div class="num" id="statTesting">0</div>
+        <div class="label">Testing</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statTotal">0</div>
+        <div class="label">Total command</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">Semua</div>
+      <div class="filter-chip" data-filter="live" onclick="setFilter('live')">🟢 Live</div>
+      <div class="filter-chip" data-filter="testing" onclick="setFilter('testing')">🟡 Testing</div>
+      <div class="filter-chip" data-filter="draft" onclick="setFilter('draft')">⚪ Draft</div>
+    </div>
+
+    <div class="search-row">
+      <input type="text" class="search-input" id="searchInput" placeholder="Cari nama, trigger, atau deskripsi..." oninput="renderCommands()">
+    </div>
+
+    <div id="errorBox"></div>
+    <div id="cmdList" class="cmd-list"></div>
+
+  </div>
+
+  <div id="deniedContent" class="hidden">
+    <div class="access-denied">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <b>Akses Khusus Admin</b>
+      <span>Ruang Kerja SrinAI (katalog command bot) hanya bisa dilihat oleh Administrator.</span>
+      <a href="dashboard.html">Kembali ke Dashboard</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allCommands = [];
+let activeFilter = "all";
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href = "index.html";
+    return;
+  }
+
+  document.getElementById("userInfo").innerHTML = getCurrentUser();
+
+  if(!isAdmin()){
+    document.getElementById("deniedContent").classList.remove("hidden");
+    return;
+  }
+
+  document.getElementById("mainContent").classList.remove("hidden");
+  await loadCommands();
+}
+
+async function loadCommands(){
+  const btn = document.getElementById("refreshBtn");
+  const errorBox = document.getElementById("errorBox");
+  btn.classList.add("spinning");
+  errorBox.innerHTML = "";
+
+  const result = await apiRequest("/api/settings?action=botCommands", { method: "GET" });
+
+  btn.classList.remove("spinning");
+
+  if(!result.success){
+    allCommands = [];
+    errorBox.innerHTML = `<div class="error-state">Gagal memuat katalog dari Botlab: ${result.message || "kesalahan tidak diketahui"}.<br><br>Cek BOTLAB_API_URL &amp; BOTLAB_ADMIN_KEY di environment variables project SrinaiAssist2 (harus sama persis dengan yang ada di project Botlab).</div>`;
+    renderStats();
+    renderCommands();
+    return;
+  }
+
+  allCommands = result.commands || [];
+  renderStats();
+  renderCommands();
+}
+
+function setFilter(filter){
+  activeFilter = filter;
+  document.querySelectorAll(".filter-chip").forEach(chip=>{
+    chip.classList.toggle("active", chip.dataset.filter === filter);
+  });
+  renderCommands();
+}
+
+function renderStats(){
+  const live = allCommands.filter(c=>c.status === "live").length;
+  const testing = allCommands.filter(c=>c.status === "testing").length;
+  document.getElementById("statLive").textContent = live;
+  document.getElementById("statTesting").textContent = testing;
+  document.getElementById("statTotal").textContent = allCommands.length;
+}
+
+function statusLabel(status){
+  if(status === "live") return "🟢 Live";
+  if(status === "testing") return "🟡 Testing";
+  return "⚪ Draft";
+}
+
+function formatTime(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  return d.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}) + " · " + d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+}
+
+function renderCommands(){
+  const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+  const list = document.getElementById("cmdList");
+
+  let filtered = allCommands.filter(c=>{
+    if(activeFilter !== "all" && c.status !== activeFilter) return false;
+    if(!q) return true;
+    return (c.name || "").toLowerCase().includes(q)
+        || (c.triggerText || "").toLowerCase().includes(q)
+        || (c.description || "").toLowerCase().includes(q);
+  });
+
+  filtered.sort((a,b)=>{
+    const order = { live: 0, testing: 1, draft: 2 };
+    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+  });
+
+  if(filtered.length === 0){
+    list.innerHTML = "";
+    list.insertAdjacentHTML("beforebegin", "");
+    document.getElementById("cmdList").innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <b>Tidak ada command</b>
+        <span>Coba ubah filter atau kata pencarian.</span>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(c=>`
+    <div class="cmd-card">
+      <div class="cmd-top">
+        <span class="cmd-trigger">${escapeHtml(c.triggerText || c.name)}</span>
+        <span class="cmd-status ${c.status}">${statusLabel(c.status)}</span>
+      </div>
+      ${c.description ? `<div class="cmd-desc">${escapeHtml(c.description)}</div>` : ""}
+      <div class="cmd-meta">
+        <span>name: ${escapeHtml(c.name)}</span>
+        ${c.groupScope ? `<span>scope: ${escapeHtml(c.groupScope)}</span>` : `<span>scope: semua grup</span>`}
+        ${formatTime(c.updatedAt) ? `<span>update: ${formatTime(c.updatedAt)}</span>` : ""}
+      </div>
+    </div>
+  `).join("");
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+initPage();
+</script>
+</body>
+</html>
