@@ -447,6 +447,13 @@ body{
         <div class="sub">Siapa saja yang login & kapan terakhir</div>
       </div>
     </a>
+    <a class="side-nav-item" id="sideRuangKerja" href="workspace-command.html" style="display:none;">
+      <div class="icon">🧰</div>
+      <div>
+        <div class="label">Ruang Kerja SrinAI</div>
+        <div class="sub">Katalog command bot Telegram (Botlab)</div>
+      </div>
+    </a>
 
     <div class="side-settings-box" id="sideInfoSpanAccessBox" style="display:none;">
       <div class="side-settings-title">📍 Akses Informasi Span</div>
@@ -762,6 +769,7 @@ async function initPage(){
   if(typeof isAdmin === "function" && isAdmin()){
     document.getElementById("sideKelolaAkun").style.display = "flex";
     document.getElementById("sideLogLogin").style.display = "flex";
+    document.getElementById("sideRuangKerja").style.display = "flex";
     document.getElementById("sideInfoSpanAccessBox").style.display = "block";
     loadSideInfoSpanAccess();
   }
