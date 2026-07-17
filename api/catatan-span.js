@@ -16,10 +16,15 @@
 
 const { sql } = require('../lib/db');
 const { uploadPhotoToDrive } = require('../lib/googleDrive');
+const { isBotRequestValid } = require('../lib/bot-auth');
 
 module.exports = async (req, res) => {
   try {
     const { spanId: qSpanId, towerId: qTowerId, id: qId, evidence: qEvidence } = req.query || {};
+
+    if (req.method !== 'GET' && !isBotRequestValid(req)) {
+      return res.status(401).json({ success: false, message: 'Bot key tidak valid.' });
+    }
 
     if (req.method === 'GET') {
       if (qEvidence === 'true' || qEvidence === '1') {
