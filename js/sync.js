@@ -475,6 +475,17 @@ async function _refreshAllTegakanGrouped() {
       if (!bySpan[item.spanId]) bySpan[item.spanId] = [];
       bySpan[item.spanId].push(item);
     });
+
+    // PENTING: hapus dulu SEMUA cache tegakan per-span yang ada sebelum
+    // ditulis ulang. Tanpa ini, span yang tegakannya sudah 0 (semua item
+    // baru saja dihapus) tidak akan pernah muncul di `bySpan` di atas --
+    // jadi cache lamanya (masih berisi tegakan yang sudah dihapus) tidak
+    // pernah ditimpa/dibersihkan, walau Sinkron sudah dijalankan.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("srinai_cache_tegakan_") === 0) localStorage.removeItem(k);
+    }
+
     Object.keys(bySpan).forEach(spanId => {
       _cacheSet(_spanTegakanKey(spanId), bySpan[spanId]);
     });
