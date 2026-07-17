@@ -229,6 +229,11 @@ const GREETING_INTRO = "Halo! 👋 Data apa yang mau kamu cek atau kerjakan? Bal
 const BOT_NAME = "CommandBot";
 
 async function initPage(){
+  if(localStorage.getItem("srinai_theme") === "fieldlog"){
+    location.href = "command-bot-fieldlog.html";
+    return;
+  }
+
   if(!(await isLoggedIn())){
     location.href = "index.html";
     return;
