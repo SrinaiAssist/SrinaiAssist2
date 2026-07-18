@@ -115,11 +115,6 @@ body{
 <div class="container">
 
   <div>
-    <div class="theme-switch">
-      <div class="theme-pill" onclick="switchTheme('default')">Tema Klasik</div>
-      <div class="theme-pill active">Buku Lapangan</div>
-    </div>
-
     <div class="topbar">
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M12 7l2.5 4.5L9.5 16.5 12 7z"/></svg>
@@ -158,11 +153,6 @@ body{
 </div>
 
 <script>
-function switchTheme(theme){
-  localStorage.setItem("srinai_theme", theme);
-  location.href = "index.html";
-}
-
 (async function init() {
   // Redirect jika sudah login
   if (typeof isLoggedIn === "function" && await isLoggedIn()) {
@@ -194,7 +184,6 @@ async function login() {
 
   const result = await loginUser(username, password);
   if (result.success) {
-    localStorage.setItem("srinai_theme", "fieldlog");
     location.href = "dashboard-fieldlog.html";
     return;
   }

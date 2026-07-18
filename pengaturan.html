@@ -121,12 +121,14 @@ textarea.field-input{
   resize:none;outline:none;
 }
 textarea.field-input:focus{border-color:rgba(74,142,245,0.4);}
-input.field-input{
+input.field-input,
+select.field-input{
   width:100%;background:var(--bg-card2);border:1px solid var(--border);
   border-radius:11px;padding:11px 13px;
   color:var(--ink);font-family:inherit;font-size:13.5px;outline:none;
 }
-input.field-input:focus{border-color:rgba(74,142,245,0.4);}
+input.field-input:focus,
+select.field-input:focus{border-color:rgba(74,142,245,0.4);}
 
 /* Widget pemakaian AI (mirip db-storage-card di dashboard.html) */
 .ai-usage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -247,6 +249,16 @@ input.field-input:focus{border-color:rgba(74,142,245,0.4);}
 
       <div class="info-box">
         📍 Pengaturan akses halaman <b>Informasi Span</b> sekarang ada di <b>Dashboard</b> → menu sidebar (☰), khusus Admin & Koordinator.
+      </div>
+
+      <div class="card">
+        <div class="card-title gold">🎨 Tampilan Tema</div>
+        <div class="card-desc">Tema tampilan berlaku untuk SEMUA pengguna di semua perangkat. Setelah disimpan, halaman lain akan otomatis menyesuaikan saat dibuka ulang.</div>
+        <select class="field-input" id="themeSelect">
+          <option value="default">Klasik (Navy &amp; Emas)</option>
+          <option value="fieldlog">Buku Lapangan</option>
+        </select>
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="saveTheme()">Simpan Tema</button>
       </div>
 
       <div class="card">
@@ -382,10 +394,21 @@ async function initPage(){
   }
 
   if(isAdmin()){
+    const themeSelect = document.getElementById("themeSelect");
+    if(themeSelect){
+      const savedTheme = await getAppSetting("appTheme");
+      themeSelect.value = savedTheme === "fieldlog" ? "fieldlog" : "default";
+    }
     await loadLoginPreview("logo");
     await loadLoginPreview("background");
     loadAiUsage();
   }
+}
+
+async function saveTheme(){
+  const value = document.getElementById("themeSelect").value;
+  await setAppSetting("appTheme", value);
+  alert("Tema berhasil disimpan. Halaman lain akan otomatis menyesuaikan saat dibuka ulang.");
 }
 
 async function saveNotice(){

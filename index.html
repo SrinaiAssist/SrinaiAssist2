@@ -224,11 +224,6 @@
 
   <div class="grid-dots"></div>
 
-  <div class="theme-switch">
-    <div class="theme-pill active">Tema Klasik</div>
-    <div class="theme-pill" onclick="switchTheme('fieldlog')">Buku Lapangan</div>
-  </div>
-
   <div class="stage">
 
     <div class="line-wrap">
@@ -288,18 +283,7 @@
 </div>
 
 <script>
-function switchTheme(theme){
-  localStorage.setItem("srinai_theme", theme);
-  location.href = "index-fieldlog.html";
-}
-
 (async function init() {
-  // Kalau tema tersimpan adalah "fieldlog", arahkan ke halaman login tema Buku Lapangan
-  if (localStorage.getItem("srinai_theme") === "fieldlog") {
-    location.href = "index-fieldlog.html";
-    return;
-  }
-
   // Redirect jika sudah login
   if (typeof isLoggedIn === "function" && await isLoggedIn()) {
     location.href = "dashboard.html";
@@ -344,7 +328,6 @@ async function login() {
 
   const result = await loginUser(username, password);
   if (result.success) {
-    localStorage.setItem("srinai_theme", "default");
     location.href = "dashboard.html";
     return;
   }
