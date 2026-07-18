@@ -53,3 +53,18 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_entity     ON activity_logs(entity_type, entity_id);
+
+-- ─────────────────────────────────────────────────────────
+-- MIGRASI: Notifikasi CommandBot (rekap harian "span belum ada tegakan"
+-- + badge/getar ikon CommandBot untuk notif belum terbaca)
+-- Jalankan blok di bawah ini satu kali di Neon SQL editor.
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS bot_notifications (
+    id         SERIAL PRIMARY KEY,
+    username   TEXT NOT NULL REFERENCES accounts(username) ON DELETE CASCADE,
+    type       TEXT NOT NULL,           -- 'span_belum_tegakan' (bisa ditambah jenis lain nanti)
+    payload    JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    read_at    TIMESTAMPTZ              -- NULL = belum dibaca
+);
+CREATE INDEX IF NOT EXISTS idx_bot_notif_unread ON bot_notifications(username) WHERE read_at IS NULL;
