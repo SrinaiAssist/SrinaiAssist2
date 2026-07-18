@@ -411,13 +411,33 @@ async function fetchAppContext() {
     const spanUrl = jalurId
       ? `/api/span?jalurId=${encodeURIComponent(jalurId)}`
       : `/api/span`;
-    const [spanRes, tegakanRes] = await Promise.all([
+    const [spanRes, tegakanRes, botCommandsResult] = await Promise.all([
       fetch(spanUrl),
-      fetch(`/api/tegakan?includeTtd=false`)
+      fetch(`/api/tegakan?includeTtd=false`),
+      // Katalog command CommandBot (sama data yang tampil di halaman "Ruang
+      // Kerja SrinAI" / workspace-command.html) -- supaya SrinAI bisa jawab
+      // pertanyaan soal command bot dari data asli, dan tahu trigger_text
+      // apa saja yang valid untuk ACTION run_bot_command. Gagal ambil ini
+      // TIDAK BOLEH bikin seluruh context gagal -- cukup botCommands kosong.
+      apiRequest("/api/settings?action=botCommands", { method: "GET" }).catch((e) => {
+        console.warn("Gagal ambil katalog command bot:", e);
+        return null;
+      }),
     ]);
 
     const spanData  = spanRes.ok  ? await spanRes.json()  : { span: [] };
     const tegakanData = tegakanRes.ok ? await tegakanRes.json() : { tegakan: [] };
+
+    // Cuma kirim field yang AI butuh (name, trigger, deskripsi, status) --
+    // buang timestamp/group_scope dll supaya context tetap ringkas.
+    const botCommands = (botCommandsResult && botCommandsResult.success && Array.isArray(botCommandsResult.commands))
+      ? botCommandsResult.commands.map(c => ({
+          name: c.name,
+          triggerText: c.trigger_text,
+          description: c.description || "",
+          status: c.status,
+        }))
+      : [];
 
     // PENTING: ttdData berisi foto tanda tangan dalam base64 (bisa ratusan
     // KB per tegakan). AI tidak butuh lihat gambar TTD untuk jawab
@@ -457,6 +477,7 @@ async function fetchAppContext() {
       totalTegakan: tegakanRingkas.length,
       baData: JSON.parse(localStorage.getItem("baData") || "[]"),
       jadwal: JSON.parse(localStorage.getItem("jadwalData") || "[]"),
+      botCommands,
     };
   } catch (e) {
     console.warn("fetchAppContext gagal:", e);
@@ -662,6 +683,53 @@ function handleGenerateBaAction(action, appContext){
   saveChat(); loadChat();
 }
 
+/* =========================================================
+   INTEGRASI COMMANDBOT — jalankan command bot beneran dari chat
+   SrinAI (ACTION run_bot_command dari backend, lihat api/gemini.js).
+
+   chatId dibuat PERSIS sama dengan konvensi command-bot.html &
+   workspace-command.html ("web:<username>") supaya berbagi satu
+   sesi "web" yang konsisten per user lintas ketiga halaman itu.
+
+   sessionActive disimpan di localStorage (bukan cuma variabel JS)
+   supaya kalau halaman di-reload di tengah command multi-langkah
+   (mis. /tambahtegakan yang masih nunggu beberapa isian), SrinAI
+   tetap ingat harus meneruskan pesan berikutnya langsung ke
+   CommandBot, bukan balik nanya ke AI dari awal.
+========================================================= */
+const botCommandSessionKey = "aiCommandSession_" + chatOwner;
+let botCommandSessionActive = localStorage.getItem(botCommandSessionKey) === "1";
+
+function setBotCommandSessionActive(active){
+  botCommandSessionActive = !!active;
+  if(botCommandSessionActive){
+    localStorage.setItem(botCommandSessionKey, "1");
+  } else {
+    localStorage.removeItem(botCommandSessionKey);
+  }
+}
+
+async function runBotCommand(text){
+  const result = await apiRequest("/api/settings?action=botConsole", {
+    method: "POST",
+    body: JSON.stringify({ text, chatId: "web:" + chatOwner, username: chatOwner })
+  });
+
+  if(!result || result.success === false){
+    // Gagal total (mis. BOTLAB_API_URL belum diset) -- jangan anggap sesi
+    // masih jalan, biar user tidak "nyangkut" harus /batal buat sesi yang
+    // sebenarnya tidak pernah benar-benar mulai.
+    setBotCommandSessionActive(false);
+    chatData.push({ user:"SrinAI 🤖", text: "⚠️ Gagal jalanin command lewat CommandBot: " + (result && result.message ? result.message : "kesalahan tidak diketahui") });
+    saveChat(); loadChat();
+    return;
+  }
+
+  setBotCommandSessionActive(!!result.sessionActive);
+  chatData.push({ user:"SrinAI 🤖", text: result.replyText || "(command tidak mengembalikan balasan)" });
+  saveChat(); loadChat();
+}
+
 async function sendMessage(){
   const input = document.getElementById("message");
   const sendBtn = document.getElementById("sendBtn");
@@ -680,6 +748,22 @@ async function sendMessage(){
   saveChat();
   loadChat();
   input.value="";
+
+  // Sesi CommandBot lagi jalan (mis. di tengah alur /tambahtegakan yang
+  // nanya beberapa isian satu-satu) -- pesan ini PASTI lanjutan buat
+  // command itu, teruskan LANGSUNG ke CommandBot. AI TIDAK diajak bicara
+  // sama sekali selama sesi berlangsung (termasuk kalau user ketik /batal).
+  if(botCommandSessionActive){
+    sendBtn.disabled = true;
+    showTypingIndicator();
+    try{
+      await runBotCommand(text);
+    } finally {
+      removeTypingIndicator();
+      sendBtn.disabled = false;
+    }
+    return;
+  }
 
   if(!isRequestingBAGeneration(text) && isAskingForBA(text)){
     handleCariBA(text);
@@ -706,7 +790,11 @@ async function sendMessage(){
     saveChat();
     loadChat();
     if(result.action){
-      handleGenerateBaAction(result.action, result.appContext);
+      if(result.action.type === "run_bot_command" && result.action.text){
+        await runBotCommand(result.action.text);
+      } else {
+        handleGenerateBaAction(result.action, result.appContext);
+      }
     }
   } catch(err){
     removeTypingIndicator();
