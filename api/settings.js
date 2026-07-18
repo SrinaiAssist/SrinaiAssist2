@@ -6,6 +6,17 @@
 //        body: { key, value }
 // DELETE /api/settings?key=..               -> hapus satu setting (reset ke default)
 //
+// GET    /api/settings?action=botNotify&username=..   -> notif CommandBot
+//        belum terbaca untuk 1 user (rekap harian "span belum ada tegakan")
+// POST   /api/settings?action=botNotifyRead body:{username, id?}
+//        -> tandai notif dibaca (tanpa id = tandai semua punya user itu)
+// GET    /api/settings?action=botNotifyCron -> dipanggil Vercel Cron sekali
+//        sehari (lihat vercel.json), diproteksi header
+//        Authorization: Bearer <CRON_SECRET>
+// (Digabung di sini, bukan file /api terpisah, supaya tidak menambah slot
+// serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
+// dan project ini sudah pas di batas itu.)
+//
 // PENTING (perbaikan kuota transfer Neon): 5 key berikut berisi gambar yang
 // bisa cukup besar (logo/background/contoh layout BA & halaman login):
 //   baLogo, baBackground, baContohLayout, loginLogo, loginBackground
@@ -330,6 +341,99 @@ async function handleBotConsole(req, res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────
+// NOTIF COMMANDBOT (rekap harian "span belum ada tegakan" + badge/getar
+// ikon CommandBot untuk notif belum terbaca -- lihat command-bot.html,
+// command-bot-fieldlog.html, dashboard.html, dashboard-fieldlog.html)
+// Tabel bot_notifications: lihat migrasi di scripts/schema.sql.
+
+function isCronRequestValid(req) {
+  const auth = req.headers['authorization'] || '';
+  if (!process.env.CRON_SECRET) {
+    console.warn('CRON_SECRET belum diset -- endpoint cron akan selalu ditolak.');
+    return false;
+  }
+  return auth === `Bearer ${process.env.CRON_SECRET}`;
+}
+
+// Untuk satu username: span yang ada di profil (span_ids) TAPI belum
+// punya satu pun baris di tabel tegakan.
+async function findSpanBelumTegakan(username) {
+  const profRows = await sql`SELECT span_ids FROM profiles WHERE username = ${username}`;
+  const spanIds = profRows[0]?.span_ids;
+  if (!Array.isArray(spanIds) || spanIds.length === 0) return [];
+
+  const rows = await sql`
+    SELECT s.id, s.jalur_id AS "jalurId", s.nomor
+    FROM span s
+    WHERE s.id = ANY(${spanIds})
+      AND NOT EXISTS (SELECT 1 FROM tegakan t WHERE t.span_id = s.id)
+    ORDER BY s.jalur_id, s.nomor
+  `;
+  return rows;
+}
+
+async function runBotNotifyDailyRecap() {
+  // Hanya akun aktif yang punya span_ids terisi -- akun tanpa penugasan
+  // span dilewati saja supaya tidak query sia-sia.
+  const users = await sql`
+    SELECT a.username
+    FROM accounts a
+    JOIN profiles p ON p.username = a.username
+    WHERE a.status = 'Aktif' AND jsonb_array_length(COALESCE(p.span_ids, '[]'::jsonb)) > 0
+  `;
+
+  let created = 0;
+  for (const u of users) {
+    const missing = await findSpanBelumTegakan(u.username);
+    if (missing.length === 0) continue;
+
+    await sql`
+      INSERT INTO bot_notifications (username, type, payload)
+      VALUES (${u.username}, 'span_belum_tegakan', ${JSON.stringify({ spans: missing })})
+    `;
+    created++;
+  }
+  return { usersChecked: users.length, notificationsCreated: created };
+}
+
+async function handleBotNotifyGet(req, res) {
+  const { username } = req.query || {};
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+  const rows = await sql`
+    SELECT id, type, payload, created_at AS "createdAt"
+    FROM bot_notifications
+    WHERE username = ${username} AND read_at IS NULL
+    ORDER BY created_at DESC
+  `;
+  return res.status(200).json({ success: true, unreadCount: rows.length, notifications: rows });
+}
+
+async function handleBotNotifyRead(req, res) {
+  const { username, id } = req.body || {};
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+  if (id) {
+    await sql`UPDATE bot_notifications SET read_at = now() WHERE id = ${id} AND username = ${username}`;
+  } else {
+    // Tanpa id -> tandai SEMUA notif user ini sudah dibaca (dipakai saat
+    // command-bot.html dibuka dan seluruh rekap sudah ditampilkan).
+    await sql`UPDATE bot_notifications SET read_at = now() WHERE username = ${username} AND read_at IS NULL`;
+  }
+  return res.status(200).json({ success: true });
+}
+
+async function handleBotNotifyCron(req, res) {
+  if (!isCronRequestValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+  const summary = await runBotNotifyDailyRecap();
+  return res.status(200).json({ success: true, ...summary });
+}
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
@@ -355,6 +459,30 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBotConsole(req, res);
+    }
+
+    if (qAction === 'botNotify') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotNotifyGet(req, res);
+    }
+
+    if (qAction === 'botNotifyRead') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotNotifyRead(req, res);
+    }
+
+    if (qAction === 'botNotifyCron') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotNotifyCron(req, res);
     }
 
     if (req.method === 'GET' && qStats === 'db') {
