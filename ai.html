@@ -428,11 +428,16 @@ async function fetchAppContext() {
     const spanData  = spanRes.ok  ? await spanRes.json()  : { span: [] };
     const tegakanData = tegakanRes.ok ? await tegakanRes.json() : { tegakan: [] };
 
-    // Cuma kirim field yang AI butuh (name, trigger, deskripsi, status) --
-    // buang timestamp/group_scope dll supaya context tetap ringkas.
+    // Cuma kirim field yang AI butuh (trigger, deskripsi, status) -- buang
+    // timestamp/group_scope dll supaya context tetap ringkas. SENGAJA gak
+    // kirim field "name" (mis. "tambah-tegakan", label manusia buat
+    // tampilan di Ruang Kerja) -- ternyata field ini nyaris kembar sama
+    // triggerText ("tambahtegakan") cuma beda strip, dan AI kepancing pakai
+    // "name" itu buat trigger command padahal yang valid cuma triggerText.
+    // Daripada berharap AI selalu milih field yang bener, lebih aman buang
+    // field yang bisa bikin ketuker dari sumbernya.
     const botCommands = (botCommandsResult && botCommandsResult.success && Array.isArray(botCommandsResult.commands))
       ? botCommandsResult.commands.map(c => ({
-          name: c.name,
           triggerText: c.trigger_text,
           description: c.description || "",
           status: c.status,
