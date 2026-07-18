@@ -739,24 +739,35 @@ function correctBotCommandTrigger(text, botCommands){
   return text;
 }
 
+// --- MODE DEBUG SEMENTARA ---------------------------------------------
+// Biar ketauan PERSIS teks apa yang beneran dikirim ke CommandBot/Botlab
+// (buat nelusurin kenapa "Perintah tidak dikenali" masih muncul walau
+// prompt AI udah diperbaiki) -- tiap command yang dikirim bakal ikut
+// ditampilin di chat. Set ke false kalau udah gak perlu lagi.
+const DEBUG_SHOW_BOT_COMMAND_TEXT = true;
+
 async function sendToCommandBot(text){
   const result = await apiRequest("/api/settings?action=botConsole", {
     method: "POST",
     body: JSON.stringify({ text, chatId: "web:" + chatOwner, username: chatOwner })
   });
 
+  const debugPrefix = DEBUG_SHOW_BOT_COMMAND_TEXT
+    ? `🔧 <i>[debug] dikirim ke CommandBot: "${text}"</i>\n\n`
+    : "";
+
   if(!result || result.success === false){
     // Gagal total (mis. BOTLAB_API_URL belum diset) -- jangan anggap sesi
     // masih jalan, biar user tidak "nyangkut" harus /batal buat sesi yang
     // sebenarnya tidak pernah benar-benar mulai.
     setBotCommandSessionActive(false);
-    chatData.push({ user:"SrinAI 🤖", text: "⚠️ Gagal jalanin command lewat CommandBot: " + (result && result.message ? result.message : "kesalahan tidak diketahui") });
+    chatData.push({ user:"SrinAI 🤖", text: debugPrefix + "⚠️ Gagal jalanin command lewat CommandBot: " + (result && result.message ? result.message : "kesalahan tidak diketahui") });
     saveChat(); loadChat();
     return false;
   }
 
   setBotCommandSessionActive(!!result.sessionActive);
-  chatData.push({ user:"SrinAI 🤖", text: result.replyText || "(command tidak mengembalikan balasan)" });
+  chatData.push({ user:"SrinAI 🤖", text: debugPrefix + (result.replyText || "(command tidak mengembalikan balasan)") });
   saveChat(); loadChat();
   return true;
 }
