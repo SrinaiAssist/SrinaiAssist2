@@ -348,12 +348,21 @@ async function handleBotConsole(req, res) {
 // Tabel bot_notifications: lihat migrasi di scripts/schema.sql.
 
 function isCronRequestValid(req) {
-  const auth = req.headers['authorization'] || '';
   if (!process.env.CRON_SECRET) {
     console.warn('CRON_SECRET belum diset -- endpoint cron akan selalu ditolak.');
     return false;
   }
-  return auth === `Bearer ${process.env.CRON_SECRET}`;
+  const auth = req.headers['authorization'] || '';
+  if (auth === `Bearer ${process.env.CRON_SECRET}`) return true;
+
+  // Fallback: query param ?cronKey=... -- Vercel Cron sendiri SELALU pakai
+  // header Authorization di atas, jadi ini TIDAK dibutuhkan untuk jadwal
+  // otomatis. Ini cuma buat trigger manual dari browser HP (browser biasa
+  // tidak bisa nyetel header custom), supaya bisa dites tanpa nunggu jadwal
+  // cron atau butuh terminal/Postman. Jangan sebar URL yang sudah terisi
+  // cronKey-nya, karena CRON_SECRET jadi kelihatan di situ.
+  const queryKey = req.query && req.query.cronKey;
+  return !!queryKey && queryKey === process.env.CRON_SECRET;
 }
 
 // Untuk satu username: span yang ada di profil (span_ids) TAPI belum
