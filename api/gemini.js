@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     // Batas token Groq (free tier) cukup ketat (8000 TPM), jadi context & histori
     // yang dikirim ke Groq wajib dipangkas. Gemini (fallback) jauh lebih longgar,
     // jadi tetap dikasih versi lengkap.
-    const GROQ_MAX_CONTEXT_CHARS = 1200;
+    const GROQ_MAX_CONTEXT_CHARS = 2500;
     const GROQ_MAX_HISTORY_MESSAGES = 4;
     const GROQ_MAX_MESSAGE_CHARS = 500;
 
@@ -108,12 +108,50 @@ export default async function handler(req, res) {
         : text;
     }
 
+    // PENTING: body.context itu JSON.stringify dari { profile, spans, totalSpan,
+    // totalTegakan, baData, jadwal, botCommands } (lihat fetchAppContext di ai.html).
+    // "spans" (berisi nested tegakan per span) biasanya JAUH lebih besar dari field
+    // lain, dan "botCommands" sengaja ditaruh PALING BELAKANG di objek itu.
+    // Kalau kita cuma slice(0, maxChars) mentah-mentah dari string JSON gabungan,
+    // "spans" yang besar bakal makan seluruh budget karakter duluan dan
+    // "botCommands" SELALU ke-potong habis sebelum sempat kebaca -- makanya AI
+    // selalu bilang "command gak terdaftar" padahal command-nya ada & live.
+    // Fix: parse dulu, sisihkan field kecil & krusial (botCommands harus SELALU
+    // utuh) di luar budget potong, baru sisa budget dipakai buat "spans" yang
+    // memang boleh/wajar dipangkas.
+    function buildGroqContext(rawContext, maxChars) {
+      if (!rawContext) return rawContext;
+      let parsed;
+      try {
+        parsed = JSON.parse(rawContext);
+      } catch (e) {
+        // Bukan JSON yang valid -- fallback ke potong mentah seperti sebelumnya.
+        return truncateText(rawContext, maxChars);
+      }
+
+      const { spans, ...essential } = parsed;
+      // botCommands, profile, totalSpan, totalTegakan, baData, jadwal (kecuali
+      // spans) masuk sini dan SELALU dikirim utuh -- ini termasuk botCommands.
+      const essentialStr = JSON.stringify(essential, null, 2);
+      const remaining = maxChars - essentialStr.length;
+
+      if (!Array.isArray(spans) || spans.length === 0 || remaining <= 20) {
+        return essentialStr;
+      }
+
+      const spansStr = truncateText(JSON.stringify(spans), Math.max(remaining, 0));
+      // Sisipkan balik "spans" (yang sudah/mungkin dipotong) ke objek essential
+      // secara manual sebagai raw string, biar gak perlu re-stringify essential
+      // (yang bisa bikin quoting berantakan kalau spansStr sudah ada suffix teks).
+      return essentialStr.replace(/}\s*$/, `,\n  "spans": ${JSON.stringify(spansStr)}\n}`);
+    }
+
     const fullContextBlock = body.context
       ? `\n\n=== DATA APLIKASI (snapshot dari perangkat user) ===\n${body.context}\n=== AKHIR DATA ===`
       : "";
 
     const groqContextBlock = body.context
-      ? `\n\n=== DATA APLIKASI (ringkas, dipotong agar muat limit token Groq) ===\n${truncateText(body.context, GROQ_MAX_CONTEXT_CHARS)}\n=== AKHIR DATA ===`
+      ? `\n\n=== DATA APLIKASI (ringkas; "spans" boleh dipangkas kalau kepanjangan, tapi botCommands/profile/total SELALU utuh) ===\n${buildGroqContext(body.context, GROQ_MAX_CONTEXT_CHARS)}\n=== AKHIR DATA ===`
       : "";
 
     const personaPrompt =
