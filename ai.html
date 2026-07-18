@@ -739,11 +739,10 @@ function correctBotCommandTrigger(text, botCommands){
   return text;
 }
 
-async function runBotCommand(text, botCommands){
-  const correctedText = correctBotCommandTrigger(text, botCommands);
+async function sendToCommandBot(text){
   const result = await apiRequest("/api/settings?action=botConsole", {
     method: "POST",
-    body: JSON.stringify({ text: correctedText, chatId: "web:" + chatOwner, username: chatOwner })
+    body: JSON.stringify({ text, chatId: "web:" + chatOwner, username: chatOwner })
   });
 
   if(!result || result.success === false){
@@ -753,12 +752,45 @@ async function runBotCommand(text, botCommands){
     setBotCommandSessionActive(false);
     chatData.push({ user:"SrinAI 🤖", text: "⚠️ Gagal jalanin command lewat CommandBot: " + (result && result.message ? result.message : "kesalahan tidak diketahui") });
     saveChat(); loadChat();
-    return;
+    return false;
   }
 
   setBotCommandSessionActive(!!result.sessionActive);
   chatData.push({ user:"SrinAI 🤖", text: result.replyText || "(command tidak mengembalikan balasan)" });
   saveChat(); loadChat();
+  return true;
+}
+
+async function runBotCommand(text, botCommands){
+  const correctedText = correctBotCommandTrigger(text, botCommands);
+  await sendToCommandBot(correctedText);
+}
+
+// Dipakai buat ACTION run_bot_command yang punya "steps" -- AI udah
+// merangkum data yang user sebutkan jadi jawaban per-field berurutan,
+// di sini kita "ketik-in" satu-satu ke CommandBot: trigger dulu buat
+// mulai sesi, lalu tiap jawaban nunggu balasan bot sebelum lanjut ke
+// field berikutnya (persis kayak user ngetik manual satu-satu, cuma
+// otomatis). Berhenti duluan kalau sesinya udah ketutup (selesai/gagal)
+// sebelum semua steps abis -- sisa data gak relevan lagi dikirim ke
+// sesi yang udah gak aktif.
+async function runBotCommandSequence(steps, botCommands){
+  if(!Array.isArray(steps) || steps.length === 0) return;
+
+  const correctedTrigger = correctBotCommandTrigger(steps[0], botCommands);
+  const ok = await sendToCommandBot(correctedTrigger);
+  if(!ok) return;
+
+  for(const answer of steps.slice(1)){
+    if(!botCommandSessionActive) break;
+
+    showTypingIndicator();
+    await new Promise(r => setTimeout(r, 450)); // jeda kecil biar kerasa natural, bukan nge-spam sekaligus
+    removeTypingIndicator();
+
+    const stepOk = await sendToCommandBot(answer);
+    if(!stepOk) return;
+  }
 }
 
 async function sendMessage(){
@@ -821,9 +853,13 @@ async function sendMessage(){
     saveChat();
     loadChat();
     if(result.action){
-      if(result.action.type === "run_bot_command" && result.action.text){
+      if(result.action.type === "run_bot_command" && (result.action.text || (Array.isArray(result.action.steps) && result.action.steps.length > 0))){
         const botCommandsCatalog = (result.appContext && result.appContext.botCommands) || [];
-        await runBotCommand(result.action.text, botCommandsCatalog);
+        if(Array.isArray(result.action.steps) && result.action.steps.length > 0){
+          await runBotCommandSequence(result.action.steps, botCommandsCatalog);
+        } else {
+          await runBotCommand(result.action.text, botCommandsCatalog);
+        }
       } else {
         handleGenerateBaAction(result.action, result.appContext);
       }
