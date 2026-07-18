@@ -394,14 +394,22 @@ const COMMON_SETTINGS = ["loginLogo","loginBackground","systemNotice","baBackgro
 
 async function cachedGetAppSetting(key) {
   const cached = _cacheGetData(CACHE_KEYS.settings) || {};
-  if (key in cached) {
+  const adaDiCache = key in cached;
+  const nilaiKosong = !cached[key]; // null/""/undefined
+
+  // Cache "kosong" TIDAK otomatis dipercaya -- bisa jadi bekas kegagalan
+  // sementara (mis. baca Google Drive gagal gara-gara kredensial belum
+  // ke-attach setelah redeploy), bukan berarti memang belum diupload.
+  // Kalau ada tapi kosong, tetap cek ulang ke server dulu (BLOCKING, bukan
+  // di background) supaya tidak "nyangkut" salah sampai TTL 30 menit habis.
+  if (adaDiCache && !nilaiKosong) {
     if (_cacheStale(CACHE_KEYS.settings)) _refreshSettings();
     return cached[key];
   }
-  // Belum ada di cache — fetch semua sekaligus
-  await _refreshSettings();
-  const fresh = _cacheGetData(CACHE_KEYS.settings) || {};
-  return fresh[key] ?? null;
+
+  // Belum ada di cache, ATAU ada tapi kosong -- fetch ulang semua sekaligus.
+  const fresh = await _refreshSettings();
+  return (fresh && fresh[key]) ?? null;
 }
 
 async function _refreshSettings() {
