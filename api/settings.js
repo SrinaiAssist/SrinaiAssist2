@@ -331,6 +331,7 @@ async function handleBotConsole(req, res) {
       success: true,
       replyText: data.replyText,
       matchedCommand: data.matchedCommand,
+      sessionActive: !!data.sessionActive,
     });
   } catch (err) {
     console.error('Gagal jalankan command lewat Botlab lab-console:', err);
