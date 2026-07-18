@@ -709,10 +709,41 @@ function setBotCommandSessionActive(active){
   }
 }
 
-async function runBotCommand(text){
+// AI kadang nulis trigger command dikit meleset dari triggerText asli
+// (nambah/ilangin strip, beda kapital, dll -- mis. "/tambah-tegakan" padahal
+// yang terdaftar "/tambahtegakan"). Botlab match trigger-nya EXACT, jadi
+// selisih sedikit aja bikin balesannya "Perintah tidak dikenali" walau
+// command-nya sebenernya ada & live. Ini pengaman: cocokkan kata pertama
+// dari "text" ke daftar triggerText asli (abaikan strip/spasi/kapital),
+// kalau ketemu yang mirip, betulin ke ejaan PERSIS yang terdaftar sebelum
+// dikirim ke Botlab -- sisa argumennya di belakang tetap dipertahankan apa
+// adanya.
+function normalizeTriggerForMatch(t){
+  return String(t || "").toLowerCase().replace(/^\//, "").replace(/[-_\s]/g, "");
+}
+
+function correctBotCommandTrigger(text, botCommands){
+  if(!text || !Array.isArray(botCommands) || botCommands.length === 0) return text;
+
+  const m = text.match(/^(\/?[^\s]+)(\s[\s\S]*)?$/);
+  if(!m) return text;
+
+  const rawTrigger = m[1];
+  const rest = m[2] || "";
+  const normalizedInput = normalizeTriggerForMatch(rawTrigger);
+
+  // Match persis (setelah normalisasi) dulu -- kalau sudah pas, gak usah diubah.
+  const exact = botCommands.find(c => normalizeTriggerForMatch(c.triggerText) === normalizedInput);
+  if(exact) return (exact.triggerText || rawTrigger) + rest;
+
+  return text;
+}
+
+async function runBotCommand(text, botCommands){
+  const correctedText = correctBotCommandTrigger(text, botCommands);
   const result = await apiRequest("/api/settings?action=botConsole", {
     method: "POST",
-    body: JSON.stringify({ text, chatId: "web:" + chatOwner, username: chatOwner })
+    body: JSON.stringify({ text: correctedText, chatId: "web:" + chatOwner, username: chatOwner })
   });
 
   if(!result || result.success === false){
@@ -791,7 +822,8 @@ async function sendMessage(){
     loadChat();
     if(result.action){
       if(result.action.type === "run_bot_command" && result.action.text){
-        await runBotCommand(result.action.text);
+        const botCommandsCatalog = (result.appContext && result.appContext.botCommands) || [];
+        await runBotCommand(result.action.text, botCommandsCatalog);
       } else {
         handleGenerateBaAction(result.action, result.appContext);
       }
