@@ -826,6 +826,24 @@ async function initPage(){
   loadDbStorage();
   loadDriveStorage();
   if(typeof _updateSyncBadge === "function") _updateSyncBadge();
+
+  playDashboardOpenChime();
+}
+
+// Bunyi "flute" sekali tiap dashboard dibuka (bukan tiap render ulang data,
+// initPage() sendiri cuma jalan sekali per full page load). Kalau browser
+// blokir autoplay bersuara, otomatis diputar begitu user tap layar.
+function playDashboardOpenChime(){
+  const chime = new Audio("assets/audio/dashboard-open.wav");
+  chime.volume = 0.55;
+  const p = chime.play();
+  if(p !== undefined){
+    p.catch(() => {
+      const resumeOnce = () => chime.play().catch(() => {});
+      document.addEventListener("click", resumeOnce, { once:true });
+      document.addEventListener("touchstart", resumeOnce, { once:true });
+    });
+  }
 }
 
 initPage();
