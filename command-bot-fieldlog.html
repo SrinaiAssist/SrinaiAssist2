@@ -240,6 +240,79 @@ async function initPage(){
 
   await loadCommands();
   showMenu(false);
+  startIdleWatcher();
+  await loadDailyRecap();
+}
+
+/*
+ * TAHAP 3 — RESET OTOMATIS SESI IDLE + REKAP HARIAN + NOTIF BELUM TERBACA
+ *
+ * 1) Reset idle: kalau tidak ada aktivitas (ketik/kirim) selama 30 menit,
+ *    kirim "/batal" diam-diam ke Botlab supaya sesi command multi-langkah
+ *    (mis. /catatan yang lagi nunggu balasan) ikut direset di server --
+ *    jadi tidak nyangkut kalau user balik lagi nanti.
+ * 2) Rekap harian: setiap kali halaman ini dibuka, tanya /api/settings?action=botNotify
+ *    apakah ada notif belum terbaca untuk user ini. Notif jenis
+ *    "span_belum_tegakan" (dibuat oleh cron harian, lihat vercel.json +
+ *    api/settings.js) ditampilkan sebagai pesan bot otomatis berisi
+ *    daftar span yang belum ada tegakannya + link langsung ke
+ *    catatan-span.html buat bikin tegakan baru.
+ * 3) Setelah rekap ditampilkan, notif ditandai terbaca -- ini juga yang
+ *    menghentikan getar ikon CommandBot di dashboard-fieldlog.html.
+ */
+let lastActivityAt = Date.now();
+let idleResetTriggered = false;
+const IDLE_LIMIT_MS = 30 * 60 * 1000; // 30 menit
+
+function markActivity(){
+  lastActivityAt = Date.now();
+  idleResetTriggered = false;
+}
+
+function startIdleWatcher(){
+  setInterval(async () => {
+    if(idleResetTriggered) return;
+    if(Date.now() - lastActivityAt >= IDLE_LIMIT_MS){
+      idleResetTriggered = true;
+      await autoResetIdleSession();
+    }
+  }, 30 * 1000); // cek tiap 30 detik, cukup presisi untuk batas 30 menit
+}
+
+async function autoResetIdleSession(){
+  try {
+    await apiRequest("/api/settings?action=botConsole", {
+      method: "POST",
+      body: JSON.stringify({ text: "/batal", chatId: consoleChatId, username: currentUser }),
+    });
+  } catch(e){ /* diamkan -- reset idle tidak boleh ganggu UX kalau gagal */ }
+  addBotRow("⏱️ Sesi kamu direset otomatis karena tidak ada aktivitas selama 30 menit. Ketik <b>menu</b> kalau mau mulai lagi.");
+}
+
+async function loadDailyRecap(){
+  const result = await apiRequest("/api/settings?action=botNotify&username=" + encodeURIComponent(currentUser), { method: "GET" });
+  if(!result.success || !result.notifications || result.notifications.length === 0) return;
+
+  const recap = result.notifications.find(n => n.type === "span_belum_tegakan");
+  const spans = recap && recap.payload && recap.payload.spans || [];
+
+  if(spans.length > 0){
+    const list = spans.map(s =>
+      `• ${escapeHtml(jalurLabel(s.jalurId))} — Span #${s.nomor} ` +
+      `<a href="catatan-span.html?span=${encodeURIComponent(s.id)}" style="color:var(--moss);font-weight:700;">Buat tegakan →</a>`
+    ).join("<br>");
+    addBotRow(
+      `📋 <b>Rekap harian</b> — kamu punya <b>${spans.length}</b> span yang belum ada tegakannya:<br><br>${list}` +
+      `<br><br>Yuk lengkapi tegakannya biar datanya rapi 🙌`
+    );
+  }
+
+  // Tandai semua notif user ini sudah dibaca (juga menghentikan getar
+  // ikon CommandBot di dashboard untuk kunjungan berikutnya).
+  await apiRequest("/api/settings?action=botNotifyRead", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser }),
+  });
 }
 
 async function loadCommands(){
@@ -267,6 +340,7 @@ function getTimeLabel(){
 }
 
 function autoGrow(el){
+  markActivity();
   el.style.height = "auto";
   el.style.height = Math.min(el.scrollHeight, 100) + "px";
 }
@@ -354,6 +428,7 @@ function pickNumber(n){
 }
 
 async function sendMessage(){
+  markActivity();
   const input = document.getElementById("message");
   const text = input.value.trim();
   if(!text) return;

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/settings?action=botNotifyCron",
+      "schedule": "0 1 * * *"
+    }
+  ]
+}
