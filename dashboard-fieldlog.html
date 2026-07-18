@@ -325,7 +325,17 @@ body{
 .postmark{ animation:fadeSlideUp .45s .06s ease both; }
 .log-wrap{ animation:fadeSlideUp .45s .12s ease both; }
 .section-label{ animation:fadeSlideUp .45s ease both; }
-.stampgrid{ animation:fadeSlideUp .45s .05s ease both; }
+.stampgrid{ opacity:1; }
+.stamp{ animation:stampIn .45s cubic-bezier(.34,1.4,.64,1) both; }
+.stamp:nth-child(1){ animation-delay:.1s; }
+.stamp:nth-child(2){ animation-delay:.15s; }
+.stamp:nth-child(3){ animation-delay:.2s; }
+.stamp:nth-child(4){ animation-delay:.25s; }
+.stamp:nth-child(5){ animation-delay:.3s; }
+.stamp:nth-child(6){ animation-delay:.35s; }
+.stamp:nth-child(7){ animation-delay:.4s; }
+.stamp:nth-child(8){ animation-delay:.45s; }
+.stamp:nth-child(9){ animation-delay:.5s; }
 .ledger{ animation:fadeSlideUp .45s ease both; }
 .storage-strip{ animation:fadeSlideUp .45s .05s ease both; }
 .radiobar{ animation:fadeSlideUp .45s .1s ease both; }
@@ -365,6 +375,26 @@ body{
 .trail-pin{ transition:transform .2s ease; }
 .log-ai-line{ transition:opacity .15s ease; }
 .log-ai-line:active{ opacity:.6; }
+
+/* ---------- jejak rute: garis tergambar + pin terhentak berurutan ---------- */
+.trail::before{ transform-origin:left center; animation:trailDraw .6s .3s cubic-bezier(.4,0,.2,1) both; }
+@keyframes trailDraw{
+  from{ transform:scaleX(0); }
+  to{ transform:scaleX(1); }
+}
+@keyframes pinDrop{
+  0%{ opacity:0; transform:translateY(-10px) scale(0.5); }
+  55%{ opacity:1; transform:translateY(2px) scale(1.15); }
+  100%{ opacity:1; transform:translateY(0) scale(1); }
+}
+.trail-pin{ animation:pinDrop .5s cubic-bezier(.34,1.4,.64,1) both; }
+.trail-stop:nth-child(1) .trail-pin{ animation-delay:.3s; }
+.trail-stop:nth-child(2) .trail-pin{ animation-delay:.48s; }
+.trail-stop:nth-child(3) .trail-pin{ animation-delay:.66s; }
+.trail-value{ animation:fadeSlideUp .4s cubic-bezier(.34,1.4,.64,1) both; }
+.trail-stop:nth-child(1) .trail-value{ animation-delay:.42s; }
+.trail-stop:nth-child(2) .trail-value{ animation-delay:.6s; }
+.trail-stop:nth-child(3) .trail-value{ animation-delay:.78s; }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; }
