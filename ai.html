@@ -353,6 +353,23 @@ function deleteMyChat(){
 
 function aiResponse(text){
   chatData.push({ user:"SrinAI 🤖", text:text });
+  playChatReplyChime();
+}
+
+// Nada "jawaban benar" tiap SrinAI membalas di sini. Sama persis dengan
+// chat.html: kalau autoplay bersuara diblokir browser, otomatis diputar
+// begitu user tap layar.
+function playChatReplyChime(){
+  const chime = new Audio("assets/audio/chat-reply.wav");
+  chime.volume = 0.6;
+  const p = chime.play();
+  if(p !== undefined){
+    p.catch(() => {
+      const resumeOnce = () => chime.play().catch(() => {});
+      document.addEventListener("click", resumeOnce, { once:true });
+      document.addEventListener("touchstart", resumeOnce, { once:true });
+    });
+  }
 }
 
 function buildHistory(){
