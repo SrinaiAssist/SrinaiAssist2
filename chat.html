@@ -291,6 +291,22 @@ async function initPage(){
 function getTimeLabel(iso){
   return new Date(iso).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
 }
+
+// Nada "jawaban benar" tiap ada balasan baru masuk dari orang lain / SrinAI.
+// Sama polanya dengan musik latar di auth.js: kalau autoplay bersuara diblokir
+// browser, otomatis diputar begitu user tap layar.
+function playChatReplyChime(){
+  const chime = new Audio("assets/audio/chat-reply.wav");
+  chime.volume = 0.6;
+  const p = chime.play();
+  if(p !== undefined){
+    p.catch(() => {
+      const resumeOnce = () => chime.play().catch(() => {});
+      document.addEventListener("click", resumeOnce, { once:true });
+      document.addEventListener("touchstart", resumeOnce, { once:true });
+    });
+  }
+}
 function getDayLabel(iso){
   const d = new Date(iso);
   const today = new Date();
@@ -472,7 +488,17 @@ async function loadChat(forceScroll){
   // Hindari render ulang penuh setiap polling kalau tidak ada pesan baru
   const newestId = newList.length ? newList[newList.length-1].id : 0;
   if(!forceScroll && newestId === lastMessageId) return;
+
+  // Suara "balasan" cuma buat pesan baru dari ORANG LAIN (atau SrinAI),
+  // bukan buat pesan sendiri yang baru dikirim, dan bukan buat load pertama
+  // kali halaman dibuka (biar gak berisik pas baru buka chat).
+  const isFirstLoad = forceScroll && lastMessageId === 0;
+  const newestMsg = newList.length ? newList[newList.length-1] : null;
+  const hasNewReply = !isFirstLoad && newestId > lastMessageId &&
+                       newestMsg && newestMsg.username !== currentUser;
+
   lastMessageId = newestId;
+  if(hasNewReply) playChatReplyChime();
 
   chatList = newList;
   const area = document.getElementById("chatArea");
