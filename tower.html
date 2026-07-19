@@ -487,6 +487,7 @@ body{
 
 <script>
 let currentUser, profile, jalurList, myJalur, canEdit, isFullAccess;
+let myJalurGroup = [];
 let allowedTowerIds = null;
 let range = null;
 let towerListCache = [];
@@ -494,8 +495,24 @@ let spanListCache = [];
 let allowedSpanIds = null;
 let spanRange = null;
 
-function findPairedSpan(towerNomor){
-  const s = spanListCache.find(x => x.nomor === towerNomor);
+// Jalur combine: kumpulkan jalur utama + semua jalur combine (anak) aktifnya,
+// supaya tower/span dari jalur combine ikut tampil saat jalur induknya aktif.
+// Sama seperti pola getComboGroupJalur() di kelola-akun.html.
+function getJalurGroup(jalurId){
+  if(!jalurId) return [];
+  const primary = jalurList.find(j => j.id === jalurId);
+  if(!primary) return [];
+  const children = jalurList.filter(j => j.parentJalurId === jalurId && j.aktif);
+  return [primary, ...children];
+}
+
+function jalurCodeFor(jalurId){
+  const j = myJalurGroup.find(x => x.id === jalurId);
+  return j ? j.code : (myJalur ? myJalur.code : "");
+}
+
+function findPairedSpan(tower){
+  const s = spanListCache.find(x => x.nomor === tower.nomor && x.jalurId === tower.jalurId);
   if(!s) return null;
   if(allowedSpanIds && !allowedSpanIds.includes(s.id)) return null;
   if(spanRange && (s.nomor < spanRange[0] || s.nomor > spanRange[1])) return null;
@@ -521,6 +538,7 @@ async function initPage(){
   myJalur = jalurList.find(j => j.id === profile.jalurId)
     || jalurList.find(j => j.aktif)
     || jalurList[0];
+  myJalurGroup = getJalurGroup(myJalur ? myJalur.id : null);
 
   canEdit      = !isMonitor();
   isFullAccess = isAdmin() || isKLW() || isMonitor();
@@ -565,7 +583,9 @@ async function initPage(){
   // Muat span sejalur untuk dipasangkan dengan tower saat menampilkan QR
   // (Span nomor N menghubungkan Tower N - Tower N+1, jadi dipasangkan
   // berdasarkan nomor yang sama).
-  spanListCache = myJalur ? await cachedGetSpanMasterList(myJalur.id) : [];
+  spanListCache = myJalur
+    ? (await cachedGetSpanMasterList()).filter(s => myJalurGroup.some(j => j.id === s.jalurId))
+    : [];
   if(!isFullAccess){
     if(profile.hasNewAssignment) allowedSpanIds = profile.spanIds;
     else spanRange = [profile.towerAwal, Math.max(profile.towerAkhir - 1, profile.towerAwal)];
@@ -577,9 +597,16 @@ async function initPage(){
   else if(range) rangeText = "T"+String(range[0]).padStart(3,"0")+"–T"+String(range[1]).padStart(3,"0");
 
   document.getElementById("rangeInfo").innerHTML  = rangeText || "—";
-  document.getElementById("jalurName").innerHTML  = myJalur ? (myJalur.code + " — " + myJalur.label) : "Jalur belum dikonfigurasi";
+  document.getElementById("jalurName").innerHTML  = jalurNameLabel();
 
   await loadTable();
+}
+
+function jalurNameLabel(){
+  if(!myJalur) return "Jalur belum dikonfigurasi";
+  const combineChildren = myJalurGroup.slice(1);
+  return myJalur.code + " — " + myJalur.label +
+    (combineChildren.length ? ` 🔗 +${combineChildren.length} combine` : "");
 }
 
 function statusChipClass(status){
@@ -599,12 +626,13 @@ async function switchJalur(jalurId){
   const j = jalurList.find(x => x.id === jalurId);
   if(!j) return;
   myJalur = j;
+  myJalurGroup = getJalurGroup(myJalur.id);
   localStorage.setItem("srinai_active_jalur", jalurId);
 
-  spanListCache = await cachedGetSpanMasterList(myJalur.id);
+  spanListCache = (await cachedGetSpanMasterList()).filter(s => myJalurGroup.some(g => g.id === s.jalurId));
 
   document.getElementById("rangeInfo").innerHTML  = "Semua";
-  document.getElementById("jalurName").innerHTML  = myJalur.code + " — " + myJalur.label;
+  document.getElementById("jalurName").innerHTML  = jalurNameLabel();
   document.getElementById("userInfo").innerHTML   = currentUser + " · " + myJalur.code;
 
   await loadTable();
@@ -629,12 +657,13 @@ async function loadTable(){
     return;
   }
 
-  let towers = await cachedGetTowerMasterList(myJalur.id);
+  let towers = (await cachedGetTowerMasterList()).filter(t => myJalurGroup.some(j => j.id === t.jalurId));
 
   if(allowedTowerIds) towers = towers.filter(t => allowedTowerIds.includes(t.id));
   else if(range) towers = towers.filter(t => t.nomor >= range[0] && t.nomor <= range[1]);
 
-  towers.sort((a,b) => a.nomor - b.nomor);
+  const groupOrder = myJalurGroup.map(j => j.id);
+  towers.sort((a,b) => (groupOrder.indexOf(a.jalurId) - groupOrder.indexOf(b.jalurId)) || (a.nomor - b.nomor));
   towerListCache = towers;
 
   document.getElementById("towerCountVal").innerHTML = towers.length;
@@ -682,7 +711,7 @@ function applyFilters(){
   const filtered = towerListCache.filter(t => {
     if(q){
       const nomorPadded = String(t.nomor).padStart(3,"0").toLowerCase();
-      const code = assetCodeTower(myJalur.code, t.nomor).toLowerCase();
+      const code = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor).toLowerCase();
       if(!nomorPadded.includes(q) && !String(t.nomor).includes(q) && !code.includes(q)) return false;
     }
     const adaKoordinat = t.latitude != null && t.longitude != null;
@@ -712,7 +741,7 @@ function renderTowerList(towers){
   }
 
   wrap.innerHTML = towers.map(t => {
-    const code       = assetCodeTower(myJalur.code, t.nomor);
+    const code       = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor);
     const statusText = t.status || "Belum diisi";
     const detailParts = [];
     if(t.jenis)    detailParts.push(t.jenis);
@@ -816,7 +845,7 @@ async function showQrTower(towerId){
 
   document.getElementById("qrTowerModal").classList.add("active");
 
-  const towerCode = assetCodeTower(myJalur.code, t.nomor);
+  const towerCode = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor);
   document.getElementById("qrTowerLabel").innerText = `${towerCode} — Tower ${String(t.nomor).padStart(3,"0")}`;
 
   const towerBox = document.getElementById("qrCodeBoxTower");
@@ -825,7 +854,7 @@ async function showQrTower(towerId){
   const towerDataUrl = await getOrCreateQrDataUrl(`qr:tower:${t.id}`, towerDeepLink(t.id));
   towerBox.innerHTML = towerDataUrl ? `<img src="${towerDataUrl}" alt="QR Tower">` : `<div class="qr-loading">Gagal memuat QR.</div>`;
 
-  const pairedSpan = findPairedSpan(t.nomor);
+  const pairedSpan = findPairedSpan(t);
   const spanSection = document.getElementById("qrSpanSection");
   const noSpanNote = document.getElementById("qrNoSpanNote");
 
@@ -833,7 +862,7 @@ async function showQrTower(towerId){
     spanSection.style.display = "block";
     noSpanNote.style.display = "none";
 
-    const spanCode = assetCodeSpan(myJalur.code, pairedSpan.nomor);
+    const spanCode = assetCodeSpan(jalurCodeFor(pairedSpan.jalurId), pairedSpan.nomor);
     document.getElementById("qrSpanLabel").innerText = `${spanCode} — Span ${String(pairedSpan.nomor).padStart(3,"0")}`;
 
     const spanBox = document.getElementById("qrCodeBoxSpan");

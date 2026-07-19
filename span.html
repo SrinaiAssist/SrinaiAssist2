@@ -417,11 +417,28 @@ body{
 
 <script>
 let currentUser, profile, jalurList, myJalur, canEdit, isFullAccess;
+let myJalurGroup = [];
 let allowedSpanIds = null;
 let range = null;
 let spanListCache = [];
 let petugasSpanMap = {}; // spanId → nama petugas
 let tegakanSpanSet = new Set(); // spanId yang sudah punya tegakan
+
+// Jalur combine: kumpulkan jalur utama + semua jalur combine (anak) aktifnya,
+// supaya span dari jalur combine ikut tampil saat jalur induknya aktif.
+// Sama seperti pola getComboGroupJalur() di kelola-akun.html.
+function getJalurGroup(jalurId){
+  if(!jalurId) return [];
+  const primary = jalurList.find(j => j.id === jalurId);
+  if(!primary) return [];
+  const children = jalurList.filter(j => j.parentJalurId === jalurId && j.aktif);
+  return [primary, ...children];
+}
+
+function jalurCodeFor(jalurId){
+  const j = myJalurGroup.find(x => x.id === jalurId);
+  return j ? j.code : (myJalur ? myJalur.code : "");
+}
 
 async function initPage(){
   if(!(await isLoggedIn())){
@@ -463,6 +480,7 @@ async function initPage(){
   myJalur = jalurList.find(j => j.id === profile.jalurId)
     || jalurList.find(j => j.aktif)
     || jalurList[0];
+  myJalurGroup = getJalurGroup(myJalur ? myJalur.id : null);
 
   canEdit = !isMonitor();
 
@@ -505,9 +523,16 @@ async function initPage(){
     rangeText = "S"+String(range[0]).padStart(3,"0")+"–S"+String(range[1]).padStart(3,"0");
   }
   document.getElementById("rangeInfo").innerHTML = rangeText || "—";
-  document.getElementById("jalurName").innerHTML = myJalur ? (myJalur.code + " — " + myJalur.label) : "Jalur belum dikonfigurasi";
+  document.getElementById("jalurName").innerHTML = jalurNameLabel();
 
   await loadSpan();
+}
+
+function jalurNameLabel(){
+  if(!myJalur) return "Jalur belum dikonfigurasi";
+  const combineChildren = myJalurGroup.slice(1);
+  return myJalur.code + " — " + myJalur.label +
+    (combineChildren.length ? ` 🔗 +${combineChildren.length} combine` : "");
 }
 function statusChipClass(status){
   if(!status) return "status-kosong";
@@ -526,10 +551,11 @@ async function switchJalur(jalurId){
   const j = jalurList.find(x => x.id === jalurId);
   if(!j) return;
   myJalur = j;
+  myJalurGroup = getJalurGroup(myJalur.id);
   localStorage.setItem("srinai_active_jalur", jalurId);
 
   document.getElementById("rangeInfo").innerHTML = "Semua";
-  document.getElementById("jalurName").innerHTML = myJalur.code + " — " + myJalur.label;
+  document.getElementById("jalurName").innerHTML = jalurNameLabel();
   document.getElementById("userInfo").innerHTML  = currentUser + " · " + myJalur.code;
 
   await loadSpan();
@@ -554,7 +580,7 @@ async function loadSpan(){
     return;
   }
 
-  let spans = await cachedGetSpanMasterList(myJalur.id);
+  let spans = (await cachedGetSpanMasterList()).filter(s => myJalurGroup.some(j => j.id === s.jalurId));
 
   const allTegakan = await cachedGetAllTegakan();
   tegakanSpanSet = new Set((allTegakan || []).map(t => t.spanId));
@@ -565,7 +591,8 @@ async function loadSpan(){
     spans = spans.filter(s => s.nomor >= range[0] && s.nomor <= range[1]);
   }
 
-  spans.sort((a,b)=>a.nomor-b.nomor);
+  const groupOrder = myJalurGroup.map(j => j.id);
+  spans.sort((a,b)=> (groupOrder.indexOf(a.jalurId) - groupOrder.indexOf(b.jalurId)) || (a.nomor-b.nomor));
   spanListCache = spans;
 
   document.getElementById("spanCountVal").innerHTML = spans.length;
@@ -613,7 +640,7 @@ function applyFilters(){
   const filtered = spanListCache.filter(s => {
     if(q){
       const nomorPadded = String(s.nomor).padStart(3,"0").toLowerCase();
-      const code = assetCodeSpan(myJalur.code, s.nomor).toLowerCase();
+      const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor).toLowerCase();
       if(!nomorPadded.includes(q) && !String(s.nomor).includes(q) && !code.includes(q)) return false;
     }
     if(tegakanVal === "ada" && !tegakanSpanSet.has(s.id)) return false;
@@ -642,7 +669,7 @@ function renderSpanList(spans){
   }
 
   wrap.innerHTML = spans.map(s => {
-    const code = assetCodeSpan(myJalur.code, s.nomor);
+    const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor);
     const statusText = s.status || "Belum diisi";
     const detailParts = [];
     if(s.spacer) detailParts.push(s.spacer + " spacer");
