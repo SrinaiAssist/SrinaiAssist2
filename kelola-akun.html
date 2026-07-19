@@ -261,6 +261,7 @@ body{
       </div>
     </div>
     <div class="picker-count" id="newJalurNote" style="display:none;">🌐 Admin & KLW otomatis mengakses semua jalur, termasuk jalur baru yang dibuat nanti.</div>
+    <div class="picker-count" id="newJalurCombineNote" style="display:none;color:var(--teal);"></div>
     <div class="form-row" id="newTowerPickerWrap">
       <label class="form-label">Pilih Tower</label>
       <div class="picker-box" id="newTowerPicker"></div>
@@ -326,6 +327,38 @@ window.addEventListener("pageshow", (e) => {
 
 /* ── Helpers ── */
 async function getJalurList(){ return (await cachedGetJalurMasterList()).filter(j=>j.aktif); }
+
+// Jalur combine: kumpulkan jalur utama + semua jalur combine (anak)-nya,
+// supaya tower/span dari jalur combine ikut muncul di picker saat jalur
+// induknya dipilih. jalurList di sini TIDAK difilter aktif saja supaya
+// anak combine yang mungkin nonaktif tetap kedeteksi relasinya, tapi kita
+// tetap hanya menampilkan combine yang aktif di picker.
+async function getComboGroupJalur(jalurId){
+  const allJalur = await cachedGetJalurMasterList();
+  const primary = allJalur.find(j=>j.id===jalurId);
+  if(!primary) return [];
+  const children = allJalur.filter(j=>j.parentJalurId===jalurId && j.aktif);
+  return [primary, ...children];
+}
+
+function jalurCodeById(jalurGroup, id){
+  const j = jalurGroup.find(x=>x.id===id);
+  return j ? j.code : "";
+}
+
+async function getTowerByJalurGroup(jalurGroup){
+  const all = await cachedGetTowerMasterList();
+  const ids = jalurGroup.map(j=>j.id);
+  return all.filter(t=>ids.includes(t.jalurId))
+            .sort((a,b)=> ids.indexOf(a.jalurId)-ids.indexOf(b.jalurId) || a.nomor-b.nomor);
+}
+async function getSpanByJalurGroup(jalurGroup){
+  const all = await cachedGetSpanMasterList();
+  const ids = jalurGroup.map(j=>j.id);
+  return all.filter(s=>ids.includes(s.jalurId))
+            .sort((a,b)=> ids.indexOf(a.jalurId)-ids.indexOf(b.jalurId) || a.nomor-b.nomor);
+}
+
 async function getTowerByJalur(jalurId){ return (await cachedGetTowerMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
 async function getSpanByJalur(jalurId){ return (await cachedGetSpanMasterList(jalurId)).sort((a,b)=>a.nomor-b.nomor); }
 
@@ -377,17 +410,26 @@ let newSelectedTowerIds=[], newSelectedSpanIds=[];
 async function renderNewPickers(){
   const jalurId = document.getElementById("newJalur").value;
   if(!jalurId) return;
-  const jalurList = await getJalurList();
-  const jalur = jalurList.find(j=>j.id===jalurId);
-  if(!jalur) return;
-  const towers = await getTowerByJalur(jalurId);
-  const spans  = await getSpanByJalur(jalurId);
-  renderPicker(document.getElementById("newTowerPicker"), towers, newSelectedTowerIds, t=>assetCodeTower(jalur.code,t.nomor), id=>{
+  const jalurGroup = await getComboGroupJalur(jalurId);
+  if(!jalurGroup.length) return;
+  const towers = await getTowerByJalurGroup(jalurGroup);
+  const spans  = await getSpanByJalurGroup(jalurGroup);
+
+  const combineNote = document.getElementById("newJalurCombineNote");
+  const combineChildren = jalurGroup.slice(1);
+  if(combineNote){
+    combineNote.style.display = combineChildren.length ? "block" : "none";
+    combineNote.textContent = combineChildren.length
+      ? "🔗 Termasuk jalur combine: " + combineChildren.map(j=>j.code+" — "+j.label).join(", ")
+      : "";
+  }
+
+  renderPicker(document.getElementById("newTowerPicker"), towers, newSelectedTowerIds, t=>assetCodeTower(jalurCodeById(jalurGroup,t.jalurId),t.nomor), id=>{
     const i=newSelectedTowerIds.indexOf(id); if(i>-1) newSelectedTowerIds.splice(i,1); else newSelectedTowerIds.push(id);
     renderNewPickers();
   });
   document.getElementById("newTowerCount").textContent=newSelectedTowerIds.length+" tower dipilih";
-  renderPicker(document.getElementById("newSpanPicker"), spans, newSelectedSpanIds, s=>assetCodeSpan(jalur.code,s.nomor), id=>{
+  renderPicker(document.getElementById("newSpanPicker"), spans, newSelectedSpanIds, s=>assetCodeSpan(jalurCodeById(jalurGroup,s.jalurId),s.nomor), id=>{
     const i=newSelectedSpanIds.indexOf(id); if(i>-1) newSelectedSpanIds.splice(i,1); else newSelectedSpanIds.push(id);
     renderNewPickers();
   });
@@ -464,7 +506,9 @@ async function buildProfileFromAccountRow(acc, jalurList, towerList, spanList){
     jumlahSpan  = spanIds.length;
     if(allTowers.length>0 && jalurMatch){
       const nums = allTowers.map(t=>t.nomor).sort((a,b)=>a-b);
-      towerLabel = assetCodeTower(jalurMatch.code, nums[0])+(nums.length>1?" + "+(nums.length-1)+" lainnya":"");
+      const firstTower = allTowers.find(t=>t.nomor===nums[0]);
+      const firstCode  = (firstTower && jalurList.find(j=>j.id===firstTower.jalurId)?.code) || jalurMatch.code;
+      towerLabel = assetCodeTower(firstCode, nums[0])+(nums.length>1?" + "+(nums.length-1)+" lainnya":"");
     } else {
       towerLabel = "Belum ada tower";
     }
@@ -596,6 +640,7 @@ async function renderEditBox(name, box){
       <select id="editJalur-${id}" class="form-select" onchange="renderEditPickers('${name}')"></select>
     </div>
     <div class="picker-count" id="editJalurNote-${id}" style="display:none;">🌐 Admin & KLW otomatis mengakses semua jalur, termasuk jalur baru yang dibuat nanti.</div>
+    <div class="picker-count" id="editJalurCombineNote-${id}" style="display:none;color:var(--teal);"></div>
     <div class="form-row" id="editTowerWrap-${id}">
       <label class="form-label">Pilih Tower</label>
       <div class="picker-box" id="editTowerPicker-${id}"></div>
@@ -647,17 +692,26 @@ async function renderEditPickers(name){
   const id=cssId(name);
   const jalurId=document.getElementById("editJalur-"+id).value;
   if(!jalurId) return;
-  const jalurList=await getJalurList();
-  const jalur=jalurList.find(j=>j.id===jalurId);
-  if(!jalur) return;
-  const towers=await getTowerByJalur(jalurId);
-  const spans =await getSpanByJalur(jalurId);
-  renderPicker(document.getElementById("editTowerPicker-"+id), towers, editSelectedTowerIds[name], t=>assetCodeTower(jalur.code,t.nomor), towerId=>{
+  const jalurGroup = await getComboGroupJalur(jalurId);
+  if(!jalurGroup.length) return;
+  const towers=await getTowerByJalurGroup(jalurGroup);
+  const spans =await getSpanByJalurGroup(jalurGroup);
+
+  const combineNote = document.getElementById("editJalurCombineNote-"+id);
+  const combineChildren = jalurGroup.slice(1);
+  if(combineNote){
+    combineNote.style.display = combineChildren.length ? "block" : "none";
+    combineNote.textContent = combineChildren.length
+      ? "🔗 Termasuk jalur combine: " + combineChildren.map(j=>j.code+" — "+j.label).join(", ")
+      : "";
+  }
+
+  renderPicker(document.getElementById("editTowerPicker-"+id), towers, editSelectedTowerIds[name], t=>assetCodeTower(jalurCodeById(jalurGroup,t.jalurId),t.nomor), towerId=>{
     const i=editSelectedTowerIds[name].indexOf(towerId); if(i>-1) editSelectedTowerIds[name].splice(i,1); else editSelectedTowerIds[name].push(towerId);
     renderEditPickers(name);
   });
   document.getElementById("editTowerCount-"+id).textContent=editSelectedTowerIds[name].length+" tower dipilih";
-  renderPicker(document.getElementById("editSpanPicker-"+id), spans, editSelectedSpanIds[name], s=>assetCodeSpan(jalur.code,s.nomor), spanId=>{
+  renderPicker(document.getElementById("editSpanPicker-"+id), spans, editSelectedSpanIds[name], s=>assetCodeSpan(jalurCodeById(jalurGroup,s.jalurId),s.nomor), spanId=>{
     const i=editSelectedSpanIds[name].indexOf(spanId); if(i>-1) editSelectedSpanIds[name].splice(i,1); else editSelectedSpanIds[name].push(spanId);
     renderEditPickers(name);
   });
