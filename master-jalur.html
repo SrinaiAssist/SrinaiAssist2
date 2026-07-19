@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0B1220">
+<meta name="theme-color" content="#DED2AF">
 <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Master Data Jalur - SRINAI ASSIST</title>
@@ -257,7 +257,7 @@ body{
 }
 .gen-result.warn{color:var(--red);}
 .btn-gen{
-  width:100%;padding:13px;background:linear-gradient(135deg,var(--teal) 0%,#2ea88a 100%);
+  width:100%;padding:13px;background:linear-gradient(135deg,var(--teal) 0%,#3d5638 100%);
   color:white;border:none;border-radius:12px;
   font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;margin-top:4px;
 }
@@ -271,7 +271,7 @@ body{
 
   <div class="topbar">
     <a href="dashboard.html" class="back-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="topbar-title">
       <h1>Master Data</h1>
@@ -313,6 +313,13 @@ body{
       <input type="text" id="editCode" class="form-input" maxlength="5" style="text-transform:uppercase;" placeholder="Contoh: LCJ">
       <div class="form-hint">Contoh: kode LCJ → asset code <span style="color:var(--blue);font-family:monospace;">LCJ-T025</span></div>
     </div>
+    <div class="form-row">
+      <label class="form-label">Jalur Induk (opsional)</label>
+      <select id="editParentJalur" class="form-input">
+        <option value="">— Tidak ada, jalur mandiri —</option>
+      </select>
+      <div class="form-hint">Ubah untuk menjadikan jalur ini combine dari jalur lain, atau kosongkan untuk melepasnya jadi jalur mandiri.</div>
+    </div>
     <div class="modal-actions">
       <button class="modal-btn-cancel" onclick="closeEditModal()">Batal</button>
       <button class="modal-btn-save" onclick="saveEditJalur()">💾 Simpan</button>
@@ -329,7 +336,7 @@ body{
 
     <div class="gen-section">
       <div class="gen-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
         Tower
       </div>
       <div class="gen-row">
@@ -347,7 +354,7 @@ body{
 
     <div class="gen-section">
       <div class="gen-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
         Span
       </div>
       <div class="gen-row">
@@ -408,8 +415,47 @@ function buildAddCard(){
         <div id="codePreviewWrap"></div>
         <div class="form-hint">Kode dipakai untuk asset code: <span style="color:var(--blue);font-family:monospace;">LCJ-T025</span>, <span style="color:var(--teal);font-family:monospace;">LCJ-S001</span></div>
       </div>
+      <div class="form-row">
+        <label class="form-label">Jalur Induk (opsional)</label>
+        <select id="newParentJalur" class="form-input">
+          <option value="">— Tidak ada, jalur mandiri —</option>
+        </select>
+        <div class="form-hint">Pilih jalur induk untuk menjadikan ini <b>jalur combine</b>: jalur baru dengan tower/span sendiri (tidak bentrok nomor dengan jalur lain), tapi dikelompokkan di bawah jalur induk di daftar.</div>
+      </div>
       <button class="btn-primary" onclick="addJalur()">➕ Tambah Jalur</button>
     </div>`;
+}
+
+/* ── Isi ulang opsi <select> jalur induk (dipanggil tiap kali data jalur di-refresh) ── */
+function populateParentSelects(list, skipId){
+  // Hanya jalur mandiri (tanpa induk sendiri) yang boleh jadi induk,
+  // supaya nesting combine dibatasi maksimal 1 tingkat.
+  const eligible = list.filter(j => !j.parent_jalur_id && j.id !== skipId);
+  const optionsHtml = eligible.map(j =>
+    `<option value="${j.id}">${j.code} — ${j.label}</option>`
+  ).join("");
+
+  const newSel = document.getElementById("newParentJalur");
+  if(newSel){
+    const cur = newSel.value;
+    newSel.innerHTML = `<option value="">— Tidak ada, jalur mandiri —</option>` + optionsHtml;
+    newSel.value = cur;
+  }
+  const editSel = document.getElementById("editParentJalur");
+  if(editSel){
+    const cur = editSel.value;
+    editSel.innerHTML = `<option value="">— Tidak ada, jalur mandiri —</option>` + optionsHtml;
+    editSel.value = cur;
+  }
+}
+
+/* ── Tombol cepat "+ Combine" di kartu jalur induk ── */
+function quickAddCombine(parentId){
+  const sel = document.getElementById("newParentJalur");
+  if(sel) sel.value = parentId;
+  document.getElementById("addCardWrap").scrollIntoView({behavior:"smooth", block:"start"});
+  const labelInput = document.getElementById("newLabel");
+  if(labelInput){ labelInput.focus(); }
 }
 
 function suggestCode(label){
@@ -441,12 +487,17 @@ async function loadJalurList(){
   const result = await apiRequest("/api/jalur");
   const data = result.jalur ? result.jalur.map(j => ({
     id: j.id, code: j.code, label: j.label, aktif: j.aktif,
+    parent_jalur_id: j.parent_jalur_id || null,
+    parentLabel: j.parent_label || null,
+    parentCode: j.parent_code || null,
     towerCount: Number(j.tower_count) || 0,
     spanCount: Number(j.span_count) || 0
   })) : [];
 
   // Update cache dengan data fresh
   try{ localStorage.setItem("srinai_cache_jalur", JSON.stringify({ts:Date.now(),data})); }catch(e){}
+
+  populateParentSelects(data);
 
   document.getElementById("jalurCountBadge").textContent = data.length + " jalur";
   wrap.innerHTML = "";
@@ -456,22 +507,40 @@ async function loadJalurList(){
     return;
   }
 
+  // Kelompokkan: jalur mandiri tampil urut kode, jalur combine (anak)
+  // langsung ditampilkan menempel di bawah jalur induknya.
+  const byParent = {};
   data.forEach(j=>{
+    if(j.parent_jalur_id){
+      (byParent[j.parent_jalur_id] = byParent[j.parent_jalur_id] || []).push(j);
+    }
+  });
+  const ordered = [];
+  data.filter(j=>!j.parent_jalur_id).forEach(j=>{
+    ordered.push(j);
+    (byParent[j.id]||[]).forEach(child=>ordered.push(child));
+  });
+
+  ordered.forEach(j=>{
+    const isCombine = !!j.parent_jalur_id;
+    const hasChildren = (byParent[j.id]||[]).length > 0;
     const card = document.createElement("div");
     card.className = "jalur-card" + (j.aktif ? "" : " nonaktif");
+    if(isCombine) card.style.marginLeft = "14px";
     card.innerHTML = `
       <div class="jalur-top">
         <div class="jalur-code-badge">${j.code}</div>
         <div class="jalur-info">
-          <div class="jalur-name">${j.label}</div>
+          <div class="jalur-name">${isCombine ? "🔗 " : ""}${j.label}</div>
           <div class="jalur-id">ID: ${j.id}</div>
+          ${isCombine ? `<div class="jalur-id" style="color:var(--teal);">Combine dari ${j.parentCode} — ${j.parentLabel}</div>` : ""}
         </div>
         <div class="status-chip ${j.aktif ? 'status-aktif' : 'status-nonaktif'}">${j.aktif ? 'Aktif' : 'Nonaktif'}</div>
       </div>
       <div class="jalur-stats">
         <div class="jalur-stat">
           <div class="jalur-stat-icon tower-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#4A8EF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14"/></svg>
           </div>
           <div class="jalur-stat-text">
             <div class="jalur-stat-num">${j.towerCount}</div>
@@ -480,7 +549,7 @@ async function loadJalurList(){
         </div>
         <div class="jalur-stat">
           <div class="jalur-stat-icon span-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#38BFA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
           </div>
           <div class="jalur-stat-text">
             <div class="jalur-stat-num">${j.spanCount}</div>
@@ -500,7 +569,11 @@ async function loadJalurList(){
       <button class="jalur-nav-btn" onclick="openGenerateModal('${j.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>
         ⚡ Generate Tower & Span
-      </button>` : ""}
+      </button>
+      ${!isCombine ? `
+      <button class="jalur-nav-btn" onclick="quickAddCombine('${j.id}')">
+        🔗 + Tambah Jalur Combine
+      </button>` : ""}` : ""}
     `;
     wrap.appendChild(card);
   });
@@ -512,10 +585,11 @@ async function addJalur(){
   if(!label){ alert("Nama jalur wajib diisi."); return; }
   if(!code) code = suggestCode(label);
   if(!code){ alert("Kode tidak dapat dibuat otomatis, isi manual."); return; }
+  const parentJalurId = document.getElementById("newParentJalur").value || null;
 
   const result = await apiRequest("/api/jalur", {
     method:"POST",
-    body: JSON.stringify({ id:"route_"+Date.now(), code, label, aktif:true })
+    body: JSON.stringify({ id:"route_"+Date.now(), code, label, aktif:true, parentJalurId })
   });
 
   if(!result.success){ alert(result.message || "Gagal menambahkan jalur."); return; }
@@ -523,10 +597,11 @@ async function addJalur(){
   document.getElementById("newLabel").value = "";
   document.getElementById("newCode").value = "";
   document.getElementById("codePreviewWrap").innerHTML = "";
+  document.getElementById("newParentJalur").value = "";
 
   invalidateMasterCache();
   await loadJalurList();
-  alert(`Jalur "${label}" (${code}) berhasil ditambahkan.`);
+  alert(`Jalur "${label}" (${code})${parentJalurId ? " sebagai jalur combine" : ""} berhasil ditambahkan.`);
 }
 
 async function toggleJalurStatus(id){
@@ -548,11 +623,16 @@ let editingJalurId = null;
 
 async function openEditModal(id){
   const result = await apiRequest("/api/jalur");
-  const jalur = (result.jalur||[]).find(j=>j.id===id);
+  const list = result.jalur||[];
+  const jalur = list.find(j=>j.id===id);
   if(!jalur) return;
   editingJalurId = id;
   document.getElementById("editLabel").value = jalur.label;
   document.getElementById("editCode").value = jalur.code;
+  populateParentSelects(list.map(j=>({
+    id:j.id, code:j.code, label:j.label, parent_jalur_id:j.parent_jalur_id||null
+  })), id);
+  document.getElementById("editParentJalur").value = jalur.parent_jalur_id || "";
   document.getElementById("modalEdit").classList.add("active");
 }
 
@@ -564,16 +644,22 @@ function closeEditModal(){
 async function saveEditJalur(){
   const label = document.getElementById("editLabel").value.trim();
   const code = document.getElementById("editCode").value.trim().toUpperCase();
+  const parentJalurId = document.getElementById("editParentJalur").value || "";
   if(!label||!code){ alert("Nama dan kode jalur wajib diisi."); return; }
 
   const result = await apiRequest("/api/jalur");
   const dup = (result.jalur||[]).find(j=>j.code===code && j.id!==editingJalurId);
   if(dup){ alert(`Kode "${code}" sudah dipakai jalur lain.`); return; }
 
-  await apiRequest("/api/jalur", {
+  const saveResult = await apiRequest("/api/jalur", {
     method:"PUT",
-    body: JSON.stringify({ id:editingJalurId, fields:{ label, code } })
+    body: JSON.stringify({ id:editingJalurId, fields:{ label, code, parent_jalur_id: parentJalurId } })
   });
+
+  if(saveResult && saveResult.success === false){
+    alert(saveResult.message || "Gagal menyimpan perubahan jalur.");
+    return;
+  }
 
   invalidateMasterCache();
   closeEditModal();
