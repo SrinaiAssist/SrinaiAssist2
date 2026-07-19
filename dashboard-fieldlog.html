@@ -66,6 +66,46 @@ body{
 }
 .icon-btn svg{width:15px;height:15px;stroke:var(--ink);}
 .notif-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;background:var(--route);border-radius:50%;border:1.5px solid var(--paper);display:none;}
+
+/* Notif aktivitas admin (bel topbar) */
+@keyframes bellShake{
+  0%,100%{transform:rotate(0deg);}
+  10%,30%,50%,70%{transform:rotate(-12deg);}
+  20%,40%,60%,80%{transform:rotate(12deg);}
+  90%{transform:rotate(-6deg);}
+}
+#activityBellBtn.has-unread svg{
+  transform-origin:50% 0%;
+  animation:bellShake 1.6s ease-in-out infinite;
+  animation-delay:1s;
+}
+.activity-panel{
+  position:absolute;top:46px;right:0;width:290px;max-height:380px;overflow-y:auto;
+  background:var(--paper);border:1.5px solid var(--ink);border-radius:14px;
+  box-shadow:0 10px 28px rgba(43,42,34,0.28);
+  padding:10px;display:none;z-index:60;-webkit-overflow-scrolling:touch;
+}
+.activity-panel.open{display:block;}
+.activity-panel-head{
+  font-family:'JetBrains Mono';font-size:9.5px;letter-spacing:0.8px;text-transform:uppercase;
+  color:var(--ink-soft);padding:2px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px;
+}
+.act-item{display:flex;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);}
+.act-item:last-child{border-bottom:none;}
+.act-item-icon{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+}
+.act-item-icon.create{background:var(--moss-bg);}
+.act-item-icon.update{background:rgba(168,132,46,0.16);}
+.act-item-icon.delete{background:var(--route-bg);}
+.act-item-icon.reset_password{background:rgba(43,42,34,0.08);}
+.act-item-body{flex:1;min-width:0;}
+.act-item-top{display:flex;justify-content:space-between;gap:6px;align-items:baseline;}
+.act-item-actor{font-size:11.5px;font-weight:800;color:var(--ink);}
+.act-item-time{font-size:9px;color:var(--ink-faint);white-space:nowrap;flex-shrink:0;}
+.act-item-detail{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.4;}
+.activity-empty,.activity-loading{font-size:11.5px;color:var(--ink-faint);text-align:center;padding:16px 6px;}
 .theme-toggle-btn{
   font-family:'JetBrains Mono';font-size:8.5px;letter-spacing:0.5px;text-transform:uppercase;
   border:1.5px solid var(--ink);border-radius:20px;padding:0 10px;height:36px;display:flex;align-items:center;
@@ -435,9 +475,13 @@ body{
       </div>
     </div>
     <div class="topbar-actions">
-      <div class="icon-btn" onclick="location.href='pengaturan.html'">
+      <div class="icon-btn" id="activityBellBtn" onclick="event.stopPropagation(); toggleActivityPanel();">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         <div class="notif-dot" id="noticeDot"></div>
+        <div class="activity-panel" id="activityPanel" onclick="event.stopPropagation();">
+          <div class="activity-panel-head">Aktivitas Terbaru</div>
+          <div id="activityList"><div class="activity-loading">Memuat...</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -830,7 +874,6 @@ async function initPage(){
   if(notice){
     document.getElementById("noticeBox").style.display = "block";
     document.getElementById("noticeBody").textContent = notice;
-    document.getElementById("noticeDot").style.display = "block";
   }
 
   loadStats();
@@ -839,6 +882,7 @@ async function initPage(){
   if(typeof _updateSyncBadge === "function") _updateSyncBadge();
 
   loadCommandBotUnreadBadge(currentUser);
+  loadActivityBell(currentUser);
 
   playDashboardOpenChime();
 }
@@ -869,6 +913,96 @@ async function loadCommandBotUnreadBadge(currentUser){
     console.warn("Gagal cek notif CommandBot:", e);
   }
 }
+
+/* =========================================================
+   NOTIF AKTIVITAS ADMIN (bel topbar: perubahan tegakan & akun
+   oleh admin, dari tabel activity_logs -- getar + titik merah
+   untuk yang belum dibaca, ditandai terbaca per-user via
+   localStorage saat panel dibuka)
+========================================================= */
+const ACT_ICON  = { create: "➕", update: "✏️", delete: "🗑️", reset_password: "🔑" };
+const ACT_LABEL = { create: "Tambah", update: "Ubah", delete: "Hapus", reset_password: "Reset Password" };
+let activityPanelItems = [];
+
+function relativeTimeShort(iso){
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if(diffSec < 60) return "Baru saja";
+  const diffMin = Math.floor(diffSec / 60);
+  if(diffMin < 60) return diffMin + " menit lalu";
+  const diffHour = Math.floor(diffMin / 60);
+  if(diffHour < 24) return diffHour + " jam lalu";
+  const diffDay = Math.floor(diffHour / 24);
+  if(diffDay < 30) return diffDay + " hari lalu";
+  const diffMonth = Math.floor(diffDay / 30);
+  if(diffMonth < 12) return diffMonth + " bulan lalu";
+  return Math.floor(diffMonth / 12) + " tahun lalu";
+}
+
+async function loadActivityBell(currentUser){
+  try {
+    const items = await getActivityLog(undefined, 15);
+    activityPanelItems = items || [];
+    renderActivityPanelList();
+    if(!activityPanelItems.length) return;
+
+    const lastSeen = localStorage.getItem("srinai_activitySeen_" + currentUser);
+    const latest = activityPanelItems[0].createdAt;
+    if(!lastSeen || new Date(latest) > new Date(lastSeen)){
+      document.getElementById("activityBellBtn").classList.add("has-unread");
+      document.getElementById("noticeDot").style.display = "block";
+    }
+  } catch(e){
+    console.warn("Gagal memuat notif aktivitas:", e);
+    document.getElementById("activityList").innerHTML = `<div class="activity-empty">Gagal memuat aktivitas.</div>`;
+  }
+}
+
+function renderActivityPanelList(){
+  const wrap = document.getElementById("activityList");
+  if(!activityPanelItems.length){
+    wrap.innerHTML = `<div class="activity-empty">Belum ada aktivitas tercatat.</div>`;
+    return;
+  }
+  wrap.innerHTML = activityPanelItems.map(item => {
+    const iconClass = ACT_ICON[item.action] ? item.action : "update";
+    return `
+      <div class="act-item">
+        <div class="act-item-icon ${iconClass}">${ACT_ICON[item.action] || "•"}</div>
+        <div class="act-item-body">
+          <div class="act-item-top">
+            <div class="act-item-actor">${item.username || "?"} <span style="color:var(--ink-faint);font-weight:600;">— ${ACT_LABEL[item.action] || item.action}</span></div>
+            <div class="act-item-time">${relativeTimeShort(item.createdAt)}</div>
+          </div>
+          <div class="act-item-detail">${item.detail || ""}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function toggleActivityPanel(){
+  const panel = document.getElementById("activityPanel");
+  if(panel.classList.contains("open")){
+    panel.classList.remove("open");
+    return;
+  }
+  panel.classList.add("open");
+
+  const currentUser = getCurrentUser();
+  if(currentUser && activityPanelItems.length){
+    localStorage.setItem("srinai_activitySeen_" + currentUser, activityPanelItems[0].createdAt);
+  }
+  document.getElementById("activityBellBtn").classList.remove("has-unread");
+  document.getElementById("noticeDot").style.display = "none";
+}
+
+document.addEventListener("click", function(e){
+  const panel = document.getElementById("activityPanel");
+  const bell = document.getElementById("activityBellBtn");
+  if(panel && bell && panel.classList.contains("open") && !bell.contains(e.target)){
+    panel.classList.remove("open");
+  }
+});
 
 // Bunyi "flute" sekali tiap dashboard dibuka (bukan tiap render ulang data,
 // initPage() sendiri cuma jalan sekali per full page load). Kalau browser
