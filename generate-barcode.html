@@ -125,16 +125,22 @@ body{
   padding:22px;max-width:340px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;
 }
 .modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
-.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
-.qr-pair{display:flex;flex-direction:column;gap:18px;}
-.qr-unit-label{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;line-height:1.5;}
+.qr-section-label{
+  font-size:10.5px;font-weight:700;color:var(--gold);text-transform:uppercase;
+  letter-spacing:.6px;text-align:left;margin:14px 0 8px;
+}
+.qr-section-label:first-of-type{margin-top:2px;}
+.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.qr-unit{background:var(--bg-card2);border:1px solid var(--border);border-radius:14px;padding:10px;}
+.qr-unit-label{font-size:11px;font-weight:700;color:var(--ink-2);margin-bottom:8px;}
 .qr-box{
-  width:180px;height:180px;margin:0 auto 10px;border-radius:14px;overflow:hidden;
+  width:100%;aspect-ratio:1/1;margin:0 auto 8px;border-radius:12px;overflow:hidden;
   background:white;display:flex;align-items:center;justify-content:center;
 }
 .qr-box img{display:block;width:100%;height:100%;}
-.qr-loading{font-size:11px;color:#0A1E3D;width:180px;height:180px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;}
-.qr-unit-note{font-size:10.5px;color:var(--ink-3);margin-bottom:4px;}
+.qr-loading{font-size:10px;color:#0A1E3D;width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;}
+.qr-empty{grid-column:1 / -1;font-size:11.5px;color:var(--ink-3);text-align:center;padding:14px 6px;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -185,20 +191,13 @@ body{
 <div class="modal-overlay" id="qrModal" onclick="if(event.target===this) closeQrModal()">
   <div class="modal-box">
     <div class="modal-title" id="qrModalTitle">Petugas</div>
-    <div class="modal-sub">Cetak/tempel QR ini agar petugas dapat memindainya untuk membuka data tower dan span miliknya.</div>
+    <div class="modal-sub">Cetak/tempel QR ini agar petugas dapat memindainya untuk membuka data tower/span miliknya masing-masing (sama seperti QR di halaman Tower).</div>
 
-    <div class="qr-pair">
-      <div>
-        <div class="qr-unit-label">QR Tower</div>
-        <div class="qr-box" id="qrBoxTower"><div class="qr-loading">Memuat QR...</div></div>
-        <button class="btn-secondary" onclick="downloadQr('qrBoxTower', currentPetugasName, 'Tower')">Unduh QR Tower</button>
-      </div>
-      <div>
-        <div class="qr-unit-label">QR Span</div>
-        <div class="qr-box" id="qrBoxSpan"><div class="qr-loading">Memuat QR...</div></div>
-        <button class="btn-secondary" onclick="downloadQr('qrBoxSpan', currentPetugasName, 'Span')">Unduh QR Span</button>
-      </div>
-    </div>
+    <div class="qr-section-label">Tower</div>
+    <div class="qr-grid" id="qrTowerWrap"></div>
+
+    <div class="qr-section-label">Span</div>
+    <div class="qr-grid" id="qrSpanWrap"></div>
 
     <button class="btn-secondary" onclick="closeQrModal()">Tutup</button>
   </div>
@@ -206,6 +205,8 @@ body{
 
 <script>
 let currentPetugasName = "";
+let jalurList = [], towerListAll = [], spanListAll = [];
+let jalurCodeById = {};
 
 async function initPage(){
   if(!(await isLoggedIn())){
@@ -220,13 +221,29 @@ async function initPage(){
   await loadPetugasList();
 }
 
+function jalurCodeFor(jalurId){
+  return jalurCodeById[jalurId] || "";
+}
+
 async function loadPetugasList(){
   const loading = document.getElementById("loadingList");
   const wrap    = document.getElementById("petugasList");
   const empty   = document.getElementById("emptyList");
 
   try{
-    const accounts = await cachedGetAllAccountsFull();
+    const [accounts, jalurData, towerData, spanData] = await Promise.all([
+      cachedGetAllAccountsFull(),
+      cachedGetJalurMasterList(),
+      cachedGetTowerMasterList(),
+      cachedGetSpanMasterList()
+    ]);
+
+    jalurList     = jalurData || [];
+    towerListAll  = towerData || [];
+    spanListAll   = spanData || [];
+    jalurCodeById = {};
+    jalurList.forEach(j => { jalurCodeById[j.id] = j.code; });
+
     const petugasAccounts = accounts
       .filter(a => a.role === "lw")
       .sort((a,b) => a.username.localeCompare(b.username));
@@ -265,13 +282,13 @@ async function loadPetugasList(){
 
 function cssSafe(s){ return String(s).replace(/'/g, "\\'"); }
 
-function towerPetugasDeepLink(username){
+function towerDeepLink(towerId){
   return location.origin + location.pathname.replace(/generate-barcode\.html$/, "")
-    + "tower.html?petugas=" + encodeURIComponent(username);
+    + "catatan-tower.html?tower=" + towerId;
 }
-function spanPetugasDeepLink(username){
+function spanDeepLink(spanId){
   return location.origin + location.pathname.replace(/generate-barcode\.html$/, "")
-    + "informasi-span.html?owner=" + encodeURIComponent(username);
+    + "catatan-span.html?span=" + spanId;
 }
 
 async function openQrModal(username){
@@ -279,34 +296,67 @@ async function openQrModal(username){
   document.getElementById("qrModalTitle").textContent = username;
   document.getElementById("qrModal").classList.add("active");
 
-  const towerBox = document.getElementById("qrBoxTower");
-  const spanBox  = document.getElementById("qrBoxSpan");
-  towerBox.innerHTML = `<div class="qr-loading">Memuat QR...</div>`;
-  spanBox.innerHTML   = `<div class="qr-loading">Memuat QR...</div>`;
+  const acc = (await cachedGetAllAccountsFull()).find(a => a.username === username);
+  const towerIds = (acc && acc.tower_ids) || [];
+  const spanIds  = (acc && acc.span_ids)  || [];
 
-  const [towerDataUrl, spanDataUrl] = await Promise.all([
-    getOrCreateQrDataUrl(`qr:tower:petugas:${username}`, towerPetugasDeepLink(username)),
-    getOrCreateQrDataUrl(`qr:infospan:${username}`, spanPetugasDeepLink(username))
-  ]);
+  const towers = towerListAll.filter(t => towerIds.includes(t.id)).sort((a,b) => a.nomor - b.nomor);
+  const spans  = spanListAll.filter(s => spanIds.includes(s.id)).sort((a,b) => a.nomor - b.nomor);
 
-  towerBox.innerHTML = towerDataUrl
-    ? `<img src="${towerDataUrl}" alt="QR Tower ${username}">`
-    : `<div class="qr-loading">Gagal memuat QR.</div>`;
-  spanBox.innerHTML = spanDataUrl
-    ? `<img src="${spanDataUrl}" alt="QR Span ${username}">`
-    : `<div class="qr-loading">Gagal memuat QR.</div>`;
+  const towerWrap = document.getElementById("qrTowerWrap");
+  const spanWrap  = document.getElementById("qrSpanWrap");
+
+  if(!towers.length){
+    towerWrap.innerHTML = `<div class="qr-empty">Belum ada tower yang di-assign ke petugas ini.</div>`;
+  } else {
+    towerWrap.innerHTML = towers.map(t => {
+      const code = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor);
+      return `
+        <div class="qr-unit">
+          <div class="qr-unit-label">${code}</div>
+          <div class="qr-box" id="qrT_${t.id}"><div class="qr-loading">Memuat...</div></div>
+          <button class="btn-secondary" onclick="downloadQr('qrT_${t.id}','${cssSafe(code)}')">Unduh</button>
+        </div>`;
+    }).join("");
+    towers.forEach(async t => {
+      const code = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor);
+      const dataUrl = await getOrCreateQrDataUrl(`qr:tower:${t.id}`, towerDeepLink(t.id));
+      const box = document.getElementById(`qrT_${t.id}`);
+      if(box) box.innerHTML = dataUrl ? `<img src="${dataUrl}" alt="QR ${code}">` : `<div class="qr-loading">Gagal.</div>`;
+    });
+  }
+
+  if(!spans.length){
+    spanWrap.innerHTML = `<div class="qr-empty">Belum ada span yang di-assign ke petugas ini.</div>`;
+  } else {
+    spanWrap.innerHTML = spans.map(s => {
+      const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor);
+      return `
+        <div class="qr-unit">
+          <div class="qr-unit-label">${code}</div>
+          <div class="qr-box" id="qrS_${s.id}"><div class="qr-loading">Memuat...</div></div>
+          <button class="btn-secondary" onclick="downloadQr('qrS_${s.id}','${cssSafe(code)}')">Unduh</button>
+        </div>`;
+    }).join("");
+    spans.forEach(async s => {
+      const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor);
+      const dataUrl = await getOrCreateQrDataUrl(`qr:span:${s.id}`, spanDeepLink(s.id));
+      const box = document.getElementById(`qrS_${s.id}`);
+      if(box) box.innerHTML = dataUrl ? `<img src="${dataUrl}" alt="QR ${code}">` : `<div class="qr-loading">Gagal.</div>`;
+    });
+  }
 }
 
 function closeQrModal(){
   document.getElementById("qrModal").classList.remove("active");
 }
 
-function downloadQr(boxId, username, label){
+function downloadQr(boxId, label){
   const img = document.getElementById(boxId).querySelector("img");
   if(!img) return;
   const a = document.createElement("a");
   a.href = img.src;
-  a.download = `QR_${label}_${username}.png`;
+  a.download = `QR_${label}.png`;
   a.click();
 }
 
