@@ -327,6 +327,9 @@ async function getJalurMasterList() {
         label: j.label,
         aktif: j.aktif,
         penghantar: j.penghantar || "",
+        parentJalurId: j.parent_jalur_id || null,
+        parentLabel: j.parent_label || null,
+        parentCode: j.parent_code || null,
         towerCount: Number(j.tower_count) || 0,
         spanCount: Number(j.span_count) || 0
     }));
