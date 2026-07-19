@@ -723,6 +723,13 @@ function populatePetugasFilter(){
   sel.style.display = "block";
   sel.innerHTML = `<option value="all">Semua Petugas</option>` +
     names.map(n => `<option value="${n}">👤 ${n}</option>`).join("");
+
+  // Deep link dari QR "Generate Barcode" (?petugas=username) -- langsung
+  // filter ke petugas tsb kalau namanya ada di daftar.
+  const petugasParam = new URLSearchParams(location.search).get("petugas");
+  if(petugasParam && names.includes(petugasParam)){
+    sel.value = petugasParam;
+  }
 }
 
 function applyFilters(){

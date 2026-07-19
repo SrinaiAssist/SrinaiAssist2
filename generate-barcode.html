@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Generate Barcode - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;margin:auto;min-height:100vh;
+  background:var(--bg-deep);padding-bottom:60px;
+  position:relative;overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.topbar{
+  position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+.content{position:relative;z-index:2;padding:18px 20px 0;}
+
+.info-box{
+  background:var(--blue-glow);border-left:3px solid var(--blue);
+  padding:11px 13px;border-radius:10px;font-size:12.5px;color:var(--ink-2);
+  line-height:1.5;margin-bottom:14px;
+}
+.hidden{display:none !important;}
+.empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+.loading-msg{text-align:center;color:var(--ink-3);padding:24px 0;font-size:12.5px;}
+
+/* ── Access denied ── */
+.denied-box{text-align:center;padding:60px 20px;}
+.denied-emoji{font-size:44px;margin-bottom:14px;}
+.denied-title{font-size:16px;font-weight:800;margin-bottom:8px;}
+.denied-desc{font-size:12.5px;color:var(--ink-3);line-height:1.6;}
+.btn{
+  width:100%;padding:13px;border:none;border-radius:12px;font-family:inherit;
+  font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;
+}
+.btn-primary{background:var(--blue);color:white;}
+.btn-secondary{
+  width:100%;padding:13px;border:none;border-radius:12px;font-family:inherit;
+  font-size:13.5px;font-weight:700;cursor:pointer;margin-top:10px;
+  background:var(--bg-glass);border:1px solid var(--border);color:var(--ink-2);
+}
+
+/* ── Petugas list ── */
+.petugas-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+  padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;
+}
+.petugas-avatar{
+  width:40px;height:40px;border-radius:50%;background:var(--gold-dim);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+  flex-shrink:0;
+}
+.petugas-info{flex:1;min-width:0;}
+.petugas-name{font-size:13.5px;font-weight:700;color:var(--ink);}
+.petugas-meta{font-size:11px;color:var(--ink-3);margin-top:3px;}
+.petugas-meta b{color:var(--ink-2);}
+.petugas-go{color:var(--ink-3);font-size:16px;flex-shrink:0;}
+.petugas-badge{
+  font-size:9.5px;font-weight:700;padding:2.5px 8px;border-radius:20px;
+  background:var(--green-bg);color:var(--green);white-space:nowrap;
+}
+.petugas-badge.warn{background:var(--amber-bg);color:var(--amber);}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal-box{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+  padding:22px;max-width:340px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
+.qr-pair{display:flex;flex-direction:column;gap:18px;}
+.qr-unit-label{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.qr-box{
+  width:180px;height:180px;margin:0 auto 10px;border-radius:14px;overflow:hidden;
+  background:white;display:flex;align-items:center;justify-content:center;
+}
+.qr-box img{display:block;width:100%;height:100%;}
+.qr-loading{font-size:11px;color:#0A1E3D;width:180px;height:180px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;}
+.qr-unit-note{font-size:10.5px;color:var(--ink-3);margin-bottom:4px;}
+</style>
+<link rel="stylesheet" href="css/theme-fieldlog.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>🔳 Generate Barcode</h1>
+      <p>Buat QR Tower &amp; Span per petugas</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- AKSES DITOLAK -->
+    <div id="deniedBox" class="hidden">
+      <div class="denied-box">
+        <div class="denied-emoji">🔒</div>
+        <div class="denied-title">Akses Dibatasi</div>
+        <div class="denied-desc">Hanya admin yang memiliki akses ini.</div>
+        <button class="btn btn-primary" onclick="location.href='dashboard.html'">Kembali ke Beranda</button>
+      </div>
+    </div>
+
+    <!-- KONTEN UTAMA (admin) -->
+    <div id="mainBox" class="hidden">
+
+      <div class="info-box">
+        ℹ️ Pilih petugas untuk membuat QR <b>Tower</b> dan <b>Span</b> miliknya. QR bisa diunduh, dicetak, atau ditempel di lapangan.
+      </div>
+
+      <div id="loadingList" class="loading-msg">Memuat daftar petugas...</div>
+      <div id="petugasList"></div>
+      <div id="emptyList" class="empty-msg hidden">Belum ada akun petugas (role LW) yang terdaftar.</div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal QR Tower & Span -->
+<div class="modal-overlay" id="qrModal" onclick="if(event.target===this) closeQrModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="qrModalTitle">Petugas</div>
+    <div class="modal-sub">Cetak/tempel QR ini agar petugas dapat memindainya untuk membuka data tower dan span miliknya.</div>
+
+    <div class="qr-pair">
+      <div>
+        <div class="qr-unit-label">QR Tower</div>
+        <div class="qr-box" id="qrBoxTower"><div class="qr-loading">Memuat QR...</div></div>
+        <button class="btn-secondary" onclick="downloadQr('qrBoxTower', currentPetugasName, 'Tower')">Unduh QR Tower</button>
+      </div>
+      <div>
+        <div class="qr-unit-label">QR Span</div>
+        <div class="qr-box" id="qrBoxSpan"><div class="qr-loading">Memuat QR...</div></div>
+        <button class="btn-secondary" onclick="downloadQr('qrBoxSpan', currentPetugasName, 'Span')">Unduh QR Span</button>
+      </div>
+    </div>
+
+    <button class="btn-secondary" onclick="closeQrModal()">Tutup</button>
+  </div>
+</div>
+
+<script>
+let currentPetugasName = "";
+
+async function initPage(){
+  if(!(await isLoggedIn())){
+    location.href = "index.html";
+    return;
+  }
+  if(!isAdmin()){
+    document.getElementById("deniedBox").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("mainBox").classList.remove("hidden");
+  await loadPetugasList();
+}
+
+async function loadPetugasList(){
+  const loading = document.getElementById("loadingList");
+  const wrap    = document.getElementById("petugasList");
+  const empty   = document.getElementById("emptyList");
+
+  try{
+    const accounts = await cachedGetAllAccountsFull();
+    const petugasAccounts = accounts
+      .filter(a => a.role === "lw")
+      .sort((a,b) => a.username.localeCompare(b.username));
+
+    loading.classList.add("hidden");
+
+    if(!petugasAccounts.length){
+      empty.classList.remove("hidden");
+      return;
+    }
+
+    wrap.innerHTML = petugasAccounts.map(acc => {
+      const towerCount = (acc.tower_ids || []).length;
+      const spanCount   = (acc.span_ids  || []).length;
+      const hasData     = towerCount > 0 || spanCount > 0;
+      const initials    = acc.username.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase();
+
+      return `
+        <div class="petugas-card" onclick="openQrModal('${cssSafe(acc.username)}')">
+          <div class="petugas-avatar">${initials}</div>
+          <div class="petugas-info">
+            <div class="petugas-name">${acc.username}</div>
+            <div class="petugas-meta"><b>${towerCount}</b> tower &middot; <b>${spanCount}</b> span</div>
+          </div>
+          ${hasData
+            ? '<span class="petugas-badge">Siap</span>'
+            : '<span class="petugas-badge warn">Belum di-assign</span>'}
+          <div class="petugas-go">›</div>
+        </div>`;
+    }).join("");
+  }catch(e){
+    console.warn("Gagal memuat daftar petugas:", e);
+    loading.textContent = "Gagal memuat daftar petugas.";
+  }
+}
+
+function cssSafe(s){ return String(s).replace(/'/g, "\\'"); }
+
+function towerPetugasDeepLink(username){
+  return location.origin + location.pathname.replace(/generate-barcode\.html$/, "")
+    + "tower.html?petugas=" + encodeURIComponent(username);
+}
+function spanPetugasDeepLink(username){
+  return location.origin + location.pathname.replace(/generate-barcode\.html$/, "")
+    + "informasi-span.html?owner=" + encodeURIComponent(username);
+}
+
+async function openQrModal(username){
+  currentPetugasName = username;
+  document.getElementById("qrModalTitle").textContent = username;
+  document.getElementById("qrModal").classList.add("active");
+
+  const towerBox = document.getElementById("qrBoxTower");
+  const spanBox  = document.getElementById("qrBoxSpan");
+  towerBox.innerHTML = `<div class="qr-loading">Memuat QR...</div>`;
+  spanBox.innerHTML   = `<div class="qr-loading">Memuat QR...</div>`;
+
+  const [towerDataUrl, spanDataUrl] = await Promise.all([
+    getOrCreateQrDataUrl(`qr:tower:petugas:${username}`, towerPetugasDeepLink(username)),
+    getOrCreateQrDataUrl(`qr:infospan:${username}`, spanPetugasDeepLink(username))
+  ]);
+
+  towerBox.innerHTML = towerDataUrl
+    ? `<img src="${towerDataUrl}" alt="QR Tower ${username}">`
+    : `<div class="qr-loading">Gagal memuat QR.</div>`;
+  spanBox.innerHTML = spanDataUrl
+    ? `<img src="${spanDataUrl}" alt="QR Span ${username}">`
+    : `<div class="qr-loading">Gagal memuat QR.</div>`;
+}
+
+function closeQrModal(){
+  document.getElementById("qrModal").classList.remove("active");
+}
+
+function downloadQr(boxId, username, label){
+  const img = document.getElementById(boxId).querySelector("img");
+  if(!img) return;
+  const a = document.createElement("a");
+  a.href = img.src;
+  a.download = `QR_${label}_${username}.png`;
+  a.click();
+}
+
+initPage();
+</script>
+</body>
+</html>

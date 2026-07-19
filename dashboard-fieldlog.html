@@ -207,6 +207,18 @@ body{
 .stamp[data-c="gold"] .stamp-circle svg{stroke:var(--gold);}
 .stamp-label{font-family:'Bitter';font-weight:700;font-size:10.5px;text-align:center;letter-spacing:0.1px;}
 
+/* ---------- toast akses ditolak ---------- */
+.access-toast{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(12px);
+  max-width:340px;width:calc(100% - 48px);
+  background:var(--ink);color:var(--paper);border-radius:14px;
+  padding:12px 16px;font-size:12.5px;font-weight:600;text-align:center;
+  box-shadow:0 10px 26px rgba(0,0,0,0.3);
+  opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+  z-index:200;
+}
+.access-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
 /* ---------- ledger stats ---------- */
 .ledger{margin:16px 18px 0;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);}
 .ledger-row{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-bottom:1px dashed var(--line);}
@@ -659,6 +671,10 @@ body{
       <div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 8h1.5v1.5H8zM14.5 8H16v1.5h-1.5zM8 14.5h1.5V16H8zM8 11h2M14 11h2M8 12.5h.01M14.5 12.5h1.5M12 8v8"/></svg></div>
       <div class="stamp-label">Scan Barcode</div>
     </div>
+    <div class="stamp" onclick="handleGenerateBarcodeTap()">
+      <div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="7" rx="1"/><path d="M14 15h3v3h-3zM19 15h2v2h-2zM14 20h2v2h-2zM19 19h2v3h-2z"/></svg></div>
+      <div class="stamp-label">Generate Barcode</div>
+    </div>
   </div>
 
   <div class="section-label">Ringkasan</div>
@@ -710,6 +726,21 @@ body{
 
   <div class="footer-stamp">— SRINAI ASSIST · BUKU LOG LAPANGAN —</div>
 </div>
+
+<div class="access-toast" id="accessToast">Hanya admin yang memiliki akses ini.</div>
+
+<script>
+function handleGenerateBarcodeTap(){
+  if(typeof isAdmin === "function" && isAdmin()){
+    location.href = "generate-barcode.html";
+    return;
+  }
+  const toast = document.getElementById("accessToast");
+  toast.classList.add("show");
+  clearTimeout(window._accessToastTimer);
+  window._accessToastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+</script>
 
 <!-- BOTTOM NAV -->
 <div class="bottomnav">
