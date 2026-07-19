@@ -79,16 +79,30 @@ body{
   animation:bellShake 1.6s ease-in-out infinite;
   animation-delay:1s;
 }
-.activity-panel{
-  position:absolute;top:46px;right:0;width:290px;max-height:380px;overflow-y:auto;
-  background:var(--paper);border:1.5px solid var(--ink);border-radius:14px;
-  box-shadow:0 10px 28px rgba(43,42,34,0.28);
-  padding:10px;display:none;z-index:60;-webkit-overflow-scrolling:touch;
+.activity-scrim{
+  position:absolute;inset:0;background:rgba(43,42,34,0.35);
+  opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:68;
 }
-.activity-panel.open{display:block;}
+.activity-scrim.open{opacity:1;pointer-events:auto;}
+.activity-panel{
+  position:absolute;top:76px;left:12px;right:12px;
+  max-height:min(66vh,460px);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--paper);color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:16px;
+  box-shadow:0 14px 32px rgba(43,42,34,0.32);
+  opacity:0;transform:translateY(-10px);pointer-events:none;
+  transition:opacity .22s ease, transform .22s ease;
+  z-index:70;padding:12px;
+}
+.activity-panel.open{opacity:1;transform:translateY(0);pointer-events:auto;}
 .activity-panel-head{
-  font-family:'JetBrains Mono';font-size:9.5px;letter-spacing:0.8px;text-transform:uppercase;
-  color:var(--ink-soft);padding:2px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-family:'JetBrains Mono';font-size:10px;letter-spacing:0.8px;text-transform:uppercase;
+  color:var(--ink-soft);padding:2px 4px 10px;border-bottom:1px solid var(--line);margin-bottom:8px;
+}
+.activity-panel-close{
+  width:22px;height:22px;border:1.5px solid var(--ink);border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;
 }
 .act-item{display:flex;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);}
 .act-item:last-child{border-bottom:none;}
@@ -475,19 +489,23 @@ body{
       </div>
     </div>
     <div class="topbar-actions">
-      <div class="icon-btn" id="activityBellBtn" onclick="event.stopPropagation(); toggleActivityPanel();">
+      <div class="icon-btn" id="activityBellBtn" onclick="toggleActivityPanel();">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         <div class="notif-dot" id="noticeDot"></div>
-        <div class="activity-panel" id="activityPanel" onclick="event.stopPropagation();">
-          <div class="activity-panel-head">Aktivitas Terbaru</div>
-          <div id="activityList"><div class="activity-loading">Memuat...</div></div>
-        </div>
       </div>
     </div>
   </div>
 
   <!-- SIDEBAR (Admin/KLW) -->
   <div class="side-scrim" id="sideScrim" onclick="closeSidebar()"></div>
+  <div class="activity-scrim" id="activityScrim" onclick="closeActivityPanel()"></div>
+  <div class="activity-panel" id="activityPanel">
+    <div class="activity-panel-head">
+      <span>Aktivitas Terbaru</span>
+      <div class="activity-panel-close" onclick="closeActivityPanel()">✕</div>
+    </div>
+    <div id="activityList"><div class="activity-loading">Memuat...</div></div>
+  </div>
   <div class="side-sheet" id="sideSheet">
     <a class="side-profile-strip" id="sideProfileStrip" href="profile.html">
       <div class="side-profile-avatar" id="sideProfileAvatar">??</div>
@@ -980,14 +998,7 @@ function renderActivityPanelList(){
   }).join("");
 }
 
-function toggleActivityPanel(){
-  const panel = document.getElementById("activityPanel");
-  if(panel.classList.contains("open")){
-    panel.classList.remove("open");
-    return;
-  }
-  panel.classList.add("open");
-
+function markActivityRead(){
   const currentUser = getCurrentUser();
   if(currentUser && activityPanelItems.length){
     localStorage.setItem("srinai_activitySeen_" + currentUser, activityPanelItems[0].createdAt);
@@ -996,13 +1007,21 @@ function toggleActivityPanel(){
   document.getElementById("noticeDot").style.display = "none";
 }
 
-document.addEventListener("click", function(e){
+function toggleActivityPanel(){
   const panel = document.getElementById("activityPanel");
-  const bell = document.getElementById("activityBellBtn");
-  if(panel && bell && panel.classList.contains("open") && !bell.contains(e.target)){
-    panel.classList.remove("open");
+  if(panel.classList.contains("open")){
+    closeActivityPanel();
+    return;
   }
-});
+  panel.classList.add("open");
+  document.getElementById("activityScrim").classList.add("open");
+  markActivityRead();
+}
+
+function closeActivityPanel(){
+  document.getElementById("activityPanel").classList.remove("open");
+  document.getElementById("activityScrim").classList.remove("open");
+}
 
 // Bunyi "flute" sekali tiap dashboard dibuka (bukan tiap render ulang data,
 // initPage() sendiri cuma jalan sekali per full page load). Kalau browser
