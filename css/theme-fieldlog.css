@@ -1,11 +1,10 @@
 /* =========================================================
-   TEMA "BUKU LAPANGAN" — override warna untuk halaman-halaman
-   yang masih pakai desain gelap bawaan (bg-card / navy family).
-   Cara pakai: tambahkan class "theme-fieldlog" ke <html> saat
-   localStorage.srinai_theme === "fieldlog" (lihat js/theme-loader.js).
-   Karena hampir semua halaman sudah dibangun dengan CSS custom
-   properties (var(--bg-card), var(--ink), dst), cukup timpa nilai
-   variabelnya di sini — tidak perlu ubah tiap file satu-satu.
+   TEMA "BUKU LAPANGAN" — satu-satunya tema aplikasi (Klasik
+   sudah dihapus). Class "theme-fieldlog" kini dipasang permanen
+   di <html> tiap halaman bersama. Karena hampir semua halaman
+   sudah dibangun dengan CSS custom properties (var(--bg-card),
+   var(--ink), dst), cukup timpa nilai variabelnya di sini —
+   tidak perlu ubah tiap file satu-satu.
 ========================================================= */
 
 html.theme-fieldlog{
@@ -53,8 +52,8 @@ html.theme-fieldlog body{
 
 /* Navigasi bawah bawaan (gelap) tidak cocok dipakai di tema Buku Lapangan
    dan ikonnya jadi tidak kelihatan (gelap di atas gelap). Dashboard sudah
-   punya navigasi bawah sendiri (dashboard-fieldlog.html tidak memuat file
-   CSS ini), jadi di halaman lain navigasi bawah cukup disembunyikan. */
+   punya navigasi bawah sendiri (dashboard.html tidak memuat file CSS ini),
+   jadi di halaman lain navigasi bawah cukup disembunyikan. */
 html.theme-fieldlog .bottomnav,
 html.theme-fieldlog .bottom-nav,
 html.theme-fieldlog .bottom-menu{
