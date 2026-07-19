@@ -535,33 +535,46 @@ async function initPage(){
 
   if(!profile){ alert("Akun tidak dikenali."); location.href="dashboard.html"; return; }
 
+  // Jalur combine (anak) selalu ikut jalur utamanya (parent) -- kalau
+  // profile.jalurId kebetulan menunjuk ke jalur combine, alihkan ke induknya.
   myJalur = jalurList.find(j => j.id === profile.jalurId)
+    || jalurList.find(j => j.aktif && !j.parentJalurId)
     || jalurList.find(j => j.aktif)
     || jalurList[0];
-  myJalurGroup = getJalurGroup(myJalur ? myJalur.id : null);
+  if(myJalur && myJalur.parentJalurId){
+    myJalur = jalurList.find(j => j.id === myJalur.parentJalurId) || myJalur;
+  }
 
   canEdit      = !isMonitor();
   isFullAccess = isAdmin() || isKLW() || isMonitor();
 
   // Admin & KLW akses semua jalur -> tampilkan switcher jalur, dan pakai
-  // pilihan terakhir yang tersimpan (localStorage) kalau ada.
+  // pilihan terakhir yang tersimpan (localStorage) kalau ada. Jalur combine
+  // (anak) TIDAK ditampilkan sebagai pilihan sendiri di switcher -- datanya
+  // otomatis ikut muncul bersama jalur utamanya (lihat getJalurGroup()).
+  const topJalurList = jalurList.filter(j => !j.parentJalurId);
   if(profile.allJalurAccess){
     const savedJalurId = localStorage.getItem("srinai_active_jalur");
-    if(savedJalurId && jalurList.some(j => j.id === savedJalurId)){
-      myJalur = jalurList.find(j => j.id === savedJalurId);
+    if(savedJalurId && topJalurList.some(j => j.id === savedJalurId)){
+      myJalur = topJalurList.find(j => j.id === savedJalurId);
     }
 
     const sel = document.getElementById("jalurSwitchSelect");
     sel.innerHTML = "";
-    jalurList.forEach(j => {
+    topJalurList.forEach(j => {
       const opt = document.createElement("option");
       opt.value = j.id;
       opt.textContent = j.code + " — " + j.label;
       if(myJalur && j.id === myJalur.id) opt.selected = true;
       sel.appendChild(opt);
     });
-    document.getElementById("jalurSwitchWrap").style.display = jalurList.length ? "block" : "none";
+    document.getElementById("jalurSwitchWrap").style.display = topJalurList.length ? "block" : "none";
   }
+
+  // Grup jalur (utama + combine anak) dihitung SETELAH myJalur final --
+  // sebelumnya dihitung terlalu dini (sebelum override localStorage di
+  // atas), sehingga data yang tampil bisa jadi milik jalur yang salah.
+  myJalurGroup = getJalurGroup(myJalur ? myJalur.id : null);
 
   document.getElementById("userInfo").innerHTML = currentUser + (myJalur ? " · " + myJalur.code : "");
 
@@ -623,11 +636,12 @@ function bukaCatatan(towerId){
 }
 
 async function switchJalur(jalurId){
-  const j = jalurList.find(x => x.id === jalurId);
+  let j = jalurList.find(x => x.id === jalurId);
   if(!j) return;
+  if(j.parentJalurId) j = jalurList.find(x => x.id === j.parentJalurId) || j;
   myJalur = j;
   myJalurGroup = getJalurGroup(myJalur.id);
-  localStorage.setItem("srinai_active_jalur", jalurId);
+  localStorage.setItem("srinai_active_jalur", myJalur.id);
 
   spanListCache = (await cachedGetSpanMasterList()).filter(s => myJalurGroup.some(g => g.id === s.jalurId));
 
