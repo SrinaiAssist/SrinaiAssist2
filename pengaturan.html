@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="theme-fieldlog">
 <head>
   <meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8">
@@ -9,7 +9,6 @@
 <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Pengaturan - SRINAI ASSIST</title>
-<script src="js/theme-loader.js"></script>
 <script src="js/auth.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -252,16 +251,6 @@ select.field-input:focus{border-color:rgba(74,142,245,0.4);}
       </div>
 
       <div class="card">
-        <div class="card-title gold">🎨 Tampilan Tema</div>
-        <div class="card-desc">Tema tampilan berlaku untuk SEMUA pengguna di semua perangkat. Setelah disimpan, halaman lain akan otomatis menyesuaikan saat dibuka ulang.</div>
-        <select class="field-input" id="themeSelect">
-          <option value="default">Klasik (Navy &amp; Emas)</option>
-          <option value="fieldlog">Buku Lapangan</option>
-        </select>
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="saveTheme()">Simpan Tema</button>
-      </div>
-
-      <div class="card">
         <div class="card-title gold">🖼 Logo & Tampilan Login</div>
         <div class="card-desc">Logo dipakai di halaman login dan pojok kiri atas Dashboard. Background hanya di halaman login. Gambar otomatis dikompres.</div>
 
@@ -394,21 +383,10 @@ async function initPage(){
   }
 
   if(isAdmin()){
-    const themeSelect = document.getElementById("themeSelect");
-    if(themeSelect){
-      const savedTheme = await getAppSetting("appTheme");
-      themeSelect.value = savedTheme === "fieldlog" ? "fieldlog" : "default";
-    }
     await loadLoginPreview("logo");
     await loadLoginPreview("background");
     loadAiUsage();
   }
-}
-
-async function saveTheme(){
-  const value = document.getElementById("themeSelect").value;
-  await setAppSetting("appTheme", value);
-  alert("Tema berhasil disimpan. Halaman lain akan otomatis menyesuaikan saat dibuka ulang.");
 }
 
 async function saveNotice(){
