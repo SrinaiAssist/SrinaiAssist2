@@ -739,54 +739,11 @@ async function deleteAppSetting(key) {
 }
 
 /* =========================================================
-   TEMA GLOBAL — ditentukan Admin lewat Pengaturan (setting
-   "appTheme" di server, BUKAN pilihan per-perangkat lagi).
-   localStorage "srinai_theme" hanya dipakai sebagai CACHE lokal
-   supaya halaman tidak "flash" saat load (lihat js/theme-loader.js,
-   yang membaca cache ini secara sinkron sebelum CSS dimuat).
-   Fungsi di bawah ini mengoreksi cache dari server setiap kali
-   halaman dibuka, lalu redirect otomatis ke versi halaman yang
-   sesuai kalau perlu (index/dashboard/command-bot punya versi
-   terpisah untuk tema Buku Lapangan).
+   TEMA — sejak tema Klasik dihapus, aplikasi hanya punya satu
+   tampilan (Buku Lapangan). Halaman bersama sudah permanen
+   memakai class "theme-fieldlog" di <html>, jadi tidak perlu
+   lagi sinkronisasi/redirect tema di sini.
 ========================================================= */
-const THEME_PAGE_MAP = {
-    "index.html": "index-fieldlog.html",
-    "dashboard.html": "dashboard-fieldlog.html",
-    "command-bot.html": "command-bot-fieldlog.html",
-    "index-fieldlog.html": "index.html",
-    "dashboard-fieldlog.html": "dashboard.html",
-    "command-bot-fieldlog.html": "command-bot.html"
-};
-
-async function syncAdminTheme() {
-    let serverTheme = "default";
-    try {
-        serverTheme = (await getAppSetting("appTheme")) || "default";
-    } catch (e) {
-        return; // gagal ambil setting (mis. offline) — pertahankan cache lokal apa adanya
-    }
-
-    const cachedTheme = localStorage.getItem("srinai_theme") === "fieldlog" ? "fieldlog" : "default";
-    if (serverTheme === cachedTheme) return; // sudah sinkron, tidak perlu apa-apa
-
-    localStorage.setItem("srinai_theme", serverTheme);
-
-    const page = location.pathname.split("/").pop() || "index.html";
-    const counterpart = THEME_PAGE_MAP[page];
-    if (counterpart) {
-        const pageIsFieldlog = page.includes("-fieldlog");
-        const shouldBeFieldlog = serverTheme === "fieldlog";
-        if (pageIsFieldlog !== shouldBeFieldlog) {
-            location.href = counterpart;
-            return;
-        }
-    }
-
-    // Halaman bersama (bukan index/dashboard/command-bot): cukup timpa
-    // class di <html>, tidak perlu reload karena warnanya CSS variable.
-    document.documentElement.classList.toggle("theme-fieldlog", serverTheme === "fieldlog");
-}
-syncAdminTheme();
 
 /* =========================================================
    GROUP CHAT — Neon Postgres lewat /api/chat
