@@ -7,7 +7,7 @@
 // menganggap aplikasi ini "installable" (syarat wajib PWA/TWA), dan
 // meng-cache aset statis (ikon) yang memang tidak pernah berubah per rilis.
 
-const CACHE_NAME = "srinai-static-v1";
+const CACHE_NAME = "srinai-static-v2";
 const STATIC_ASSETS = [
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png",
