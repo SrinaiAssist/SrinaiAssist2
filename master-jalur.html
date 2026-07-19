@@ -488,6 +488,14 @@ async function loadJalurList(){
   const data = result.jalur ? result.jalur.map(j => ({
     id: j.id, code: j.code, label: j.label, aktif: j.aktif,
     parent_jalur_id: j.parent_jalur_id || null,
+    // PENTING: field ini juga harus ada dalam bentuk camelCase karena
+    // cache "srinai_cache_jalur" dipakai bersama oleh halaman lain
+    // (tower.html, span.html, dst.) yang membaca lewat getJalurMasterList()
+    // di js/auth.js, yang memetakan kolom DB ke parentJalurId (camelCase).
+    // Kalau field ini tidak ikut ditulis, halaman lain akan menganggap
+    // SEMUA jalur mandiri (tanpa induk) begitu cache ini di-overwrite dari
+    // sini, sehingga jalur combine gagal digabung ke jalur induknya.
+    parentJalurId: j.parent_jalur_id || null,
     parentLabel: j.parent_label || null,
     parentCode: j.parent_code || null,
     towerCount: Number(j.tower_count) || 0,

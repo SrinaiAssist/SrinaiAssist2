@@ -427,11 +427,19 @@ let tegakanSpanSet = new Set(); // spanId yang sudah punya tegakan
 // Jalur combine: kumpulkan jalur utama + semua jalur combine (anak) aktifnya,
 // supaya span dari jalur combine ikut tampil saat jalur induknya aktif.
 // Sama seperti pola getComboGroupJalur() di kelola-akun.html.
+// Baca id jalur induk dengan aman -- beberapa jalur path menulis cache
+// jalur pakai field snake_case (parent_jalur_id) alih-alih camelCase
+// (parentJalurId), jadi selalu cek keduanya supaya tidak salah anggap
+// jalur combine sebagai jalur mandiri saat cache sedang tidak konsisten.
+function parentIdOf(j){
+  return (j && (j.parentJalurId || j.parent_jalur_id)) || null;
+}
+
 function getJalurGroup(jalurId){
   if(!jalurId) return [];
   const primary = jalurList.find(j => j.id === jalurId);
   if(!primary) return [];
-  const children = jalurList.filter(j => j.parentJalurId === jalurId && j.aktif);
+  const children = jalurList.filter(j => parentIdOf(j) === jalurId && j.aktif);
   return [primary, ...children];
 }
 
@@ -480,11 +488,11 @@ async function initPage(){
   // Jalur combine (anak) selalu ikut jalur utamanya (parent) -- kalau
   // profile.jalurId kebetulan menunjuk ke jalur combine, alihkan ke induknya.
   myJalur = jalurList.find(j => j.id === profile.jalurId)
-    || jalurList.find(j => j.aktif && !j.parentJalurId)
+    || jalurList.find(j => j.aktif && !parentIdOf(j))
     || jalurList.find(j => j.aktif)
     || jalurList[0];
-  if(myJalur && myJalur.parentJalurId){
-    myJalur = jalurList.find(j => j.id === myJalur.parentJalurId) || myJalur;
+  if(myJalur && parentIdOf(myJalur)){
+    myJalur = jalurList.find(j => j.id === parentIdOf(myJalur)) || myJalur;
   }
 
   canEdit = !isMonitor();
@@ -492,7 +500,7 @@ async function initPage(){
   // Admin & KLW akses semua jalur -> tampilkan switcher jalur. Jalur combine
   // (anak) TIDAK ditampilkan sebagai pilihan sendiri di switcher -- datanya
   // otomatis ikut muncul bersama jalur utamanya (lihat getJalurGroup()).
-  const topJalurList = jalurList.filter(j => !j.parentJalurId);
+  const topJalurList = jalurList.filter(j => !parentIdOf(j));
   if(profile.allJalurAccess){
     const savedJalurId = localStorage.getItem("srinai_active_jalur");
     if(savedJalurId && topJalurList.some(j => j.id === savedJalurId)){
@@ -563,7 +571,7 @@ function bukaCatatan(spanId){
 async function switchJalur(jalurId){
   let j = jalurList.find(x => x.id === jalurId);
   if(!j) return;
-  if(j.parentJalurId) j = jalurList.find(x => x.id === j.parentJalurId) || j;
+  if(parentIdOf(j)) j = jalurList.find(x => x.id === parentIdOf(j)) || j;
   myJalur = j;
   myJalurGroup = getJalurGroup(myJalur.id);
   localStorage.setItem("srinai_active_jalur", myJalur.id);
