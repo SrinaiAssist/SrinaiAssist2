@@ -68,3 +68,14 @@ CREATE TABLE IF NOT EXISTS bot_notifications (
     read_at    TIMESTAMPTZ              -- NULL = belum dibaca
 );
 CREATE INDEX IF NOT EXISTS idx_bot_notif_unread ON bot_notifications(username) WHERE read_at IS NULL;
+
+-- ─────────────────────────────────────────────────────────
+-- MIGRASI: Jalur Combine (jalur turunan/gabungan dari jalur induk)
+-- Jalur combine tetap jalur mandiri (id, code, tower, span sendiri),
+-- hanya ditandai punya jalur induk untuk pengelompokan tampilan di
+-- Master Data. Dibatasi maksimal 1 tingkat (jalur induk tidak boleh
+-- sendiri punya induk) -- validasi dilakukan di api/jalur.js.
+-- Jalankan blok di bawah ini satu kali di Neon SQL editor.
+-- ─────────────────────────────────────────────────────────
+ALTER TABLE jalur ADD COLUMN IF NOT EXISTS parent_jalur_id TEXT REFERENCES jalur(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_jalur_parent ON jalur(parent_jalur_id);
