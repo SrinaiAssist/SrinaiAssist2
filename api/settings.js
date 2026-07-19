@@ -345,7 +345,7 @@ async function handleBotConsole(req, res) {
 // ─────────────────────────────────────────────────────────
 // NOTIF COMMANDBOT (rekap harian "span belum ada tegakan" + badge/getar
 // ikon CommandBot untuk notif belum terbaca -- lihat command-bot.html,
-// command-bot-fieldlog.html, dashboard.html, dashboard-fieldlog.html)
+// command-bot.html, dashboard.html)
 // Tabel bot_notifications: lihat migrasi di scripts/schema.sql.
 
 function isCronRequestValid(req) {
