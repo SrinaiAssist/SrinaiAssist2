@@ -256,22 +256,8 @@ async function loadPetugasList(){
     }
 
     wrap.innerHTML = petugasAccounts.map(acc => {
-      const towerIds = acc.tower_ids || [];
-      const spanIds   = acc.span_ids  || [];
-      const myTowers  = towerListAll.filter(t => towerIds.includes(t.id));
-
-      const spanMap = {};
-      spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
-      myTowers.forEach(t => {
-        const paired = spanListAll.find(s =>
-          String(s.nomor) === String(t.nomor) &&
-          (String(s.jalurId) === String(t.jalurId) || (jalurCodeFor(s.jalurId) && jalurCodeFor(s.jalurId) === jalurCodeFor(t.jalurId)))
-        );
-        if(paired) spanMap[paired.id] = paired;
-      });
-
-      const towerCount = myTowers.length;
-      const spanCount   = Object.keys(spanMap).length;
+      const towerCount = (acc.tower_ids || []).length;
+      const spanCount   = (acc.span_ids  || []).length;
       const hasData     = towerCount > 0 || spanCount > 0;
       const initials    = acc.username.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase();
 
@@ -315,22 +301,7 @@ async function openQrModal(username){
   const spanIds  = (acc && acc.span_ids)  || [];
 
   const towers = towerListAll.filter(t => towerIds.includes(t.id)).sort((a,b) => a.nomor - b.nomor);
-
-  // Span dianggap milik petugas ini kalau: (a) memang di-assign manual lewat
-  // span_ids, ATAU (b) posisinya (nomor + jalur) sama dengan salah satu
-  // tower yang di-assign -- sama seperti findPairedSpan() di tower.html.
-  // Ini penting karena kebanyakan akun cuma diisi tower_ids saja, span_ids
-  // sering kosong walau span-nya sebenarnya "ikut" tower yang sama.
-  const spanMap = {};
-  spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
-  towers.forEach(t => {
-    const paired = spanListAll.find(s =>
-      String(s.nomor) === String(t.nomor) &&
-      (String(s.jalurId) === String(t.jalurId) || (jalurCodeFor(s.jalurId) && jalurCodeFor(s.jalurId) === jalurCodeFor(t.jalurId)))
-    );
-    if(paired) spanMap[paired.id] = paired;
-  });
-  const spans = Object.values(spanMap).sort((a,b) => a.nomor - b.nomor);
+  const spans  = spanListAll.filter(s => spanIds.includes(s.id)).sort((a,b) => a.nomor - b.nomor);
 
   const towerWrap = document.getElementById("qrTowerWrap");
   const spanWrap  = document.getElementById("qrSpanWrap");
@@ -356,19 +327,9 @@ async function openQrModal(username){
   }
 
   if(!spans.length){
-    const towerJalurIds = [...new Set(towers.map(t => t.jalurId))];
-    const spanJalurIds  = [...new Set(spanListAll.map(s => s.jalurId))];
-    console.log("[generate-barcode] DEBUG tidak ada span cocok.");
-    console.log("  towers:", towers.map(t => ({ id:t.id, nomor:t.nomor, jalurId:t.jalurId })));
-    console.log("  jalurId dari tower yang di-assign:", towerJalurIds);
-    console.log("  semua jalurId yang ada di data span:", spanJalurIds);
-    console.log("  apakah jalurId tower ada di data span?", towerJalurIds.map(id => spanJalurIds.includes(id)));
-
     spanWrap.innerHTML = `<div class="qr-empty">
-      Belum ada span yang cocok (${towers.length} tower ter-assign, ${spanListAll.length} total data span di master).<br><br>
-      <b>jalurId tower:</b> ${towerJalurIds.map(id => cssSafe(String(id))).join(", ") || "-"}<br>
-      <b>jalurId yang ada di data span:</b> ${spanJalurIds.slice(0,10).map(id => cssSafe(String(id))).join(", ") || "-"}${spanJalurIds.length>10 ? " ..." : ""}<br><br>
-      Kalau jalurId tower TIDAK ada di daftar jalurId span di atas, berarti ada 2 record jalur berbeda dengan kode yang sama (mis. LCJ) -- satu dipakai tower, satu dipakai span. Cek di Master Jalur.
+      Akun <b>${cssSafe(username)}</b> belum punya span yang di-assign.<br><br>
+      Buka <b>Kelola Akun → ${cssSafe(username)} → edit assignment</b>, lalu centang span yang jadi tanggung jawabnya. Setelah disimpan, span-nya akan otomatis muncul di sini.
     </div>`;
   } else {
     spanWrap.innerHTML = spans.map(s => {
