@@ -122,25 +122,27 @@ body{
 .modal-overlay.active{display:flex;}
 .modal-box{
   background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
-  padding:22px;max-width:340px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;
+  padding:20px 16px;max-width:400px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;
 }
 .modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
 .modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;line-height:1.5;}
+.qr-columns{display:flex;gap:10px;align-items:flex-start;text-align:left;}
+.qr-col{flex:1;min-width:0;}
 .qr-section-label{
   font-size:10.5px;font-weight:700;color:var(--gold);text-transform:uppercase;
-  letter-spacing:.6px;text-align:left;margin:14px 0 8px;
+  letter-spacing:.6px;text-align:left;margin:0 0 8px;
 }
-.qr-section-label:first-of-type{margin-top:2px;}
-.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.qr-unit{background:var(--bg-card2);border:1px solid var(--border);border-radius:14px;padding:10px;}
-.qr-unit-label{font-size:11px;font-weight:700;color:var(--ink-2);margin-bottom:8px;}
+.qr-grid{display:flex;flex-direction:column;gap:8px;}
+.qr-unit{background:var(--bg-card2);border:1px solid var(--border);border-radius:14px;padding:8px;}
+.qr-unit-label{font-size:10px;font-weight:700;color:var(--ink-2);margin-bottom:6px;text-align:center;}
 .qr-box{
-  width:100%;aspect-ratio:1/1;margin:0 auto 8px;border-radius:12px;overflow:hidden;
+  width:100%;aspect-ratio:1/1;margin:0 auto 6px;border-radius:10px;overflow:hidden;
   background:white;display:flex;align-items:center;justify-content:center;
 }
 .qr-box img{display:block;width:100%;height:100%;}
-.qr-loading{font-size:10px;color:#0A1E3D;width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;}
-.qr-empty{grid-column:1 / -1;font-size:11.5px;color:var(--ink-3);text-align:center;padding:14px 6px;}
+.qr-loading{font-size:9px;color:#0A1E3D;width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;}
+.qr-unit .btn-secondary{padding:9px;font-size:11.5px;margin-top:0;}
+.qr-empty{font-size:11px;color:var(--ink-3);text-align:center;padding:12px 4px;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -193,11 +195,16 @@ body{
     <div class="modal-title" id="qrModalTitle">Petugas</div>
     <div class="modal-sub">Cetak/tempel QR ini agar petugas dapat memindainya untuk membuka data tower/span miliknya masing-masing (sama seperti QR di halaman Tower).</div>
 
-    <div class="qr-section-label">Tower</div>
-    <div class="qr-grid" id="qrTowerWrap"></div>
-
-    <div class="qr-section-label">Span</div>
-    <div class="qr-grid" id="qrSpanWrap"></div>
+    <div class="qr-columns">
+      <div class="qr-col">
+        <div class="qr-section-label">Tower</div>
+        <div class="qr-grid" id="qrTowerWrap"></div>
+      </div>
+      <div class="qr-col">
+        <div class="qr-section-label">Span</div>
+        <div class="qr-grid" id="qrSpanWrap"></div>
+      </div>
+    </div>
 
     <button class="btn-secondary" onclick="closeQrModal()">Tutup</button>
   </div>
