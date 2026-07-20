@@ -231,6 +231,7 @@ async function loadPetugasList(){
   const empty   = document.getElementById("emptyList");
 
   try{
+    invalidateAccountsCache();
     const [accounts, jalurData, towerData, spanData] = await Promise.all([
       cachedGetAllAccountsFull(),
       cachedGetJalurMasterList(),
@@ -296,6 +297,9 @@ async function openQrModal(username){
   document.getElementById("qrModalTitle").textContent = username;
   document.getElementById("qrModal").classList.add("active");
 
+  // Paksa ambil data akun paling baru (bypass cache 30 menit) supaya tidak
+  // ketinggalan assignment yang baru saja disimpan di Kelola Akun.
+  invalidateAccountsCache();
   const acc = (await cachedGetAllAccountsFull()).find(a => a.username === username);
   const towerIds = (acc && acc.tower_ids) || [];
   const spanIds  = (acc && acc.span_ids)  || [];
@@ -327,9 +331,16 @@ async function openQrModal(username){
   }
 
   if(!spans.length){
+    console.log("[generate-barcode] DEBUG akun:", acc);
+    console.log("[generate-barcode] DEBUG acc.span_ids raw:", acc && acc.span_ids, "| typeof:", acc && typeof acc.span_ids);
+    console.log("[generate-barcode] DEBUG spanIds terpakai:", spanIds, "| spanListAll.length:", spanListAll.length);
+
     spanWrap.innerHTML = `<div class="qr-empty">
-      Akun <b>${cssSafe(username)}</b> belum punya span yang di-assign.<br><br>
-      Buka <b>Kelola Akun → ${cssSafe(username)} → edit assignment</b>, lalu centang span yang jadi tanggung jawabnya. Setelah disimpan, span-nya akan otomatis muncul di sini.
+      Tidak ada span yang cocok untuk <b>${cssSafe(username)}</b>.<br><br>
+      <b>span_ids mentah di akun ini:</b> ${cssSafe(JSON.stringify(acc ? acc.span_ids : undefined))}<br>
+      <b>tipe data:</b> ${acc ? typeof acc.span_ids : "n/a"}<br>
+      <b>total data span di master (semua jalur):</b> ${spanListAll.length}<br><br>
+      Kalau span_ids di atas kosong <code>[]</code> atau <code>null</code> padahal menurutmu sudah di-assign, kemungkinan tersimpannya gagal/salah kolom saat disimpan dari Kelola Akun -- ini perlu saya cek ke kodenya lagi. Kalau isinya ADA tapi tetap gak muncul, tolong screenshot pesan diagnostik ini persis.
     </div>`;
   } else {
     spanWrap.innerHTML = spans.map(s => {
