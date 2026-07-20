@@ -5,187 +5,210 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#DED2AF">
+<meta name="theme-color" content="#0B0F10">
 <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
-<title>CommandBot — SRINAI ASSIST (Buku Log)</title>
+<title>CommandBot — SRINAI ASSIST (Terminal)</title>
 <script src="js/auth.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F1EAD6;
-  --paper-2:#E7DDC2;
-  --paper-3:#DED2AF;
-  --ink:#2B2A22;
-  --ink-soft: rgba(43,42,34,0.62);
-  --ink-faint: rgba(43,42,34,0.38);
-  --route:#C1522A;
-  --route-bg: rgba(193,82,42,0.1);
-  --moss:#4F6B4A;
-  --moss-bg: rgba(79,107,74,0.1);
-  --line: rgba(43,42,34,0.18);
-  --gold:#A8842E;
+  --bg:#0B0F10;
+  --bg-2:#0E1315;
+  --bg-3:#141B1D;
+  --titlebar:#171D1F;
+  --tab-active:#0B0F10;
+  --border:#262E31;
+  --fg:#D7DEE0;
+  --fg-dim:#7C8A8F;
+  --fg-faint:#4B565A;
+  --green:#5FD068;
+  --green-dim: rgba(95,208,104,0.55);
+  --cyan:#63C9D8;
+  --yellow:#E0B84C;
+  --red:#E0605A;
+  --magenta:#C792EA;
+  --mono:'JetBrains Mono',Consolas,'Courier New',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
 body{
-  font-family:'Inter',Arial,sans-serif;
-  background:var(--paper-3);
-  color:var(--ink);
+  font-family:var(--mono);
+  background:#000;
+  color:var(--fg);
   -webkit-font-smoothing:antialiased;
 }
 .container{
   max-width:460px;margin:auto;height:100vh;display:flex;flex-direction:column;
-  background:
-    radial-gradient(rgba(43,42,34,0.05) 1px, transparent 1px) 0 0/14px 14px,
-    var(--paper);
-  border-left:1px solid var(--line);border-right:1px solid var(--line);
+  background:var(--bg);
+  border-left:1px solid var(--border);border-right:1px solid var(--border);
   position:relative;overflow:hidden;
 }
-.mono{font-family:'JetBrains Mono',monospace;}
 .hidden{display:none !important;}
 
-/* ===== Header ===== */
-.header{position:relative;flex-shrink:0;background:var(--paper);border-bottom:1.5px solid var(--ink);padding:16px 16px 14px;}
-.header-row{display:flex;align-items:center;gap:11px;}
-.back-circle{
-  width:34px;height:34px;border-radius:50%;border:1.5px solid var(--ink);background:var(--paper);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;
+/* ===== Title bar (Windows-Terminal style) ===== */
+.term-titlebar{
+  flex-shrink:0;background:var(--titlebar);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 6px;height:40px;gap:6px;
 }
-.back-circle svg{width:15px;height:15px;stroke:var(--ink);}
-.bot-avatar{
-  width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--paper);
-  border:2px solid var(--route);display:flex;align-items:center;justify-content:center;font-size:15px;
+.term-tab{
+  display:flex;align-items:center;gap:7px;background:var(--tab-active);
+  height:32px;padding:0 12px 0 10px;border-radius:6px 6px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  flex:1;min-width:0;position:relative;top:1px;
 }
-.header-text{flex:1;min-width:0;}
-.header-text h1{font-family:'Bitter';font-size:16px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:7px;color:var(--ink);}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--moss);box-shadow:0 0 0 0 rgba(79,107,74,.6);animation:livePulse 2s infinite;flex-shrink:0;}
+.term-tab svg{flex-shrink:0;width:13px;height:13px;stroke:var(--green);}
+.term-tab span{
+  font-size:11.5px;font-weight:600;color:var(--fg);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;letter-spacing:.1px;
+}
+.term-controls{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.term-ctrl-btn{
+  width:28px;height:28px;border-radius:5px;background:transparent;border:none;
+  color:var(--fg-dim);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;flex-shrink:0;
+}
+.term-ctrl-btn svg{width:13px;height:13px;}
+.term-ctrl-btn:active{background:rgba(255,255,255,0.08);}
+.term-ctrl-btn.close:active{background:var(--red);color:#fff;}
+.term-ctrl-deco{opacity:.35;pointer-events:none;}
+
+/* ===== Meta line (whoami / status) ===== */
+.term-meta{
+  flex-shrink:0;background:var(--bg-2);border-bottom:1px solid var(--border);
+  padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.term-meta-txt{font-size:10.5px;color:var(--fg-dim);letter-spacing:.2px;}
+.term-meta-txt b{color:var(--green);font-weight:700;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green-dim);animation:livePulse 2s infinite;flex-shrink:0;}
 @keyframes livePulse{
-  0%{box-shadow:0 0 0 0 rgba(79,107,74,.5);}
-  70%{box-shadow:0 0 0 6px rgba(79,107,74,0);}
-  100%{box-shadow:0 0 0 0 rgba(79,107,74,0);}
-}
-.header-text p{font-family:'JetBrains Mono';font-size:10px;color:var(--ink-soft);margin-top:3px;letter-spacing:.3px;}
-.menu-icon-btn{
-  width:34px;height:34px;border-radius:50%;background:var(--paper);border:1.5px solid var(--ink);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ink);
+  0%{box-shadow:0 0 0 0 var(--green-dim);}
+  70%{box-shadow:0 0 0 6px rgba(95,208,104,0);}
+  100%{box-shadow:0 0 0 0 rgba(95,208,104,0);}
 }
 
-.wire-strip{height:12px;flex-shrink:0;position:relative;overflow:hidden;background:var(--paper);}
-.wire-strip svg{position:absolute;top:0;left:0;width:100%;height:100%;}
-
-/* Badge status sinkronisasi */
+/* ===== Sync / boot status line ===== */
 .sync-badge{
-  margin:12px 14px 0;padding:9px 12px;border:1.5px dashed var(--ink);font-size:11px;line-height:1.5;
-  color:var(--ink-soft);display:flex;gap:8px;align-items:flex-start;font-family:'Inter';
+  flex-shrink:0;margin:0;padding:7px 14px;font-size:10.5px;line-height:1.5;
+  border-bottom:1px solid var(--border);background:var(--bg-2);
+  color:var(--yellow);display:flex;gap:7px;align-items:flex-start;
 }
-.sync-badge svg{flex-shrink:0;margin-top:1px;stroke:var(--gold);}
-.sync-badge.connected{border-color:var(--moss);}
-.sync-badge.connected svg{stroke:var(--moss);}
-.sync-badge.error{border-color:var(--route);}
-.sync-badge.error svg{stroke:var(--route);}
+.sync-badge .tag{flex-shrink:0;font-weight:700;}
+.sync-badge.connected{color:var(--green);}
+.sync-badge.error{color:var(--red);}
 
-/* ===== Chat area ===== */
-.chat-area{flex:1;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:3px;}
-
-.row{display:flex;width:100%;margin-bottom:9px;}
-.row.mine{justify-content:flex-end;}
-.row.theirs{justify-content:flex-start;}
-
-.bubble-wrap{max-width:82%;display:flex;flex-direction:column;}
-.row.mine .bubble-wrap{align-items:flex-end;}
-.row.theirs .bubble-wrap{align-items:flex-start;}
-
-.sender-name{font-family:'JetBrains Mono';font-size:10px;font-weight:700;margin-bottom:3px;padding:0 4px;color:var(--moss);letter-spacing:.3px;text-transform:uppercase;}
-
-.bubble{
-  padding:11px 14px;font-size:13.5px;line-height:1.55;
-  word-wrap:break-word;white-space:pre-wrap;position:relative;
+/* ===== Terminal body ===== */
+.chat-area{
+  flex:1;overflow-y:auto;padding:10px 14px 12px;display:flex;flex-direction:column;gap:9px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 2px),
+    var(--bg);
+  font-size:12.5px;line-height:1.6;
 }
-.row.mine .bubble{
-  background:var(--route);color:var(--paper);border:1.5px solid var(--ink);
-}
-.row.theirs .bubble{
-  background:var(--paper);color:var(--ink);border:1.5px dashed var(--ink);
-}
-.bubble.typing{display:flex;align-items:center;gap:5px;padding:12px 14px;}
-.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--moss);opacity:.5;animation:typingBlink 1.2s infinite;}
-.typing-dot:nth-child(2){animation-delay:.2s;}
-.typing-dot:nth-child(3){animation-delay:.4s;}
-@keyframes typingBlink{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+.chat-area::-webkit-scrollbar{width:8px;}
+.chat-area::-webkit-scrollbar-track{background:var(--bg);}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 
-/* Menu angka sebagai chip yang bisa ditap langsung */
-.menu-chips{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
-.menu-chip{
-  display:flex;align-items:center;gap:9px;background:var(--paper-2);
-  border:1px solid var(--line);padding:8px 10px;
-  cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);
-}
-.menu-chip:active{background:var(--paper-3);}
-.menu-chip .num{
-  width:22px;height:22px;border-radius:50%;background:var(--paper);color:var(--route);
-  border:1.5px solid var(--route);font-family:'JetBrains Mono';font-weight:700;font-size:11px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.menu-chip .txt{font-size:12.5px;font-weight:600;}
+.term-row{width:100%;}
+.term-line-in{color:var(--fg);word-wrap:break-word;}
+.ps1-user{color:var(--green);font-weight:700;}
+.ps1-sep{color:var(--fg-dim);}
+.ps1-path{color:var(--cyan);font-weight:700;}
+.term-cmd{color:#F4F7F8;font-weight:600;}
 
-.meta-row{display:flex;align-items:center;gap:6px;margin-top:4px;padding:0 4px;}
-.bubble-time{font-family:'JetBrains Mono';font-size:9.5px;color:var(--ink-faint);}
+.term-line-out{
+  color:var(--fg);white-space:pre-wrap;word-wrap:break-word;
+  padding-left:12px;border-left:2px solid var(--border);
+}
+.term-line-out b{color:var(--cyan);}
+.term-line-out a{color:var(--green);font-weight:700;text-decoration:underline;}
+.term-line-out.is-error{border-left-color:var(--red);color:#F2C6C3;}
+.term-line-out.is-error b{color:var(--red);}
 
-/* ===== Input area ===== */
+.term-bot-tag{color:var(--fg-faint);font-size:10px;margin-bottom:2px;letter-spacing:.3px;}
+
+.term-time{color:var(--fg-faint);font-size:9.5px;margin-left:8px;}
+
+/* typing indicator */
+.term-typing{padding-left:12px;border-left:2px solid var(--border);color:var(--fg-dim);display:flex;align-items:center;gap:5px;}
+.term-cursor-blink{display:inline-block;width:7px;height:13px;background:var(--green);animation:cursorBlink 1s steps(1) infinite;}
+@keyframes cursorBlink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+/* menu list (numbered commands rendered like ls output) */
+.term-menu{margin-top:6px;display:flex;flex-direction:column;gap:2px;}
+.term-menu-item{
+  display:flex;align-items:baseline;gap:8px;padding:6px 8px;border-radius:3px;
+  cursor:pointer;background:transparent;border:1px solid transparent;text-align:left;
+  font-family:var(--mono);color:var(--fg);width:100%;
+}
+.term-menu-item:active{background:rgba(95,208,104,0.1);border-color:var(--border);}
+.term-menu-num{color:var(--cyan);font-weight:700;flex-shrink:0;}
+.term-menu-txt{font-size:12px;color:var(--fg);}
+.term-menu-empty{color:var(--fg-dim);font-style:italic;font-size:12px;padding:4px 0;}
+
+/* ===== Input area (prompt line) ===== */
 .input-area{
-  flex-shrink:0;background:var(--paper);padding:10px 12px 12px;
-  border-top:1.5px solid var(--ink);
+  flex-shrink:0;background:var(--bg-2);padding:9px 12px 10px;border-top:1px solid var(--border);
 }
-.input-row{display:flex;align-items:flex-end;gap:8px;}
-.text-input-wrap{flex:1;background:var(--paper-2);border:1.5px solid var(--ink);padding:2px 4px 2px 14px;display:flex;align-items:flex-end;}
+.input-row{display:flex;align-items:flex-end;gap:6px;}
+.term-prompt-static{
+  flex-shrink:0;font-size:12.5px;font-weight:700;color:var(--green);padding:9px 0;white-space:nowrap;
+}
+.text-input-wrap{flex:1;background:transparent;display:flex;align-items:flex-end;min-width:0;}
 textarea{
-  flex:1;background:transparent;border:none;color:var(--ink);font-family:'Inter';
-  font-size:13.5px;padding:10px 4px;resize:none;max-height:100px;outline:none;
+  flex:1;background:transparent;border:none;color:var(--fg);font-family:var(--mono);
+  font-size:12.5px;padding:9px 4px;resize:none;max-height:100px;outline:none;caret-color:var(--green);
 }
-textarea::placeholder{color:var(--ink-faint);}
+textarea::placeholder{color:var(--fg-faint);}
 .send-btn{
-  width:42px;height:42px;border-radius:50%;background:var(--route);border:1.5px solid var(--ink);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .12s;
+  width:34px;height:34px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .1s, background .1s;
+  color:var(--green);
 }
-.send-btn:active{transform:scale(.92);}
-.send-btn:disabled{opacity:.45;cursor:not-allowed;}
-.hint-row{font-family:'JetBrains Mono';font-size:9.5px;color:var(--ink-faint);margin-top:7px;padding:0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.send-btn:active{transform:scale(.9);background:rgba(95,208,104,0.12);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.hint-row{font-size:9.5px;color:var(--fg-faint);margin-top:8px;padding:0 2px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .cancel-btn{
-  flex-shrink:0;background:var(--paper);border:1.5px solid var(--route);color:var(--route);
-  font-family:'JetBrains Mono';font-size:9.5px;font-weight:700;padding:5px 10px;cursor:pointer;
+  flex-shrink:0;background:transparent;border:1px solid var(--red);color:var(--red);
+  font-family:var(--mono);font-size:9.5px;font-weight:700;padding:4px 8px;border-radius:4px;cursor:pointer;
 }
-.cancel-btn:active{background:var(--route-bg);}
+.cancel-btn:active{background:rgba(224,96,90,0.15);}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-  <div class="header">
-    <div class="header-row">
-      <a href="dashboard.html" class="back-circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </a>
-      <div class="bot-avatar">🤖</div>
-      <div class="header-text">
-        <h1><span class="live-dot"></span>CommandBot</h1>
-        <p id="userInfo"></p>
-      </div>
-      <button class="menu-icon-btn" onclick="showMenu(true)" title="Lihat daftar command">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  <div class="term-titlebar">
+    <div class="term-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span id="tabTitle">srinai@COMMANDBOT: ~</span>
+    </div>
+    <div class="term-controls">
+      <button class="term-ctrl-btn" onclick="showMenu(true)" title="Lihat daftar command">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
       </button>
+      <span class="term-ctrl-btn term-ctrl-deco">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </span>
+      <span class="term-ctrl-btn term-ctrl-deco">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+      </span>
+      <a href="dashboard.html" class="term-ctrl-btn close" title="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+      </a>
     </div>
   </div>
 
-  <div class="wire-strip">
-    <svg preserveAspectRatio="none" viewBox="0 0 400 14"><path d="M0 7 Q 50 14, 100 7 T 200 7 T 300 7 T 400 7" stroke="#DED2AF" stroke-width="1.5" fill="none" opacity="0.9"/></svg>
+  <div class="term-meta">
+    <span class="term-meta-txt" id="userInfo"></span>
+    <span class="live-dot"></span>
   </div>
 
   <div class="sync-badge" id="syncBadge">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span class="tag">[*]</span>
     <span>Menyambungkan ke Ruang Kerja SrinAI...</span>
   </div>
 
@@ -193,16 +216,17 @@ textarea::placeholder{color:var(--ink-faint);}
 
   <div class="input-area">
     <div class="input-row">
+      <span class="term-prompt-static" id="inputPrompt">$</span>
       <div class="text-input-wrap">
         <textarea id="message" placeholder="Ketik nomor atau command... misal: 1" rows="1" oninput="autoGrow(this)"></textarea>
       </div>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#F1EAD6" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
       </button>
     </div>
     <div class="hint-row">
-      <span>Ketik "menu" kapan saja untuk lihat daftar ulang</span>
-      <button class="cancel-btn" type="button" onclick="cancelFlow()">✕ Batal</button>
+      <span># ketik "menu" kapan saja untuk lihat daftar ulang</span>
+      <button class="cancel-btn" type="button" onclick="cancelFlow()">[ESC] Batal</button>
     </div>
   </div>
 
@@ -220,7 +244,7 @@ let currentUser, currentRole, consoleChatId;
 let botCommands = [];
 
 const GREETING_INTRO = "Halo! Data apa yang mau kamu cek atau kerjakan? Balas dengan angkanya:";
-const BOT_NAME = "CommandBot";
+const BOT_NAME = "bot";
 
 async function initPage(){
   if(!(await isLoggedIn())){
@@ -230,7 +254,9 @@ async function initPage(){
 
   currentUser = getCurrentUser();
   currentRole = getCurrentRole();
-  document.getElementById("userInfo").innerHTML = currentUser + " · " + currentRole.toUpperCase();
+  document.getElementById("userInfo").innerHTML = `<b>${escapeHtml(currentUser)}</b> · role: ${escapeHtml(currentRole.toUpperCase())} · sesi aktif`;
+  document.getElementById("tabTitle").textContent = `${currentUser}@COMMANDBOT: ~`;
+  document.getElementById("inputPrompt").textContent = `${currentUser}@srinai:~$`;
   consoleChatId = "web:" + currentUser;
 
   await loadCommands();
@@ -294,7 +320,7 @@ async function loadDailyRecap(){
   if(spans.length > 0){
     const list = spans.map(s =>
       `• ${escapeHtml(jalurLabel(s.jalurId))} — Span #${s.nomor} ` +
-      `<a href="catatan-span.html?span=${encodeURIComponent(s.id)}" style="color:var(--moss);font-weight:700;">Buat tegakan →</a>`
+      `<a href="catatan-span.html?span=${encodeURIComponent(s.id)}">Buat tegakan →</a>`
     ).join("<br>");
     addBotRow(
       `📋 <b>Rekap harian</b> — kamu punya <b>${spans.length}</b> span yang belum ada tegakannya:<br><br>${list}` +
@@ -318,7 +344,7 @@ async function loadCommands(){
     botCommands = [];
     badge.className = "sync-badge error";
     badge.innerHTML =
-      `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>` +
+      `<span class="tag">[ERR]</span>` +
       `<span>Gagal sinkron ke Ruang Kerja SrinAI: ${escapeHtml(result.message || "kesalahan tidak diketahui")}. Kamu masih bisa ketik command, tapi menu nomor di bawah belum bisa dimuat.</span>`;
     return;
   }
@@ -326,7 +352,7 @@ async function loadCommands(){
   botCommands = (result.commands || []).filter(c => c.status === "live");
   badge.className = "sync-badge connected";
   badge.innerHTML =
-    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>` +
+    `<span class="tag">[OK]</span>` +
     `<span>Tersambung ke Ruang Kerja SrinAI — ${botCommands.length} command live siap dipakai. Balasan diambil langsung dari Botlab.</span>`;
 }
 
@@ -348,13 +374,10 @@ function scrollToBottom(){
 function addBotRow(html){
   const area = document.getElementById("chatArea");
   const row = document.createElement("div");
-  row.className = "row theirs";
+  row.className = "term-row";
   row.innerHTML = `
-    <div class="bubble-wrap">
-      <div class="sender-name">${BOT_NAME}</div>
-      <div class="bubble">${html}</div>
-      <div class="meta-row"><span class="bubble-time">${getTimeLabel()}</span></div>
-    </div>`;
+    <div class="term-bot-tag">${BOT_NAME} — ${getTimeLabel()}</div>
+    <div class="term-line-out">${html}</div>`;
   area.appendChild(row);
   scrollToBottom();
 }
@@ -362,23 +385,20 @@ function addBotRow(html){
 function addMyRow(text){
   const area = document.getElementById("chatArea");
   const row = document.createElement("div");
-  row.className = "row mine";
+  row.className = "term-row";
   row.innerHTML = `
-    <div class="bubble-wrap">
-      <div class="bubble">${escapeHtml(text)}</div>
-      <div class="meta-row"><span class="bubble-time">${getTimeLabel()}</span></div>
-    </div>`;
+    <div class="term-line-in"><span class="ps1-user">${escapeHtml(currentUser || "user")}</span><span class="ps1-sep">@srinai</span><span class="ps1-sep">:</span><span class="ps1-path">~</span><span class="ps1-sep">$</span> <span class="term-cmd">${escapeHtml(text)}</span></div>`;
   area.appendChild(row);
   scrollToBottom();
 }
 
 function menuChipsHtml(){
   if(botCommands.length === 0){
-    return `<div class="menu-chips"><div class="menu-chip" style="cursor:default;"><span class="txt">Belum ada command live dari Ruang Kerja SrinAI saat ini.</span></div></div>`;
+    return `<div class="term-menu"><div class="term-menu-empty">// belum ada command live dari Ruang Kerja SrinAI saat ini.</div></div>`;
   }
-  return `<div class="menu-chips">` + botCommands.map((c, i) =>
-    `<button class="menu-chip" onclick="pickNumber(${i + 1})">
-      <span class="num">${i + 1}</span><span class="txt">${escapeHtml(c.name || c.description || c.triggerText)}</span>
+  return `<div class="term-menu">` + botCommands.map((c, i) =>
+    `<button class="term-menu-item" onclick="pickNumber(${i + 1})">
+      <span class="term-menu-num">[${i + 1}]</span><span class="term-menu-txt">${escapeHtml(c.name || c.description || c.triggerText)}</span>
     </button>`
   ).join("") + `</div>`;
 }
@@ -394,15 +414,11 @@ function showMenu(asReply){
 function showTyping(){
   const area = document.getElementById("chatArea");
   const row = document.createElement("div");
-  row.className = "row theirs";
+  row.className = "term-row";
   row.id = "botTypingIndicator";
   row.innerHTML = `
-    <div class="bubble-wrap">
-      <div class="sender-name">${BOT_NAME}</div>
-      <div class="bubble typing">
-        <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
-      </div>
-    </div>`;
+    <div class="term-bot-tag">${BOT_NAME} — mengetik</div>
+    <div class="term-typing">memproses<span class="term-cursor-blink"></span></div>`;
   area.appendChild(row);
   scrollToBottom();
 }
@@ -454,6 +470,8 @@ async function sendMessage(){
       `⚠️ Gagal menghubungi Botlab: ${escapeHtml(result.message || "kesalahan tidak diketahui")}.<br>` +
       `Coba lagi, atau ketik <b>menu</b> untuk lihat daftar command.`
     );
+    const lastOut = document.querySelector("#chatArea .term-row:last-child .term-line-out");
+    if(lastOut) lastOut.classList.add("is-error");
   } else {
     addBotRow(escapeHtml(result.replyText || "(tidak ada balasan dari bot)"));
   }
