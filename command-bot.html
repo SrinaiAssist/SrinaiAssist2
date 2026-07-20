@@ -161,6 +161,10 @@ body{
 .term-line-out a{color:var(--green);font-weight:700;text-decoration:underline;}
 .term-line-out.is-error{border-left-color:var(--red);color:#F2C6C3;}
 .term-line-out.is-error b{color:var(--red);}
+.term-line-out.is-typing::after{
+  content:"";display:inline-block;width:6px;height:12px;margin-left:2px;
+  background:var(--green);vertical-align:middle;animation:cursorBlink .8s steps(1) infinite;
+}
 
 .term-bot-tag{color:var(--fg-faint);font-size:10px;margin-bottom:2px;letter-spacing:.3px;}
 
@@ -437,14 +441,48 @@ function scrollToBottom(){
   area.scrollTop = area.scrollHeight;
 }
 
+function htmlToPlainText(html){
+  const div = document.createElement("div");
+  div.innerHTML = html.replace(/<br\s*\/?>/gi, "\n");
+  return div.textContent || "";
+}
+
+function typeWriterEffect(el, finalHtml){
+  const plainText = htmlToPlainText(finalHtml);
+  const total = plainText.length;
+  if(total === 0){ el.innerHTML = finalHtml; return; }
+
+  el.textContent = "";
+  el.classList.add("is-typing");
+
+  const intervalMs = 12;
+  const chunk = Math.max(1, Math.ceil(total / 55)); // selesai ketik cepat (~0.6-0.8s) walau teks panjang
+  let i = 0;
+
+  function tick(){
+    i += chunk;
+    el.textContent = plainText.slice(0, i);
+    scrollToBottom();
+    if(i < total){
+      setTimeout(tick, intervalMs);
+    } else {
+      el.classList.remove("is-typing");
+      el.innerHTML = finalHtml; // pulihkan format asli (bold, link, tombol command)
+      scrollToBottom();
+    }
+  }
+  tick();
+}
+
 function addBotRow(html){
   const area = document.getElementById("chatArea");
   const row = document.createElement("div");
   row.className = "term-row";
   row.innerHTML = `
     <div class="term-bot-tag">${BOT_NAME} — ${getTimeLabel()}</div>
-    <div class="term-line-out">${html}</div>`;
+    <div class="term-line-out"></div>`;
   area.appendChild(row);
+  typeWriterEffect(row.querySelector(".term-line-out"), html);
   scrollToBottom();
 }
 
