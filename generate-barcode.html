@@ -264,7 +264,8 @@ async function loadPetugasList(){
       spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
       myTowers.forEach(t => {
         const paired = spanListAll.find(s =>
-          String(s.nomor) === String(t.nomor) && String(s.jalurId) === String(t.jalurId)
+          String(s.nomor) === String(t.nomor) &&
+          (String(s.jalurId) === String(t.jalurId) || (jalurCodeFor(s.jalurId) && jalurCodeFor(s.jalurId) === jalurCodeFor(t.jalurId)))
         );
         if(paired) spanMap[paired.id] = paired;
       });
@@ -324,7 +325,8 @@ async function openQrModal(username){
   spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
   towers.forEach(t => {
     const paired = spanListAll.find(s =>
-      String(s.nomor) === String(t.nomor) && String(s.jalurId) === String(t.jalurId)
+      String(s.nomor) === String(t.nomor) &&
+      (String(s.jalurId) === String(t.jalurId) || (jalurCodeFor(s.jalurId) && jalurCodeFor(s.jalurId) === jalurCodeFor(t.jalurId)))
     );
     if(paired) spanMap[paired.id] = paired;
   });
@@ -354,7 +356,20 @@ async function openQrModal(username){
   }
 
   if(!spans.length){
-    spanWrap.innerHTML = `<div class="qr-empty">Belum ada span yang cocok untuk petugas ini (${towers.length} tower ter-assign, ${spanListAll.length} total data span di master). Cek apakah span sudah diinput di jalur yang sama.</div>`;
+    const towerJalurIds = [...new Set(towers.map(t => t.jalurId))];
+    const spanJalurIds  = [...new Set(spanListAll.map(s => s.jalurId))];
+    console.log("[generate-barcode] DEBUG tidak ada span cocok.");
+    console.log("  towers:", towers.map(t => ({ id:t.id, nomor:t.nomor, jalurId:t.jalurId })));
+    console.log("  jalurId dari tower yang di-assign:", towerJalurIds);
+    console.log("  semua jalurId yang ada di data span:", spanJalurIds);
+    console.log("  apakah jalurId tower ada di data span?", towerJalurIds.map(id => spanJalurIds.includes(id)));
+
+    spanWrap.innerHTML = `<div class="qr-empty">
+      Belum ada span yang cocok (${towers.length} tower ter-assign, ${spanListAll.length} total data span di master).<br><br>
+      <b>jalurId tower:</b> ${towerJalurIds.map(id => cssSafe(String(id))).join(", ") || "-"}<br>
+      <b>jalurId yang ada di data span:</b> ${spanJalurIds.slice(0,10).map(id => cssSafe(String(id))).join(", ") || "-"}${spanJalurIds.length>10 ? " ..." : ""}<br><br>
+      Kalau jalurId tower TIDAK ada di daftar jalurId span di atas, berarti ada 2 record jalur berbeda dengan kode yang sama (mis. LCJ) -- satu dipakai tower, satu dipakai span. Cek di Master Jalur.
+    </div>`;
   } else {
     spanWrap.innerHTML = spans.map(s => {
       const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor);
