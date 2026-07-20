@@ -256,8 +256,19 @@ async function loadPetugasList(){
     }
 
     wrap.innerHTML = petugasAccounts.map(acc => {
-      const towerCount = (acc.tower_ids || []).length;
-      const spanCount   = (acc.span_ids  || []).length;
+      const towerIds = acc.tower_ids || [];
+      const spanIds   = acc.span_ids  || [];
+      const myTowers  = towerListAll.filter(t => towerIds.includes(t.id));
+
+      const spanMap = {};
+      spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
+      myTowers.forEach(t => {
+        const paired = spanListAll.find(s => s.nomor === t.nomor && s.jalurId === t.jalurId);
+        if(paired) spanMap[paired.id] = paired;
+      });
+
+      const towerCount = myTowers.length;
+      const spanCount   = Object.keys(spanMap).length;
       const hasData     = towerCount > 0 || spanCount > 0;
       const initials    = acc.username.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase();
 
@@ -301,7 +312,19 @@ async function openQrModal(username){
   const spanIds  = (acc && acc.span_ids)  || [];
 
   const towers = towerListAll.filter(t => towerIds.includes(t.id)).sort((a,b) => a.nomor - b.nomor);
-  const spans  = spanListAll.filter(s => spanIds.includes(s.id)).sort((a,b) => a.nomor - b.nomor);
+
+  // Span dianggap milik petugas ini kalau: (a) memang di-assign manual lewat
+  // span_ids, ATAU (b) posisinya (nomor + jalur) sama dengan salah satu
+  // tower yang di-assign -- sama seperti findPairedSpan() di tower.html.
+  // Ini penting karena kebanyakan akun cuma diisi tower_ids saja, span_ids
+  // sering kosong walau span-nya sebenarnya "ikut" tower yang sama.
+  const spanMap = {};
+  spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
+  towers.forEach(t => {
+    const paired = spanListAll.find(s => s.nomor === t.nomor && s.jalurId === t.jalurId);
+    if(paired) spanMap[paired.id] = paired;
+  });
+  const spans = Object.values(spanMap).sort((a,b) => a.nomor - b.nomor);
 
   const towerWrap = document.getElementById("qrTowerWrap");
   const spanWrap  = document.getElementById("qrSpanWrap");
