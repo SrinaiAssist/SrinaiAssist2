@@ -74,6 +74,14 @@ body{
 .term-ctrl-btn:active{background:rgba(255,255,255,0.08);}
 .term-ctrl-btn.close:active{background:var(--red);color:#fff;}
 .term-ctrl-deco{opacity:.35;pointer-events:none;}
+.term-ctrl-btn#minimizeBtn.active{color:var(--green);background:rgba(95,208,104,0.12);}
+
+/* ===== Minimized state ===== */
+.container.minimized{height:auto !important;}
+.container.minimized .term-meta,
+.container.minimized .sync-badge,
+.container.minimized .chat-area,
+.container.minimized .input-area{display:none;}
 
 /* ===== Meta line (whoami / status) ===== */
 .term-meta{
@@ -187,15 +195,12 @@ textarea::placeholder{color:var(--fg-faint);}
       <span id="tabTitle">srinai@COMMANDBOT: ~</span>
     </div>
     <div class="term-controls">
-      <button class="term-ctrl-btn" onclick="showMenu(true)" title="Lihat daftar command">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
-      </button>
-      <span class="term-ctrl-btn term-ctrl-deco">
+      <button class="term-ctrl-btn" id="minimizeBtn" onclick="toggleMinimize()" title="Minimize">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </span>
-      <span class="term-ctrl-btn term-ctrl-deco">
+      </button>
+      <button class="term-ctrl-btn" onclick="showMenu(true)" title="Daftar command aktif">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-      </span>
+      </button>
       <a href="dashboard.html" class="term-ctrl-btn close" title="Tutup">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
       </a>
@@ -364,6 +369,13 @@ function autoGrow(el){
   markActivity();
   el.style.height = "auto";
   el.style.height = Math.min(el.scrollHeight, 100) + "px";
+}
+
+let isMinimized = false;
+function toggleMinimize(){
+  isMinimized = !isMinimized;
+  document.querySelector(".container").classList.toggle("minimized", isMinimized);
+  document.getElementById("minimizeBtn").classList.toggle("active", isMinimized);
 }
 
 function scrollToBottom(){
