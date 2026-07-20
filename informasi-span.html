@@ -137,6 +137,7 @@ body{
 .span-status.baik{background:var(--green-bg);color:var(--green);}
 .span-status.rusak{background:var(--red-bg);color:var(--red);}
 .span-status.perhatian{background:var(--amber-bg);color:var(--amber);}
+.span-status.terisi{background:var(--green-bg);color:var(--green);}
 .span-sub{font-size:11px;color:var(--ink-3);margin-top:4px;}
 .span-extra{display:none;margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;}
 .span-row.expanded .span-extra{display:block;}
@@ -292,12 +293,20 @@ async function checkAccess(){
   return roles.includes(role);
 }
 
+let tegakanCountBySpan = {};
+
 async function buildSections(){
-  const [accounts, jalurList, spanList] = await Promise.all([
+  const [accounts, jalurList, spanList, tegakanAll] = await Promise.all([
     cachedGetAllAccountsFull(),
     cachedGetJalurMasterList(),
-    cachedGetSpanMasterList()
+    cachedGetSpanMasterList(),
+    cachedGetAllTegakan()
   ]);
+
+  tegakanCountBySpan = {};
+  (tegakanAll || []).forEach(item => {
+    tegakanCountBySpan[item.spanId] = (tegakanCountBySpan[item.spanId] || 0) + 1;
+  });
 
   jalurById = {}; jalurList.forEach(j => jalurById[j.id] = j);
   spanById  = {}; spanList.forEach(s => spanById[s.id] = s);
@@ -313,7 +322,7 @@ async function buildSections(){
 
     const byJalur = {};
     spans.forEach(s => {
-      const key = s.jalur_id || "-";
+      const key = s.jalurId || "-";
       (byJalur[key] = byJalur[key] || []).push(s);
     });
 
@@ -390,11 +399,25 @@ function cssSafe(str){
 function spanRowHtml(s, sec){
   const code = (sec.jalurLabel ? "" : "") + "S" + pad3(s.nomor);
   const rowId = "span-" + s.id;
+  const tegakanCount = tegakanCountBySpan[s.id] || 0;
+
+  let badgeText, badgeClass;
+  if(s.status){
+    badgeText = s.status;
+    badgeClass = statusClass(s.status);
+  } else if(tegakanCount > 0){
+    badgeText = `${tegakanCount} Tegakan`;
+    badgeClass = "terisi";
+  } else {
+    badgeText = "Belum diisi";
+    badgeClass = "";
+  }
+
   return `
     <div class="span-row" id="${rowId}" onclick="toggleSpanRow('${s.id}', event)">
       <div class="span-row-top">
         <div class="span-code">Span ${code}</div>
-        <div class="span-status ${statusClass(s.status)}">${s.status || "Belum diisi"}</div>
+        <div class="span-status ${badgeClass}">${badgeText}</div>
       </div>
       <div class="span-sub">Spacer: ${s.spacer || "-"} &middot; Joint: ${s.joint || "-"}</div>
       <div class="span-extra" id="extra-${s.id}"></div>
