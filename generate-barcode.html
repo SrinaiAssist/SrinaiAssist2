@@ -263,7 +263,9 @@ async function loadPetugasList(){
       const spanMap = {};
       spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
       myTowers.forEach(t => {
-        const paired = spanListAll.find(s => s.nomor === t.nomor && s.jalurId === t.jalurId);
+        const paired = spanListAll.find(s =>
+          String(s.nomor) === String(t.nomor) && String(s.jalurId) === String(t.jalurId)
+        );
         if(paired) spanMap[paired.id] = paired;
       });
 
@@ -321,7 +323,9 @@ async function openQrModal(username){
   const spanMap = {};
   spanListAll.filter(s => spanIds.includes(s.id)).forEach(s => { spanMap[s.id] = s; });
   towers.forEach(t => {
-    const paired = spanListAll.find(s => s.nomor === t.nomor && s.jalurId === t.jalurId);
+    const paired = spanListAll.find(s =>
+      String(s.nomor) === String(t.nomor) && String(s.jalurId) === String(t.jalurId)
+    );
     if(paired) spanMap[paired.id] = paired;
   });
   const spans = Object.values(spanMap).sort((a,b) => a.nomor - b.nomor);
@@ -350,7 +354,7 @@ async function openQrModal(username){
   }
 
   if(!spans.length){
-    spanWrap.innerHTML = `<div class="qr-empty">Belum ada span yang di-assign ke petugas ini.</div>`;
+    spanWrap.innerHTML = `<div class="qr-empty">Belum ada span yang cocok untuk petugas ini (${towers.length} tower ter-assign, ${spanListAll.length} total data span di master). Cek apakah span sudah diinput di jalur yang sama.</div>`;
   } else {
     spanWrap.innerHTML = spans.map(s => {
       const code = assetCodeSpan(jalurCodeFor(s.jalurId), s.nomor);
