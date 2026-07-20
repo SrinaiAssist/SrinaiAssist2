@@ -76,12 +76,39 @@ body{
 .term-ctrl-deco{opacity:.35;pointer-events:none;}
 .term-ctrl-btn#minimizeBtn.active{color:var(--green);background:rgba(95,208,104,0.12);}
 
-/* ===== Minimized state ===== */
-.container.minimized{height:auto !important;}
-.container.minimized .term-meta,
-.container.minimized .sync-badge,
-.container.minimized .chat-area,
-.container.minimized .input-area{display:none;}
+/* ===== Minimize: whole window shrinks into a small floating bar ===== */
+.container.hidden-window{display:none;}
+.minimized-bar{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;
+  background:var(--titlebar);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px 10px 14px;cursor:pointer;z-index:80;
+  box-shadow:0 10px 28px rgba(0,0,0,0.55);
+  font-family:var(--mono);color:var(--fg);
+}
+.minimized-bar svg{width:13px;height:13px;stroke:var(--green);flex-shrink:0;}
+.minimized-bar span{font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+.minimized-bar-restore{color:var(--fg-dim) !important;font-weight:400 !important;font-size:12px !important;margin-left:2px;}
+.minimized-bar:active{background:var(--bg-3);}
+
+/* ===== Command list modal (popup) ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:90;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.modal-overlay.hidden{display:none;}
+.modal-box{
+  width:100%;max-width:380px;max-height:72vh;display:flex;flex-direction:column;
+  background:var(--bg-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  box-shadow:0 20px 48px rgba(0,0,0,0.6);
+}
+.modal-header{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:11px 8px 11px 14px;border-bottom:1px solid var(--border);background:var(--titlebar);
+  font-size:11.5px;font-weight:700;color:var(--fg);letter-spacing:.2px;
+}
+.modal-body{flex:1;overflow-y:auto;padding:10px 10px 14px;}
+.modal-body .term-menu-empty{padding:8px 4px;}
 
 /* ===== Meta line (whoami / status) ===== */
 .term-meta{
@@ -198,7 +225,7 @@ textarea::placeholder{color:var(--fg-faint);}
       <button class="term-ctrl-btn" id="minimizeBtn" onclick="toggleMinimize()" title="Minimize">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="term-ctrl-btn" onclick="showMenu(true)" title="Daftar command aktif">
+      <button class="term-ctrl-btn" onclick="openCmdModal()" title="Daftar command aktif">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
       </button>
       <a href="dashboard.html" class="term-ctrl-btn close" title="Tutup">
@@ -237,6 +264,24 @@ textarea::placeholder{color:var(--fg-faint);}
 
 </div>
 
+<button class="minimized-bar hidden" id="minimizedBar" onclick="toggleMinimize()">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+  <span id="minimizedBarLabel">COMMANDBOT</span>
+  <span class="minimized-bar-restore">▢</span>
+</button>
+
+<div class="modal-overlay hidden" id="cmdModalOverlay" onclick="closeCmdModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span>Daftar Command Aktif</span>
+      <button class="term-ctrl-btn close" onclick="closeCmdModal()" title="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="cmdModalBody"></div>
+  </div>
+</div>
+
 <script>
 let currentUser, currentRole, consoleChatId;
 
@@ -261,6 +306,7 @@ async function initPage(){
   currentRole = getCurrentRole();
   document.getElementById("userInfo").innerHTML = `<b>${escapeHtml(currentUser)}</b> · role: ${escapeHtml(currentRole.toUpperCase())} · sesi aktif`;
   document.getElementById("tabTitle").textContent = `${currentUser}@COMMANDBOT: ~`;
+  document.getElementById("minimizedBarLabel").textContent = `${currentUser}@COMMANDBOT`;
   document.getElementById("inputPrompt").textContent = `${currentUser}@srinai:~$`;
   consoleChatId = "web:" + currentUser;
 
@@ -374,8 +420,17 @@ function autoGrow(el){
 let isMinimized = false;
 function toggleMinimize(){
   isMinimized = !isMinimized;
-  document.querySelector(".container").classList.toggle("minimized", isMinimized);
-  document.getElementById("minimizeBtn").classList.toggle("active", isMinimized);
+  document.querySelector(".container").classList.toggle("hidden-window", isMinimized);
+  document.getElementById("minimizedBar").classList.toggle("hidden", !isMinimized);
+}
+
+function openCmdModal(){
+  const body = document.getElementById("cmdModalBody");
+  body.innerHTML = menuChipsHtml();
+  document.getElementById("cmdModalOverlay").classList.remove("hidden");
+}
+function closeCmdModal(){
+  document.getElementById("cmdModalOverlay").classList.add("hidden");
 }
 
 function scrollToBottom(){
@@ -447,6 +502,7 @@ function cancelFlow(){
 function pickNumber(n){
   const cmd = botCommands[n - 1];
   document.getElementById("message").value = cmd ? (cmd.triggerText || String(n)) : String(n);
+  closeCmdModal();
   sendMessage();
 }
 
