@@ -911,3 +911,51 @@ if (document.readyState === "loading") {
 } else {
     initBackgroundMusic();
 }
+
+/* ─── Heartbeat lokasi (dipakai peta.html) ──────────────────────────
+   Selama user login DAN browser mengizinkan akses lokasi, kirim posisi
+   GPS-nya secara berkala ke /api/settings (action=location) supaya bisa
+   ditampilkan di peta.html. Jalan otomatis di SEMUA halaman (karena
+   auth.js dipakai di mana-mana) -- bukan cuma pas peta.html dibuka --
+   supaya titik petugas di peta selalu representasi lokasi TERKINI,
+   bukan cuma pas dia lagi buka halaman peta.
+   Diam-diam berhenti (tidak pernah nge-alert user) kalau geolocation
+   tidak didukung/izin ditolak -- fitur peta jadi opsional, bukan wajib
+   buat bisa tetap pakai app. Tidak nambah endpoint baru: numpang di
+   /api/settings key "loc:<username>" (JSON string), sama pola dengan
+   fitur botNotify sebelumnya -- Vercel Hobby dibatasi 12 function/
+   deployment dan project ini sudah pas di batas itu. */
+const LOCATION_HEARTBEAT_INTERVAL_MS = 60 * 1000; // 1 menit
+
+function sendLocationHeartbeat() {
+    const username = getCurrentUser();
+    if (!username || !navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            apiRequest("/api/settings?action=location", {
+                method: "POST",
+                body: JSON.stringify({
+                    username,
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                }),
+            });
+        },
+        () => { /* izin lokasi ditolak / gagal ambil posisi -- diamkan saja */ },
+        { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+    );
+}
+
+function startLocationHeartbeat() {
+    if (!getCurrentUser() || !navigator.geolocation) return;
+    sendLocationHeartbeat();
+    setInterval(sendLocationHeartbeat, LOCATION_HEARTBEAT_INTERVAL_MS);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startLocationHeartbeat);
+} else {
+    startLocationHeartbeat();
+}
