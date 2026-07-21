@@ -13,6 +13,13 @@
 // GET    /api/settings?action=botNotifyCron -> dipanggil Vercel Cron sekali
 //        sehari (lihat vercel.json), diproteksi header
 //        Authorization: Bearer <CRON_SECRET>
+//
+// POST   /api/settings?action=location  body:{ username, lat, lng, accuracy? }
+//        -> heartbeat lokasi live 1 petugas (dipanggil otomatis dari
+//        js/auth.js di semua halaman, lihat startLocationHeartbeat())
+// GET    /api/settings?action=locations -> semua lokasi live petugas
+//        sekaligus, dipakai peta.html
+//
 // (Digabung di sini, bukan file /api terpisah, supaya tidak menambah slot
 // serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
 // dan project ini sudah pas di batas itu.)
@@ -444,9 +451,68 @@ async function handleBotNotifyCron(req, res) {
   return res.status(200).json({ success: true, ...summary });
 }
 
+// ─────────────────────────────────────────────────────────
+// LOKASI LIVE PETUGAS (fitur peta.html)
+// POST /api/settings?action=location  body:{ username, lat, lng, accuracy? }
+//      -> upsert key "loc:<username>", numpang tabel app_settings yang
+//         sudah ada (bukan tabel baru) supaya tidak nambah slot function.
+// GET  /api/settings?action=locations -> { locations: { <username>: {lat,lng,accuracy,updatedAt} } }
+//      dipanggil peta.html, di-poll berkala buat refresh titik petugas.
+// Staleness (petugas dianggap "offline"/tidak ditampilkan kalau heartbeat
+// terakhir sudah lama) SENGAJA diputuskan di client (peta.html), bukan di
+// sini, supaya threshold-nya gampang diubah tanpa deploy ulang API.
+// ─────────────────────────────────────────────────────────
+async function handleLocationPost(req, res) {
+  const { username, lat, lng, accuracy } = req.body || {};
+  if (!username || typeof lat !== 'number' || typeof lng !== 'number') {
+    return res.status(400).json({ success: false, message: 'username, lat, lng wajib diisi (lat/lng harus angka).' });
+  }
+  const value = JSON.stringify({
+    lat, lng,
+    accuracy: typeof accuracy === 'number' ? accuracy : null,
+    updatedAt: new Date().toISOString(),
+  });
+  await sql`
+    INSERT INTO app_settings (key, value)
+    VALUES (${'loc:' + username}, ${value})
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+  `;
+  return res.status(200).json({ success: true });
+}
+
+async function handleLocationsGet(res) {
+  const rows = await sql`SELECT key, value FROM app_settings WHERE key LIKE 'loc:%'`;
+  const locations = {};
+  for (const r of rows) {
+    const username = r.key.slice('loc:'.length);
+    try {
+      locations[username] = JSON.parse(r.value);
+    } catch {
+      // value korup/bukan JSON -- lewati saja daripada bikin peta.html error total
+    }
+  }
+  return res.status(200).json({ success: true, locations });
+}
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
+
+    if (qAction === 'location') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleLocationPost(req, res);
+    }
+
+    if (qAction === 'locations') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleLocationsGet(res);
+    }
 
     if (qAction === 'backup') {
       if (req.method === 'GET') return await handleBackupExport(res);
