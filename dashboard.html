@@ -234,9 +234,26 @@ body{
 .storage-box{flex:1;border:1px solid var(--line);padding:9px 10px;}
 .storage-label{font-family:'JetBrains Mono';font-size:8px;letter-spacing:0.6px;color:var(--ink-faint);text-transform:uppercase;}
 .storage-bar-track{height:4px;background:var(--paper-3);margin:6px 0 4px;border-radius:2px;overflow:hidden;}
-.storage-bar-fill{height:100%;background:var(--moss);width:0%;transition:width 500ms ease;}
+.storage-bar-fill{
+  position:relative;
+  height:100%;background:var(--moss);width:0%;
+  transition:width 700ms cubic-bezier(.22,.9,.35,1);
+  overflow:hidden;
+}
+.storage-bar-fill::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%);
+  width:50%;
+  animation:storageShimmer 1.4s linear infinite;
+}
 .storage-bar-fill.warn{background:var(--gold);}
 .storage-bar-fill.danger{background:var(--route);}
+@keyframes storageShimmer{
+  0%{transform:translateX(-120%);}
+  100%{transform:translateX(300%);}
+}
+.storage-limit{font-family:'JetBrains Mono';font-size:8px;color:var(--ink-faint);margin-top:2px;}
 .storage-pct{font-family:'JetBrains Mono';font-size:10.5px;font-weight:700;}
 
 /* ---------- radio check-in ---------- */
@@ -704,11 +721,13 @@ body{
       <div class="storage-label">Database</div>
       <div class="storage-bar-track"><div class="storage-bar-fill" id="dbStorageBarFill"></div></div>
       <div class="storage-pct" id="dbStoragePercent">–%</div>
+      <div class="storage-limit" id="dbStorageLimit">dari – GB</div>
     </div>
     <div class="storage-box">
       <div class="storage-label">Drive</div>
       <div class="storage-bar-track"><div class="storage-bar-fill" id="driveStorageBarFill"></div></div>
       <div class="storage-pct" id="driveStoragePercent">–%</div>
+      <div class="storage-limit" id="driveStorageLimit">dari – GB</div>
     </div>
   </div>
 
@@ -1180,6 +1199,33 @@ function animateCountUp(elementId, target, unit, duration){
   requestAnimationFrame(tick);
 }
 
+// Animasi angka persen menghitung halus menuju target (dipakai bareng utk
+// widget Database & Drive), biar bar terasa hidup, bukan lompat langsung.
+const storageAnim = {}; // id -> { shown, target, raf }
+function animateStorageTo(key, fillEl, pctEl, targetPct){
+  if(!storageAnim[key]) storageAnim[key] = { shown: 0, raf: null };
+  const st = storageAnim[key];
+  st.target = targetPct;
+  if(st.raf) return;
+
+  function step(){
+    const diff = st.target - st.shown;
+    if(Math.abs(diff) < 0.05){
+      st.shown = st.target;
+    } else {
+      st.shown += diff * 0.12;
+    }
+    fillEl.style.width = st.shown + "%";
+    pctEl.textContent = st.shown.toFixed(1) + "%";
+    if(Math.abs(st.target - st.shown) > 0.05){
+      st.raf = requestAnimationFrame(step);
+    } else {
+      st.raf = null;
+    }
+  }
+  st.raf = requestAnimationFrame(step);
+}
+
 async function loadDbStorage(){
   try{
     const res = await fetch("/api/settings?stats=db");
@@ -1189,8 +1235,9 @@ async function loadDbStorage(){
     const pct = Math.max(0, Math.min(100, data.percent));
     const fillEl = document.getElementById("dbStorageBarFill");
     const pctEl  = document.getElementById("dbStoragePercent");
-    fillEl.style.width = pct + "%";
-    pctEl.textContent = pct.toFixed(1) + "%";
+    animateStorageTo("db", fillEl, pctEl, pct);
+    document.getElementById("dbStorageLimit").textContent =
+      "dari " + (data.limitMb / 1024).toFixed(0) + " GB";
     fillEl.classList.remove("warn","danger");
     if(pct >= 90) fillEl.classList.add("danger");
     else if(pct >= 70) fillEl.classList.add("warn");
@@ -1209,8 +1256,9 @@ async function loadDriveStorage(){
     const pct = Math.max(0, Math.min(100, data.percent));
     const fillEl = document.getElementById("driveStorageBarFill");
     const pctEl  = document.getElementById("driveStoragePercent");
-    fillEl.style.width = pct + "%";
-    pctEl.textContent = pct.toFixed(1) + "%";
+    animateStorageTo("drive", fillEl, pctEl, pct);
+    document.getElementById("driveStorageLimit").textContent =
+      "dari " + (data.limitMb / 1024).toFixed(0) + " GB";
     fillEl.classList.remove("warn","danger");
     if(pct >= 90) fillEl.classList.add("danger");
     else if(pct >= 70) fillEl.classList.add("warn");
