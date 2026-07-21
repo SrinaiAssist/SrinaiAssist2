@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Peta - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 14px;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+  transition:background .15s;
+}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+.refresh-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .3s;
+}
+.refresh-btn.spinning svg{animation:spin .8s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Legenda */
+.legend{
+  display:flex;gap:14px;flex-wrap:wrap;
+  padding:0 20px 12px;
+  font-size:10.5px;color:var(--ink-2);
+}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.legend-dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.legend-dot.red{background:var(--red);box-shadow:0 0 6px var(--red);}
+.legend-tower{width:14px;height:14px;flex-shrink:0;color:var(--gold);}
+
+#map{
+  flex:1;
+  min-height:420px;
+  width:100%;
+  background:var(--bg-card2);
+}
+.leaflet-popup-content-wrapper{
+  background:var(--bg-card);color:var(--ink);border-radius:12px;
+  border:1px solid var(--border);
+}
+.leaflet-popup-tip{background:var(--bg-card);}
+.leaflet-popup-content{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12.5px;}
+.leaflet-popup-content b{color:var(--gold);}
+
+.map-empty-banner{
+  margin:12px 20px 0;
+  background:var(--bg-glass);border:1px solid var(--border);border-radius:14px;
+  padding:12px 14px;font-size:11.5px;color:var(--ink-2);
+  display:none;
+}
+.map-empty-banner.show{display:block;}
+.map-updated{
+  padding:10px 20px 0;
+  font-size:10px;color:var(--ink-3);text-align:center;
+}
+
+/* Ikon custom Leaflet */
+.tower-icon{
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 0 3px rgba(0,0,0,0.6));
+}
+.petugas-dot{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.85);
+  animation:pulseDot 1.6s ease-in-out infinite;
+}
+.petugas-dot.green{background:var(--green);box-shadow:0 0 10px 2px var(--green);}
+.petugas-dot.red{background:var(--red);box-shadow:0 0 10px 2px var(--red);}
+@keyframes pulseDot{
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:.7;transform:scale(1.18);}
+}
+
+/* Bottom Nav */
+.bottomnav{
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  background:var(--bg-card);border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 0 18px;z-index:100;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--ink-3);text-decoration:none;flex:1;
+}
+.nav-item svg{width:20px;height:20px;}
+.nav-item .nav-label{font-size:9.5px;font-weight:700;}
+.nav-item.active{color:var(--gold);}
+.nav-item.center{margin-top:-26px;}
+.nav-item.center .nav-circle{
+  width:48px;height:48px;border-radius:16px;
+  background:linear-gradient(135deg, var(--blue) 0%, #3A6FD8 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(74,142,245,0.5);
+  margin-bottom:3px;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.nav-item.center .nav-circle svg{width:22px;height:22px;}
+.nav-item.center .nav-label{color:var(--ink-2);font-size:9.5px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Peta</h1>
+      <p>Posisi petugas &amp; tower berkoordinat</p>
+    </div>
+    <div class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <svg class="legend-tower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+      <span>Tower</span>
+    </div>
+    <div class="legend-item"><span class="legend-dot green"></span><span>Petugas di lokasi tower</span></div>
+    <div class="legend-item"><span class="legend-dot red"></span><span>Petugas di luar tower</span></div>
+  </div>
+
+  <div id="map"></div>
+  <div class="map-updated" id="mapUpdated">Memuat...</div>
+  <div class="map-empty-banner" id="emptyBanner"></div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottomnav">
+    <a href="dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+      <div class="nav-label">Beranda</div>
+    </a>
+    <a href="tower.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
+      <div class="nav-label">Tower</div>
+    </a>
+    <a href="ai.html" class="nav-item center">
+      <div class="nav-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 3l1.5 4M15 3l-1.5 4M9 13h.01M15 13h.01"/></svg>
+      </div>
+      <div class="nav-label">SrinAI</div>
+    </a>
+    <a href="span.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16.5L16 7.5"/></svg>
+      <div class="nav-label">Span</div>
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
+      <div class="nav-label">Akun</div>
+    </a>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   PETA.HTML
+   - Tower berkoordinat -> ikon tower kecil (gold), dari
+     cachedGetTowerMasterList() (sudah ada, tidak nambah request).
+   - Lokasi live petugas -> titik menyala, dari
+     GET /api/settings?action=locations (lihat api/settings.js),
+     diisi oleh heartbeat otomatis di js/auth.js
+     (startLocationHeartbeat(), jalan di SEMUA halaman selama user
+     login & izinkan lokasi).
+   - Hijau = petugas dalam radius PROXIMITY_METERS dari tower
+     manapun yang sudah punya koordinat. Merah = di luar itu.
+   - Petugas yang heartbeat terakhirnya lebih tua dari
+     STALE_MS dianggap tidak aktif, tidak ditampilkan.
+========================================================= */
+
+const PROXIMITY_METERS = 75;      // jarak dianggap "di tower" -- bisa disesuaikan
+const STALE_MS = 10 * 60 * 1000;  // 10 menit -- lebih tua dari ini dianggap offline
+const POLL_MS = 25 * 1000;        // refresh posisi petugas tiap 25 detik
+
+let map;
+let towerPoints = [];             // [{lat,lng,nomor,jalurLabel,status}]
+let petugasMarkers = {};          // username -> L.marker
+
+function haversineMeters(lat1, lng1, lat2, lng2){
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function jarakKeTowerTerdekat(lat, lng){
+  let min = Infinity;
+  for(const t of towerPoints){
+    const d = haversineMeters(lat, lng, t.lat, t.lng);
+    if(d < min) min = d;
+  }
+  return min;
+}
+
+function towerDivIcon(){
+  return L.divIcon({
+    className: "",
+    html: `<div class="tower-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg></div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 20],
+    popupAnchor: [0, -18],
+  });
+}
+
+function petugasDivIcon(warna){
+  return L.divIcon({
+    className: "",
+    html: `<div class="petugas-dot ${warna}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+    popupAnchor: [0, -8],
+  });
+}
+
+function waktuRelatif(iso){
+  if(!iso) return "-";
+  const detik = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if(detik < 60) return detik + " detik lalu";
+  const menit = Math.round(detik / 60);
+  if(menit < 60) return menit + " menit lalu";
+  const jam = Math.round(menit / 60);
+  return jam + " jam lalu";
+}
+
+async function loadTowerMarkers(){
+  const allTower = await cachedGetTowerMasterList();
+  const allJalur = await cachedGetJalurMasterList();
+  const labelOf = (jalurId) => {
+    const j = (allJalur || []).find(j => j.id === jalurId);
+    return j ? j.label : jalurId;
+  };
+
+  towerPoints = [];
+  const withCoord = (allTower || []).filter(t => typeof t.latitude === "number" && typeof t.longitude === "number");
+
+  for(const t of withCoord){
+    towerPoints.push({ lat: t.latitude, lng: t.longitude, nomor: t.nomor, jalurLabel: labelOf(t.jalurId), status: t.status });
+    L.marker([t.latitude, t.longitude], { icon: towerDivIcon() })
+      .addTo(map)
+      .bindPopup(`<b>Tower ${t.nomor}</b><br>Jalur ${labelOf(t.jalurId)}<br>Status: ${t.status || "belum diisi"}`);
+  }
+
+  const banner = document.getElementById("emptyBanner");
+  if(withCoord.length === 0){
+    banner.textContent = "Belum ada tower yang punya koordinat -- isi lewat halaman Tower dulu (tombol Edit Data Tower) supaya muncul di peta.";
+    banner.classList.add("show");
+  } else {
+    banner.classList.remove("show");
+  }
+
+  // Posisikan/zoom peta ke area tower kalau ada, kalau belum ada
+  // koordinat sama sekali fallback ke titik default (Cianjur, Jawa Barat)
+  // supaya peta tidak kosong-melompong.
+  if(withCoord.length > 0){
+    const bounds = L.latLngBounds(withCoord.map(t => [t.latitude, t.longitude]));
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+  } else {
+    map.setView([-6.822, 107.142], 12); // fallback: sekitar Cianjur
+  }
+}
+
+async function loadPetugasLocations(){
+  const [locResult, accounts] = await Promise.all([
+    apiRequest("/api/settings?action=locations"),
+    cachedGetAllAccountsFull().catch(() => []),
+  ]);
+  if(!locResult || !locResult.success) return;
+
+  const locations = locResult.locations || {};
+  const accountMap = {};
+  (accounts || []).forEach(a => { accountMap[a.username] = a; });
+
+  const usernameMasihAktif = new Set();
+
+  for(const username of Object.keys(locations)){
+    const loc = locations[username];
+    if(!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") continue;
+
+    const umurMs = loc.updatedAt ? (Date.now() - new Date(loc.updatedAt).getTime()) : Infinity;
+    if(umurMs > STALE_MS) continue; // dianggap offline, jangan tampilkan
+
+    usernameMasihAktif.add(username);
+
+    const jarak = jarakKeTowerTerdekat(loc.lat, loc.lng);
+    const warna = jarak <= PROXIMITY_METERS ? "green" : "red";
+    const acc = accountMap[username];
+    const peran = acc ? `${acc.role || "-"}${acc.jabatan ? " · " + acc.jabatan : ""}` : "-";
+    const popupHtml = `<b>${username}</b><br>${peran}<br>${warna === "green" ? "Di lokasi tower" : "Di luar tower"}<br><span style="color:var(--ink-3)">Update ${waktuRelatif(loc.updatedAt)}</span>`;
+
+    if(petugasMarkers[username]){
+      petugasMarkers[username].setLatLng([loc.lat, loc.lng]);
+      petugasMarkers[username].setIcon(petugasDivIcon(warna));
+      petugasMarkers[username].setPopupContent(popupHtml);
+    } else {
+      petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna) })
+        .addTo(map)
+        .bindPopup(popupHtml);
+    }
+  }
+
+  // Hapus marker petugas yang sudah tidak aktif/stale
+  for(const username of Object.keys(petugasMarkers)){
+    if(!usernameMasihAktif.has(username)){
+      map.removeLayer(petugasMarkers[username]);
+      delete petugasMarkers[username];
+    }
+  }
+
+  document.getElementById("mapUpdated").textContent =
+    `${usernameMasihAktif.size} petugas aktif -- diperbarui ${new Date().toLocaleTimeString("id-ID")}`;
+}
+
+async function manualRefresh(){
+  const btn = document.getElementById("refreshBtn");
+  btn.classList.add("spinning");
+  try {
+    await loadPetugasLocations();
+  } finally {
+    setTimeout(() => btn.classList.remove("spinning"), 400);
+  }
+}
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href = "index.html"; return; }
+
+  map = L.map("map", { zoomControl: true, attributionControl: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+  }).addTo(map);
+
+  await loadTowerMarkers();
+  await loadPetugasLocations();
+  setInterval(loadPetugasLocations, POLL_MS);
+}
+
+initPage();
+</script>
+
+</body>
+</html>
