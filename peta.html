@@ -128,9 +128,9 @@ body{
 
 /* Ikon custom Leaflet */
 .tower-icon{
-  width:22px;height:22px;
+  width:13px;height:13px;
   display:flex;align-items:center;justify-content:center;
-  filter:drop-shadow(0 0 3px rgba(0,0,0,0.6));
+  filter:drop-shadow(0 0 1.5px rgba(0,0,0,0.55));
 }
 .petugas-dot{
   width:16px;height:16px;border-radius:50%;
@@ -460,10 +460,10 @@ function towerDivIcon(color){
   const c = color || "#F4C542";
   return L.divIcon({
     className: "",
-    html: `<div class="tower-icon"><svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg></div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 20],
-    popupAnchor: [0, -18],
+    html: `<div class="tower-icon"><svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg></div>`,
+    iconSize: [13, 13],
+    iconAnchor: [6, 12],
+    popupAnchor: [0, -11],
   });
 }
 
