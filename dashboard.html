@@ -233,25 +233,32 @@ body{
 .storage-strip{margin:14px 18px 0;display:flex;gap:10px;}
 .storage-box{flex:1;border:1px solid var(--line);padding:9px 10px;}
 .storage-label{font-family:'JetBrains Mono';font-size:8px;letter-spacing:0.6px;color:var(--ink-faint);text-transform:uppercase;}
-.storage-bar-track{height:4px;background:var(--paper-3);margin:6px 0 4px;border-radius:2px;overflow:hidden;}
+.storage-bar-track{height:4px;background:var(--paper-3);margin:6px 0 4px;border-radius:2px;overflow:visible;}
 .storage-bar-fill{
   position:relative;
   height:100%;background:var(--moss);width:0%;
+  border-radius:2px;
+  transform-origin:left center;
   transition:width 700ms cubic-bezier(.22,.9,.35,1);
-  overflow:hidden;
+  animation:storageBulgeDb 1.6s cubic-bezier(.16,.84,.44,1) infinite;
 }
-.storage-bar-fill::after{
-  content:"";
-  position:absolute;inset:0;
-  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%);
-  width:50%;
-  animation:storageShimmer 1.4s linear infinite;
+#driveStorageBarFill{
+  animation-name:storageBulgeDrive;
+  animation-duration:2.3s;
+  animation-delay:.5s;
 }
 .storage-bar-fill.warn{background:var(--gold);}
 .storage-bar-fill.danger{background:var(--route);}
-@keyframes storageShimmer{
-  0%{transform:translateX(-120%);}
-  100%{transform:translateX(300%);}
+/* Bar "swells" at its tip (fast) then deflates back to true size (slower). */
+@keyframes storageBulgeDb{
+  0%{transform:scaleX(1);animation-timing-function:cubic-bezier(.16,.84,.44,1);}
+  16%{transform:scaleX(1.16);animation-timing-function:cubic-bezier(.65,0,.35,1);}
+  100%{transform:scaleX(1);}
+}
+@keyframes storageBulgeDrive{
+  0%{transform:scaleX(1);animation-timing-function:cubic-bezier(.16,.84,.44,1);}
+  22%{transform:scaleX(1.11);animation-timing-function:cubic-bezier(.65,0,.35,1);}
+  100%{transform:scaleX(1);}
 }
 .storage-limit{font-family:'JetBrains Mono';font-size:8px;color:var(--ink-faint);margin-top:2px;}
 .storage-pct{font-family:'JetBrains Mono';font-size:10.5px;font-weight:700;}
