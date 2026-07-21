@@ -95,6 +95,7 @@ body{
 .legend-dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
 .legend-dot.red{background:var(--red);box-shadow:0 0 6px var(--red);}
 .legend-tower{width:14px;height:14px;flex-shrink:0;color:var(--gold);}
+.legend-line{width:16px;height:2px;flex-shrink:0;background:var(--teal);border-radius:1px;}
 
 #map{
   flex:1;
@@ -271,6 +272,7 @@ body{
       <svg class="legend-tower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
       <span>Tower</span>
     </div>
+    <div class="legend-item"><span class="legend-line"></span><span>Garis span</span></div>
     <div class="legend-item"><span class="legend-dot green"></span><span>Petugas di lokasi tower</span></div>
     <div class="legend-item"><span class="legend-dot red"></span><span>Petugas di luar tower</span></div>
   </div>
@@ -356,6 +358,7 @@ const POLL_MS = 25 * 1000;        // refresh posisi petugas tiap 25 detik
 let map;
 let towerPoints = [];             // [{lat,lng,nomor,jalurLabel,status}]
 let petugasMarkers = {};          // username -> L.marker
+let spanLineLayer = null;         // L.layerGroup berisi garis penghubung antar tower
 
 function haversineMeters(lat1, lng1, lat2, lng2){
   const R = 6371000;
@@ -405,6 +408,30 @@ function waktuRelatif(iso){
   return jam + " jam lalu";
 }
 
+// Hubungkan tower dengan garis mengikuti urutan nomor tower dalam
+// jalur yang sama (tower 1 -> 2 -> 3 -> dst). Tower tanpa koordinat
+// otomatis terlewat (garis tersambung ke tower berikutnya yang
+// sudah punya koordinat).
+function gambarGarisSpan(withCoordTower){
+  if(spanLineLayer){ map.removeLayer(spanLineLayer); }
+  spanLineLayer = L.layerGroup().addTo(map);
+
+  const perJalur = {};
+  for(const t of withCoordTower){
+    if(!perJalur[t.jalurId]) perJalur[t.jalurId] = [];
+    perJalur[t.jalurId].push(t);
+  }
+
+  for(const jalurId in perJalur){
+    const towers = perJalur[jalurId].slice().sort((a, b) => a.nomor - b.nomor);
+    if(towers.length < 2) continue;
+    const latlngs = towers.map(t => [t.latitude, t.longitude]);
+    L.polyline(latlngs, {
+      color: "#38BFA0", weight: 3, opacity: 0.75, lineJoin: "round"
+    }).addTo(spanLineLayer);
+  }
+}
+
 async function loadTowerMarkers(){
   const allTower = await cachedGetTowerMasterList();
   const allJalur = await cachedGetJalurMasterList();
@@ -425,6 +452,8 @@ async function loadTowerMarkers(){
         `<br><span class="popup-hapus" onclick="hapusKoordinatDariPeta('${t.id}', ${t.nomor})">🗑️ Hapus Koordinat</span>`
       );
   }
+
+  gambarGarisSpan(withCoord);
 
   const banner = document.getElementById("emptyBanner");
   if(withCoord.length === 0){
