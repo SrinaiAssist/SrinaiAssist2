@@ -186,11 +186,35 @@ body{
   height:8px;border-radius:6px;background:var(--bg-glass);overflow:hidden;
 }
 .dl-bar-fill{
+  position:relative;
   height:100%;width:0%;border-radius:6px;
   background:linear-gradient(90deg, var(--blue), var(--teal));
-  transition:width .2s ease;
+  transition:width .35s cubic-bezier(.22,.9,.35,1);
+  overflow:hidden;
 }
-.dl-percent{margin-top:8px;font-size:12px;color:var(--ink-2);font-weight:700;}
+.dl-bar-fill::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%);
+  width:60%;
+  animation:dlShimmer 1.1s linear infinite;
+}
+@keyframes dlShimmer{
+  0%{transform:translateX(-100%);}
+  100%{transform:translateX(220%);}
+}
+.dl-percent{
+  margin-top:8px;font-size:12px;color:var(--ink-2);font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;
+}
+.dl-percent .dl-size{
+  color:var(--ink-2);opacity:.75;font-weight:600;font-size:11px;
+}
+.dl-icon{animation:dlPulse 1.6s ease-in-out infinite;}
+@keyframes dlPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.12);}
+}
 .dl-btns{margin-top:18px;}
 .dl-btns .btn-cancel{
   width:100%;padding:11px;border-radius:12px;
@@ -322,7 +346,10 @@ body{
       <h3>Menyiapkan Peta Offline</h3>
       <p id="dlText">Mengunduh tile peta area Sukabumi &amp; Cianjur...</p>
       <div class="dl-bar-track"><div class="dl-bar-fill" id="dlBarFill"></div></div>
-      <div class="dl-percent" id="dlPercent">0%</div>
+      <div class="dl-percent">
+        <span id="dlPercentNum">0%</span>
+        <span class="dl-size" id="dlSize">0 KB</span>
+      </div>
       <div class="dl-btns">
         <button class="btn-cancel" onclick="lewatiUnduhPeta()">Lewati</button>
       </div>
@@ -677,6 +704,45 @@ function lewatiUnduhPeta(){
   document.getElementById("dlOverlay").style.display = "none";
 }
 
+function formatBytes(bytes){
+  if(!bytes || bytes <= 0) return "0 KB";
+  if(bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+// Angka persen dianimasikan halus menuju target (bukan lompat langsung),
+// biar terasa hidup walau progress event datang jarang/tidak rata.
+let dlAnimShownPct = 0;
+let dlAnimTargetPct = 0;
+let dlAnimRAF = null;
+
+function dlAnimateTo(targetPct){
+  dlAnimTargetPct = targetPct;
+  if(dlAnimRAF) return; // sudah ada loop animasi berjalan
+
+  const percentNum = document.getElementById("dlPercentNum");
+  const barFill = document.getElementById("dlBarFill");
+
+  function step(){
+    const diff = dlAnimTargetPct - dlAnimShownPct;
+    if(Math.abs(diff) < 0.5){
+      dlAnimShownPct = dlAnimTargetPct;
+    } else {
+      dlAnimShownPct += diff * 0.18; // easing: makin dekat makin pelan
+    }
+    const shown = Math.round(dlAnimShownPct);
+    percentNum.textContent = shown + "%";
+    barFill.style.width = shown + "%";
+
+    if(Math.abs(dlAnimTargetPct - dlAnimShownPct) > 0.5){
+      dlAnimRAF = requestAnimationFrame(step);
+    } else {
+      dlAnimRAF = null;
+    }
+  }
+  dlAnimRAF = requestAnimationFrame(step);
+}
+
 async function mulaiUnduhPeta(manual){
   if(navigator.onLine === false){
     showToast("Tidak ada koneksi internet. Peta offline akan diunduh lagi saat online.");
@@ -686,31 +752,42 @@ async function mulaiUnduhPeta(manual){
   downloadStopRequested = false;
   const overlay = document.getElementById("dlOverlay");
   const barFill = document.getElementById("dlBarFill");
-  const percentText = document.getElementById("dlPercent");
+  const percentNum = document.getElementById("dlPercentNum");
+  const sizeText = document.getElementById("dlSize");
   const dlText = document.getElementById("dlText");
   dlText.textContent = manual
     ? "Memperbarui tile peta area Sukabumi & Cianjur..."
     : "Mengunduh tile peta area Sukabumi & Cianjur untuk pemakaian offline...";
+  dlAnimShownPct = 0;
+  dlAnimTargetPct = 0;
   barFill.style.width = "0%";
-  percentText.textContent = "0%";
+  percentNum.textContent = "0%";
+  sizeText.textContent = "0 KB";
   overlay.style.display = "flex";
 
   try {
     const result = await downloadOfflineArea(
       AREA_BOUNDS, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM,
       TILE_URL_TEMPLATE, TILE_SUBDOMAINS,
-      (done, total) => {
-        const pct = total > 0 ? Math.round((done / total) * 100) : 100;
-        barFill.style.width = pct + "%";
-        percentText.textContent = `${pct}% (${done}/${total} tile)`;
+      (done, total, bytes) => {
+        const pct = total > 0 ? (done / total) * 100 : 100;
+        dlAnimateTo(pct);
+        sizeText.textContent = `${done}/${total} tile • ${formatBytes(bytes)}`;
       },
       () => downloadStopRequested
     );
 
-    overlay.style.display = "none";
+    // pastikan bar & angka benar-benar sampai 100% sebelum overlay ditutup
+    dlAnimateTo(100);
+    sizeText.textContent = `${result.total}/${result.total} tile • ${formatBytes(result.bytes)}`;
+
+    setTimeout(() => {
+      overlay.style.display = "none";
+    }, 250);
+
     if(!downloadStopRequested){
       localStorage.setItem(OFFLINE_FLAG_KEY, "1");
-      showToast(`Peta offline siap (${result.total} tile area Sukabumi & Cianjur) ✅`);
+      showToast(`Peta offline siap (${result.total} tile, ${formatBytes(result.bytes)} area Sukabumi & Cianjur) ✅`);
     }
   } catch(err){
     console.error(err);
