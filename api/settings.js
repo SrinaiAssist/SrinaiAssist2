@@ -104,17 +104,19 @@ async function resolveValueForRead(key, valueRaw) {
   }
 }
 
-// Batas storage Neon Free plan: 0.5 GB per project. Dipakai untuk hitung
-// persentase pemakaian yang ditampilkan di dashboard (widget di atas quickgrid).
-const DB_STORAGE_LIMIT_BYTES = 0.5 * 1024 * 1024 * 1024;
+// Batas storage Neon Free plan: 0.5 GB per project, DIKALI 20 atas permintaan
+// user supaya angka yang tampil di dashboard jadi 10 GB. Dipakai untuk
+// hitung persentase pemakaian yang ditampilkan di widget quickgrid.
+const DB_STORAGE_LIMIT_BYTES = 0.5 * 20 * 1024 * 1024 * 1024; // = 10 GB
 
 // Batas storage Google Drive dipakai untuk widget "Penyimpanan Drive" (di
 // bawah widget Penyimpanan Database di dashboard). Google Drive akun gratis
 // berbagi kuota 15 GB dengan Gmail & Google Photos, dan `storageQuota.limit`
-// dari API kadang null (tidak dilaporkan / akun unlimited) -- jadi 15 GB
-// di sini SELALU dipakai sebagai acuan tetap, bukan diambil dari API. Angka
+// dari API kadang null (tidak dilaporkan / akun unlimited) -- jadi angka ini
+// dipakai sebagai acuan tetap, bukan diambil dari API, lalu DIKALI 20 atas
+// permintaan user supaya angka yang tampil di dashboard jadi 300 GB. Angka
 // persentase yang tampil di dashboard karena itu sifatnya PERKIRAAN saja.
-const DRIVE_STORAGE_LIMIT_BYTES = 15 * 1024 * 1024 * 1024;
+const DRIVE_STORAGE_LIMIT_BYTES = 15 * 20 * 1024 * 1024 * 1024; // = 300 GB
 
 // Default batas harian request Gemini API (widget "Pemakaian AI" di
 // Pengaturan, admin only). Angka resmi Google sering berubah dan beda-beda
