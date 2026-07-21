@@ -140,6 +140,7 @@ async function downloadOfflineArea(bounds, minZoom, maxZoom, urlTemplate, subdom
 
   const total = tileList.length;
   let done = 0;
+  let bytes = 0; // total byte yang benar-benar diunduh dari jaringan (tile yang sudah ada di cache tidak dihitung)
   let idx = 0;
   const CONCURRENCY = 6;
 
@@ -155,6 +156,7 @@ async function downloadOfflineArea(bounds, minZoom, maxZoom, urlTemplate, subdom
           const resp = await fetch(url);
           if (resp.ok) {
             const blob = await resp.blob();
+            bytes += blob.size;
             await putTileBlob(key, blob);
           }
         }
@@ -162,7 +164,7 @@ async function downloadOfflineArea(bounds, minZoom, maxZoom, urlTemplate, subdom
         // lewati tile yang gagal, lanjut ke tile berikutnya
       }
       done++;
-      if (onProgress) onProgress(done, total);
+      if (onProgress) onProgress(done, total, bytes);
     }
   }
 
@@ -170,5 +172,5 @@ async function downloadOfflineArea(bounds, minZoom, maxZoom, urlTemplate, subdom
   for (let i = 0; i < CONCURRENCY; i++) workers.push(worker());
   await Promise.all(workers);
 
-  return { total, done };
+  return { total, done, bytes };
 }
