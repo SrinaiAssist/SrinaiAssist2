@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
-<script src="js/offline-map.js" defer></script>
+<script src="js/offline-map.js?v=2" defer></script>
 <style>
 :root{
   --bg-deep:   #080F1E;
@@ -972,10 +972,32 @@ async function hapusKoordinatDariPeta(towerId, nomor){
   await loadTowerMarkers();
 }
 
+function tampilkanErrorDiLayar(msg){
+  let box = document.getElementById("dbgErrorBox");
+  if(!box){
+    box = document.createElement("div");
+    box.id = "dbgErrorBox";
+    box.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#7a1414;color:#fff;font:12px/1.5 monospace;padding:10px 14px;white-space:pre-wrap;max-height:40vh;overflow:auto;";
+    document.body.appendChild(box);
+  }
+  const line = document.createElement("div");
+  line.textContent = msg;
+  box.appendChild(line);
+}
+
+window.addEventListener("error", (e) => {
+  tampilkanErrorDiLayar("JS Error: " + (e.message || e.error) + " @ " + (e.filename || "") + ":" + (e.lineno || ""));
+});
+window.addEventListener("unhandledrejection", (e) => {
+  tampilkanErrorDiLayar("Promise Error: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initPage);
+  document.addEventListener("DOMContentLoaded", () => {
+    initPage().catch((err) => tampilkanErrorDiLayar("initPage gagal: " + err.message));
+  });
 } else {
-  initPage();
+  initPage().catch((err) => tampilkanErrorDiLayar("initPage gagal: " + err.message));
 }
 </script>
 
