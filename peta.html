@@ -11,6 +11,7 @@
 <title>Peta - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
 <script src="js/sync.js"></script>
+<script src="js/offline-map.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -135,11 +136,10 @@ body{
 }
 .petugas-dot{
   width:16px;height:16px;border-radius:50%;
-  border:2px solid rgba(255,255,255,0.85);
+  border:3px solid rgba(255,255,255,0.85);
+  box-shadow:0 0 8px 1px rgba(0,0,0,0.35);
   animation:pulseDot 1.6s ease-in-out infinite;
 }
-.petugas-dot.green{background:var(--green);box-shadow:0 0 10px 2px var(--green);}
-.petugas-dot.red{background:var(--red);box-shadow:0 0 10px 2px var(--red);}
 @keyframes pulseDot{
   0%,100%{opacity:1;transform:scale(1);}
   50%{opacity:.7;transform:scale(1.18);}
@@ -165,6 +165,37 @@ body{
   width:26px;height:26px;
   display:flex;align-items:center;justify-content:center;
   filter:drop-shadow(0 0 4px rgba(0,0,0,0.7));
+}
+
+/* Overlay unduh peta offline */
+.dl-overlay{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(5,9,20,0.88);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.dl-box{
+  max-width:340px;width:100%;text-align:center;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+  padding:28px 22px;
+}
+.dl-icon{font-size:34px;margin-bottom:10px;}
+.dl-box h3{font-size:16px;font-weight:800;margin-bottom:6px;}
+.dl-box p{font-size:12px;color:var(--ink-2);line-height:1.5;margin-bottom:18px;}
+.dl-bar-track{
+  height:8px;border-radius:6px;background:var(--bg-glass);overflow:hidden;
+}
+.dl-bar-fill{
+  height:100%;width:0%;border-radius:6px;
+  background:linear-gradient(90deg, var(--blue), var(--teal));
+  transition:width .2s ease;
+}
+.dl-percent{margin-top:8px;font-size:12px;color:var(--ink-2);font-weight:700;}
+.dl-btns{margin-top:18px;}
+.dl-btns .btn-cancel{
+  width:100%;padding:11px;border-radius:12px;
+  background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border);
+  font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
 }
 
 /* Bottom sheet: pilih tower untuk koordinat yang baru ditandai */
@@ -254,6 +285,9 @@ body{
       <h1>Peta</h1>
       <p>Posisi petugas &amp; tower berkoordinat</p>
     </div>
+    <div class="refresh-btn" id="downloadMapBtn" onclick="mulaiUnduhPeta(true)" title="Unduh/perbarui peta offline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+    </div>
     <div class="refresh-btn" id="manualBtn" onclick="toggleManualMode()" title="Set koordinat manual">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     </div>
@@ -270,16 +304,30 @@ body{
   <div class="legend">
     <div class="legend-item">
       <svg class="legend-tower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg>
-      <span>Tower</span>
+      <span>Tower (ikut warna petugas yang di lokasi)</span>
     </div>
     <div class="legend-item"><span class="legend-line"></span><span>Garis span</span></div>
-    <div class="legend-item"><span class="legend-dot green"></span><span>Petugas di lokasi tower</span></div>
-    <div class="legend-item"><span class="legend-dot red"></span><span>Petugas di luar tower</span></div>
+    <div class="legend-item"><span class="legend-dot green"></span><span>Titik petugas (warna = identitas), lingkar hijau = di lokasi tower</span></div>
+    <div class="legend-item"><span class="legend-dot red"></span><span>Lingkar merah = di luar tower</span></div>
   </div>
 
   <div id="map"></div>
   <div class="map-updated" id="mapUpdated">Memuat...</div>
   <div class="map-empty-banner" id="emptyBanner"></div>
+
+  <!-- OVERLAY: unduh peta offline (area Kab/Kota Sukabumi & Kab Cianjur) -->
+  <div class="dl-overlay" id="dlOverlay" style="display:none;">
+    <div class="dl-box">
+      <div class="dl-icon">🗺️</div>
+      <h3>Menyiapkan Peta Offline</h3>
+      <p id="dlText">Mengunduh tile peta area Sukabumi &amp; Cianjur...</p>
+      <div class="dl-bar-track"><div class="dl-bar-fill" id="dlBarFill"></div></div>
+      <div class="dl-percent" id="dlPercent">0%</div>
+      <div class="dl-btns">
+        <button class="btn-cancel" onclick="lewatiUnduhPeta()">Lewati</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SHEET: pilih tower untuk koordinat manual -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="cancelPick()"></div>
@@ -356,7 +404,8 @@ const STALE_MS = 10 * 60 * 1000;  // 10 menit -- lebih tua dari ini dianggap off
 const POLL_MS = 25 * 1000;        // refresh posisi petugas tiap 25 detik
 
 let map;
-let towerPoints = [];             // [{lat,lng,nomor,jalurLabel,status}]
+let towerPoints = [];             // [{id,lat,lng,nomor,jalurLabel,status}]
+let towerMarkersById = {};        // towerId -> L.marker (buat ubah warna sesuai petugas)
 let petugasMarkers = {};          // username -> L.marker
 let spanLineLayer = null;         // L.layerGroup berisi garis penghubung antar tower
 
@@ -369,29 +418,48 @@ function haversineMeters(lat1, lng1, lat2, lng2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function jarakKeTowerTerdekat(lat, lng){
+function towerTerdekat(lat, lng){
   let min = Infinity;
+  let nearest = null;
   for(const t of towerPoints){
     const d = haversineMeters(lat, lng, t.lat, t.lng);
-    if(d < min) min = d;
+    if(d < min){ min = d; nearest = t; }
   }
-  return min;
+  return { distance: min, tower: nearest };
 }
 
-function towerDivIcon(){
+function towerDivIcon(color){
+  const c = color || "#F4C542";
   return L.divIcon({
     className: "",
-    html: `<div class="tower-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#F4C542" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg></div>`,
+    html: `<div class="tower-icon"><svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 9h16l-8-7z"/><path d="M6 9l-2 13M18 9l2 13M5 15h14M6 19h12"/></svg></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 20],
     popupAnchor: [0, -18],
   });
 }
 
-function petugasDivIcon(warna){
+// Warna unik & konsisten per petugas (dari hash username), dipakai
+// untuk titik petugas DAN untuk mewarnai tower tempat dia sedang
+// berada, supaya gampang mencocokkan siapa ada di tower mana.
+const petugasColorCache = {};
+function warnaPetugas(username){
+  if(petugasColorCache[username]) return petugasColorCache[username];
+  let hash = 0;
+  for(let i = 0; i < username.length; i++){
+    hash = (hash * 31 + username.charCodeAt(i)) >>> 0;
+  }
+  let hue = hash % 360;
+  if(hue > 30 && hue < 60) hue = (hue + 180) % 360; // hindari mirip gold default tower
+  const color = `hsl(${hue}, 72%, 58%)`;
+  petugasColorCache[username] = color;
+  return color;
+}
+
+function petugasDivIcon(color, diTower){
   return L.divIcon({
     className: "",
-    html: `<div class="petugas-dot ${warna}"></div>`,
+    html: `<div class="petugas-dot" style="background:${color};border-color:${diTower ? "#2DD4A0" : "#F26B6B"};"></div>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
     popupAnchor: [0, -8],
@@ -427,9 +495,21 @@ function gambarGarisSpan(withCoordTower){
     if(towers.length < 2) continue;
     const latlngs = towers.map(t => [t.latitude, t.longitude]);
     L.polyline(latlngs, {
-      color: "#38BFA0", weight: 3, opacity: 0.75, lineJoin: "round"
+      color: "#38BFA0", weight: 3, opacity: 0.85, lineJoin: "round",
+      dashArray: "10, 10", dashOffset: "0"
     }).addTo(spanLineLayer);
   }
+}
+
+// Animasi "garis berjalan": geser dashOffset tiap frame supaya
+// putus-putusnya terlihat mengalir sepanjang jalur span.
+let dashAnimVal = 0;
+function animateSpanDash(){
+  dashAnimVal = (dashAnimVal + 0.4) % 20;
+  if(spanLineLayer){
+    spanLineLayer.eachLayer(line => line.setStyle({ dashOffset: String(-dashAnimVal) }));
+  }
+  requestAnimationFrame(animateSpanDash);
 }
 
 async function loadTowerMarkers(){
@@ -441,16 +521,18 @@ async function loadTowerMarkers(){
   };
 
   towerPoints = [];
+  towerMarkersById = {};
   const withCoord = (allTower || []).filter(t => typeof t.latitude === "number" && typeof t.longitude === "number");
 
   for(const t of withCoord){
-    towerPoints.push({ lat: t.latitude, lng: t.longitude, nomor: t.nomor, jalurLabel: labelOf(t.jalurId), status: t.status });
-    L.marker([t.latitude, t.longitude], { icon: towerDivIcon() })
+    towerPoints.push({ id: t.id, lat: t.latitude, lng: t.longitude, nomor: t.nomor, jalurLabel: labelOf(t.jalurId), status: t.status });
+    const marker = L.marker([t.latitude, t.longitude], { icon: towerDivIcon() })
       .addTo(map)
       .bindPopup(
         `<b>Tower ${t.nomor}</b><br>Jalur ${labelOf(t.jalurId)}<br>Status: ${t.status || "belum diisi"}` +
         `<br><span class="popup-hapus" onclick="hapusKoordinatDariPeta('${t.id}', ${t.nomor})">🗑️ Hapus Koordinat</span>`
       );
+    towerMarkersById[t.id] = marker;
   }
 
   gambarGarisSpan(withCoord);
@@ -486,6 +568,7 @@ async function loadPetugasLocations(){
   (accounts || []).forEach(a => { accountMap[a.username] = a; });
 
   const usernameMasihAktif = new Set();
+  const towerIdKeWarna = {}; // towerId -> warna petugas yang sedang di sana
 
   for(const username of Object.keys(locations)){
     const loc = locations[username];
@@ -496,18 +579,21 @@ async function loadPetugasLocations(){
 
     usernameMasihAktif.add(username);
 
-    const jarak = jarakKeTowerTerdekat(loc.lat, loc.lng);
-    const warna = jarak <= PROXIMITY_METERS ? "green" : "red";
+    const { distance, tower } = towerTerdekat(loc.lat, loc.lng);
+    const diTower = distance <= PROXIMITY_METERS;
+    const warna = warnaPetugas(username);
+    if(diTower && tower){ towerIdKeWarna[tower.id] = warna; }
+
     const acc = accountMap[username];
     const peran = acc ? `${acc.role || "-"}${acc.jabatan ? " · " + acc.jabatan : ""}` : "-";
-    const popupHtml = `<b>${username}</b><br>${peran}<br>${warna === "green" ? "Di lokasi tower" : "Di luar tower"}<br><span style="color:var(--ink-3)">Update ${waktuRelatif(loc.updatedAt)}</span>`;
+    const popupHtml = `<b>${username}</b><br>${peran}<br>${diTower ? `Di lokasi Tower ${tower.nomor}` : "Di luar tower"}<br><span style="color:var(--ink-3)">Update ${waktuRelatif(loc.updatedAt)}</span>`;
 
     if(petugasMarkers[username]){
       petugasMarkers[username].setLatLng([loc.lat, loc.lng]);
-      petugasMarkers[username].setIcon(petugasDivIcon(warna));
+      petugasMarkers[username].setIcon(petugasDivIcon(warna, diTower));
       petugasMarkers[username].setPopupContent(popupHtml);
     } else {
-      petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna) })
+      petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna, diTower) })
         .addTo(map)
         .bindPopup(popupHtml);
     }
@@ -519,6 +605,12 @@ async function loadPetugasLocations(){
       map.removeLayer(petugasMarkers[username]);
       delete petugasMarkers[username];
     }
+  }
+
+  // Warnai ulang semua tower: default gold, kecuali yang sedang
+  // ditempati petugas -> ikut warna personal petugas tsb.
+  for(const towerId in towerMarkersById){
+    towerMarkersById[towerId].setIcon(towerDivIcon(towerIdKeWarna[towerId] || null));
   }
 
   document.getElementById("mapUpdated").textContent =
@@ -535,19 +627,96 @@ async function manualRefresh(){
   }
 }
 
+// Bounding box area Kabupaten & Kota Sukabumi + Kabupaten Cianjur
+// (dengan sedikit margin). Peta dibatasi supaya user tidak
+// pan/zoom ke luar area ini, dan ini juga area yang di-download
+// untuk mode offline.
+const AREA_BOUNDS = L.latLngBounds([-7.60, 106.15], [-6.45, 107.60]);
+const TILE_URL_TEMPLATE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_SUBDOMAINS = ["a", "b", "c"];
+const OFFLINE_MIN_ZOOM = 9;   // rentang zoom yang diunduh massal saat pertama login
+const OFFLINE_MAX_ZOOM = 13;  // zoom lebih dalam tetap ke-cache otomatis sambil browsing online
+const OFFLINE_FLAG_KEY = "srinai_offline_map_v1";
+
+let downloadStopRequested = false;
+
 async function initPage(){
   if(!(await isLoggedIn())){ location.href = "index.html"; return; }
 
-  map = L.map("map", { zoomControl: true, attributionControl: false });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  map = L.map("map", {
+    zoomControl: true,
+    attributionControl: false,
+    minZoom: 9,
+    maxBounds: AREA_BOUNDS.pad(0.08),
+    maxBoundsViscosity: 1.0,
+  });
+  map.fitBounds(AREA_BOUNDS);
+
+  const tileLayer = createOfflineTileLayer(TILE_URL_TEMPLATE, {
+    subdomains: TILE_SUBDOMAINS,
     maxZoom: 19,
-  }).addTo(map);
+    minZoom: 9,
+  });
+  tileLayer.addTo(map);
 
   map.on("click", onMapClickForPick);
 
   await loadTowerMarkers();
   await loadPetugasLocations();
   setInterval(loadPetugasLocations, POLL_MS);
+  requestAnimationFrame(animateSpanDash);
+
+  // Peta offline: unduh otomatis sekali di kunjungan pertama.
+  if(!localStorage.getItem(OFFLINE_FLAG_KEY)){
+    mulaiUnduhPeta(false);
+  }
+}
+
+function lewatiUnduhPeta(){
+  downloadStopRequested = true;
+  document.getElementById("dlOverlay").style.display = "none";
+}
+
+async function mulaiUnduhPeta(manual){
+  if(navigator.onLine === false){
+    showToast("Tidak ada koneksi internet. Peta offline akan diunduh lagi saat online.");
+    return;
+  }
+
+  downloadStopRequested = false;
+  const overlay = document.getElementById("dlOverlay");
+  const barFill = document.getElementById("dlBarFill");
+  const percentText = document.getElementById("dlPercent");
+  const dlText = document.getElementById("dlText");
+  dlText.textContent = manual
+    ? "Memperbarui tile peta area Sukabumi & Cianjur..."
+    : "Mengunduh tile peta area Sukabumi & Cianjur untuk pemakaian offline...";
+  barFill.style.width = "0%";
+  percentText.textContent = "0%";
+  overlay.style.display = "flex";
+
+  try {
+    const result = await downloadOfflineArea(
+      AREA_BOUNDS, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM,
+      TILE_URL_TEMPLATE, TILE_SUBDOMAINS,
+      (done, total) => {
+        const pct = total > 0 ? Math.round((done / total) * 100) : 100;
+        barFill.style.width = pct + "%";
+        percentText.textContent = `${pct}% (${done}/${total} tile)`;
+      },
+      () => downloadStopRequested
+    );
+
+    overlay.style.display = "none";
+    if(!downloadStopRequested){
+      localStorage.setItem(OFFLINE_FLAG_KEY, "1");
+      showToast(`Peta offline siap (${result.total} tile area Sukabumi & Cianjur) ✅`);
+    }
+  } catch(err){
+    console.error(err);
+    overlay.style.display = "none";
+    showToast("Gagal mengunduh sebagian tile peta. Coba lagi saat sinyal lebih baik.");
+  }
 }
 
 /* =========================================================
