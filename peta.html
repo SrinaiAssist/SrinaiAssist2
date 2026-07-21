@@ -140,6 +140,65 @@ body{
   50%{opacity:.7;transform:scale(1.18);}
 }
 
+.refresh-btn.active{background:var(--blue-glow);border-color:var(--blue);}
+
+.manual-banner{
+  display:none;
+  margin:0 20px 10px;
+  background:var(--blue-glow);border:1px solid var(--blue);border-radius:14px;
+  padding:10px 14px;font-size:11.5px;color:var(--ink);line-height:1.5;
+  align-items:center;justify-content:space-between;gap:10px;
+}
+.manual-banner.show{display:flex;}
+.manual-banner-close{
+  flex-shrink:0;color:var(--blue);font-weight:700;cursor:pointer;
+  text-decoration:underline;
+}
+#map.picking{cursor:crosshair;}
+
+.pick-icon{
+  width:26px;height:26px;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 0 4px rgba(0,0,0,0.7));
+}
+
+/* Bottom sheet: pilih tower untuk koordinat yang baru ditandai */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.55);
+  z-index:200;display:none;
+}
+.sheet-overlay.show{display:block;}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;
+  max-width:460px;margin:auto;
+  background:var(--bg-card);border-radius:20px 20px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  padding:18px 20px calc(18px + env(safe-area-inset-bottom));
+  z-index:201;
+}
+.sheet h3{font-size:15px;font-weight:800;margin-bottom:2px;}
+.sheet .sheet-coords{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+.sheet label{display:block;font-size:11px;color:var(--ink-2);margin:10px 0 5px;font-weight:600;}
+.sheet select{
+  width:100%;padding:11px 12px;border-radius:10px;
+  background:var(--bg-glass);border:1px solid var(--border);color:var(--ink);
+  font-family:inherit;font-size:13px;
+}
+.sheet select:disabled{opacity:.5;}
+.sheet-btns{display:flex;gap:10px;margin-top:18px;}
+.sheet-btns button{
+  flex:1;padding:12px;border-radius:12px;border:none;
+  font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
+}
+.btn-cancel{background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border) !important;}
+.btn-save{background:var(--blue);color:white;}
+.btn-save:disabled{opacity:.45;cursor:not-allowed;}
+.sheet-warn{
+  margin-top:10px;font-size:11px;color:var(--amber);
+  background:var(--amber-bg);border-radius:8px;padding:8px 10px;display:none;
+}
+.sheet-warn.show{display:block;}
+
 /* Bottom Nav */
 .bottomnav{
   position:fixed;bottom:0;left:0;right:0;
@@ -166,6 +225,15 @@ body{
 }
 .nav-item.center .nav-circle svg{width:22px;height:22px;}
 .nav-item.center .nav-label{color:var(--ink-2);font-size:9.5px;}
+
+.toast{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+  background:var(--bg-card2);border:1px solid var(--border);color:var(--ink);
+  padding:11px 18px;border-radius:30px;font-size:12.5px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:300;opacity:0;transition:opacity .25s, transform .25s;
+  pointer-events:none;max-width:90%;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
 </style>
 </head>
 <body>
@@ -180,9 +248,17 @@ body{
       <h1>Peta</h1>
       <p>Posisi petugas &amp; tower berkoordinat</p>
     </div>
+    <div class="refresh-btn" id="manualBtn" onclick="toggleManualMode()" title="Set koordinat manual">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    </div>
     <div class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
     </div>
+  </div>
+
+  <div class="manual-banner" id="manualBanner">
+    👆 Ketuk titik di peta untuk memilih koordinat tower. Pin bisa digeser untuk presisi.
+    <span class="manual-banner-close" onclick="toggleManualMode()">Batal</span>
   </div>
 
   <div class="legend">
@@ -197,6 +273,30 @@ body{
   <div id="map"></div>
   <div class="map-updated" id="mapUpdated">Memuat...</div>
   <div class="map-empty-banner" id="emptyBanner"></div>
+
+  <!-- SHEET: pilih tower untuk koordinat manual -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="cancelPick()"></div>
+  <div class="sheet" id="pickSheet" style="display:none;">
+    <h3>Simpan Koordinat</h3>
+    <div class="sheet-coords" id="sheetCoords">-</div>
+
+    <label>Jalur</label>
+    <select id="sheetJalur" onchange="onSheetJalurChange()">
+      <option value="">-- Pilih Jalur --</option>
+    </select>
+
+    <label>Tower</label>
+    <select id="sheetTower" disabled>
+      <option value="">-- Pilih Jalur dulu --</option>
+    </select>
+
+    <div class="sheet-warn" id="sheetWarn">Tower ini sudah punya koordinat. Menyimpan akan menimpa koordinat lama.</div>
+
+    <div class="sheet-btns">
+      <button class="btn-cancel" onclick="cancelPick()">Batal</button>
+      <button class="btn-save" id="btnSheetSave" onclick="simpanKoordinatManual()" disabled>Simpan</button>
+    </div>
+  </div>
 
   <!-- BOTTOM NAV -->
   <div class="bottomnav">
@@ -225,6 +325,8 @@ body{
   </div>
 
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================
@@ -404,9 +506,171 @@ async function initPage(){
     maxZoom: 19,
   }).addTo(map);
 
+  map.on("click", onMapClickForPick);
+
   await loadTowerMarkers();
   await loadPetugasLocations();
   setInterval(loadPetugasLocations, POLL_MS);
+}
+
+/* =========================================================
+   SET KOORDINAT TOWER SECARA MANUAL DARI PETA
+   - Mode aktif: tap peta -> taruh/pindah pin biru (bisa digeser)
+   - Sheet muncul: pilih Jalur -> pilih Tower -> Simpan
+   - Simpan pakai saveTowerCoordinate() yang sudah ada (js/auth.js),
+     endpoint yang sama dipakai catatan-tower.html (PUT /api/tower).
+========================================================= */
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+let manualMode = false;
+let pickMarker = null;
+let pickedLatLng = null;
+let jalurListCache = [];
+let towerListForSheet = [];
+
+function pickDivIcon(){
+  return L.divIcon({
+    className: "",
+    html: `<div class="pick-icon"><svg viewBox="0 0 24 24" fill="#4A8EF5" stroke="white" stroke-width="1.5"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8z"/><circle cx="12" cy="10" r="3" fill="white"/></svg></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -24],
+  });
+}
+
+function toggleManualMode(){
+  manualMode = !manualMode;
+  document.getElementById("manualBtn").classList.toggle("active", manualMode);
+  document.getElementById("manualBanner").classList.toggle("show", manualMode);
+  document.getElementById("map").classList.toggle("picking", manualMode);
+  if(!manualMode) cancelPick();
+}
+
+function onMapClickForPick(e){
+  if(!manualMode) return;
+  pickedLatLng = e.latlng;
+
+  if(pickMarker){
+    pickMarker.setLatLng(e.latlng);
+  } else {
+    pickMarker = L.marker(e.latlng, { icon: pickDivIcon(), draggable: true }).addTo(map);
+    pickMarker.on("dragend", () => {
+      pickedLatLng = pickMarker.getLatLng();
+      updateSheetCoords();
+    });
+  }
+  openPickSheet();
+}
+
+async function openPickSheet(){
+  updateSheetCoords();
+  document.getElementById("sheetOverlay").classList.add("show");
+  document.getElementById("pickSheet").style.display = "block";
+
+  const jalurSelect = document.getElementById("sheetJalur");
+  if(jalurListCache.length === 0){
+    jalurListCache = await cachedGetJalurMasterList();
+  }
+  jalurSelect.innerHTML = `<option value="">-- Pilih Jalur --</option>` +
+    jalurListCache.map(j => `<option value="${j.id}">${j.code ? j.code + " — " : ""}${j.label}</option>`).join("");
+  jalurSelect.value = "";
+  resetTowerSelect("-- Pilih Jalur dulu --");
+}
+
+function updateSheetCoords(){
+  if(!pickedLatLng) return;
+  document.getElementById("sheetCoords").textContent =
+    `${pickedLatLng.lat.toFixed(6)}, ${pickedLatLng.lng.toFixed(6)} -- geser pin untuk presisi`;
+}
+
+function resetTowerSelect(placeholder){
+  const towerSelect = document.getElementById("sheetTower");
+  towerSelect.innerHTML = `<option value="">${placeholder}</option>`;
+  towerSelect.disabled = true;
+  document.getElementById("btnSheetSave").disabled = true;
+  document.getElementById("sheetWarn").classList.remove("show");
+}
+
+async function onSheetJalurChange(){
+  const jalurId = document.getElementById("sheetJalur").value;
+  if(!jalurId){ resetTowerSelect("-- Pilih Jalur dulu --"); return; }
+
+  towerListForSheet = (await cachedGetTowerMasterList(jalurId)).slice().sort((a,b) => a.nomor - b.nomor);
+  const towerSelect = document.getElementById("sheetTower");
+  towerSelect.innerHTML = `<option value="">-- Pilih Tower --</option>` +
+    towerListForSheet.map(t => {
+      const adaKoordinat = t.latitude != null && t.longitude != null;
+      return `<option value="${t.id}">Tower ${t.nomor}${adaKoordinat ? " (sudah ada koordinat)" : ""}</option>`;
+    }).join("");
+  towerSelect.disabled = towerListForSheet.length === 0;
+  if(towerListForSheet.length === 0){
+    towerSelect.innerHTML = `<option value="">Tidak ada tower di jalur ini</option>`;
+  }
+  towerSelect.onchange = onSheetTowerChange;
+  document.getElementById("btnSheetSave").disabled = true;
+  document.getElementById("sheetWarn").classList.remove("show");
+}
+
+function onSheetTowerChange(){
+  const towerId = document.getElementById("sheetTower").value;
+  const btn = document.getElementById("btnSheetSave");
+  const warn = document.getElementById("sheetWarn");
+  btn.disabled = !towerId;
+
+  const t = towerListForSheet.find(t => t.id === towerId);
+  const adaKoordinat = t && t.latitude != null && t.longitude != null;
+  warn.classList.toggle("show", !!adaKoordinat);
+}
+
+async function simpanKoordinatManual(){
+  const towerId = document.getElementById("sheetTower").value;
+  if(!towerId || !pickedLatLng) return;
+
+  const btn = document.getElementById("btnSheetSave");
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+
+  try {
+    const result = await saveTowerCoordinate(
+      towerId, pickedLatLng.lat, pickedLatLng.lng, null, getCurrentUser()
+    );
+    if(!result || !result.success){
+      showToast(result && result.message ? result.message : "Gagal menyimpan koordinat.");
+      btn.disabled = false;
+      btn.textContent = "Simpan";
+      return;
+    }
+
+    localStorage.removeItem("srinai_cache_tower");
+    showToast("Koordinat tower tersimpan ✅");
+    closeSheet();
+    toggleManualMode(); // otomatis keluar dari mode manual setelah sukses
+    await loadTowerMarkers();
+  } catch(err){
+    console.error(err);
+    showToast("Gagal menyimpan koordinat, coba lagi.");
+    btn.disabled = false;
+    btn.textContent = "Simpan";
+  }
+}
+
+function closeSheet(){
+  document.getElementById("sheetOverlay").classList.remove("show");
+  document.getElementById("pickSheet").style.display = "none";
+  document.getElementById("btnSheetSave").textContent = "Simpan";
+}
+
+function cancelPick(){
+  closeSheet();
+  if(pickMarker){ map.removeLayer(pickMarker); pickMarker = null; }
+  pickedLatLng = null;
 }
 
 if (document.readyState === "loading") {
