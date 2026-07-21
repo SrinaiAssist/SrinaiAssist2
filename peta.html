@@ -109,6 +109,10 @@ body{
 .leaflet-popup-tip{background:var(--bg-card);}
 .leaflet-popup-content{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12.5px;}
 .leaflet-popup-content b{color:var(--gold);}
+.popup-hapus{
+  display:inline-block;margin-top:6px;color:var(--red);font-weight:700;
+  cursor:pointer;text-decoration:underline;
+}
 
 .map-empty-banner{
   margin:12px 20px 0;
@@ -416,7 +420,10 @@ async function loadTowerMarkers(){
     towerPoints.push({ lat: t.latitude, lng: t.longitude, nomor: t.nomor, jalurLabel: labelOf(t.jalurId), status: t.status });
     L.marker([t.latitude, t.longitude], { icon: towerDivIcon() })
       .addTo(map)
-      .bindPopup(`<b>Tower ${t.nomor}</b><br>Jalur ${labelOf(t.jalurId)}<br>Status: ${t.status || "belum diisi"}`);
+      .bindPopup(
+        `<b>Tower ${t.nomor}</b><br>Jalur ${labelOf(t.jalurId)}<br>Status: ${t.status || "belum diisi"}` +
+        `<br><span class="popup-hapus" onclick="hapusKoordinatDariPeta('${t.id}', ${t.nomor})">🗑️ Hapus Koordinat</span>`
+      );
   }
 
   const banner = document.getElementById("emptyBanner");
@@ -672,6 +679,22 @@ function cancelPick(){
   closeSheet();
   if(pickMarker){ map.removeLayer(pickMarker); pickMarker = null; }
   pickedLatLng = null;
+}
+
+async function hapusKoordinatDariPeta(towerId, nomor){
+  const ok = confirm(`Hapus koordinat Tower ${nomor}? Tindakan ini tidak bisa dibatalkan.`);
+  if(!ok) return;
+
+  const result = await hapusKoordinatTower(towerId);
+  if(!result || !result.success){
+    showToast(result && result.message ? result.message : "Gagal menghapus koordinat.");
+    return;
+  }
+
+  localStorage.removeItem("srinai_cache_tower");
+  map.closePopup();
+  showToast(`Koordinat Tower ${nomor} dihapus.`);
+  await loadTowerMarkers();
 }
 
 if (document.readyState === "loading") {
