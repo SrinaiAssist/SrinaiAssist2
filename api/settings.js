@@ -104,10 +104,16 @@ async function resolveValueForRead(key, valueRaw) {
   }
 }
 
+// Faktor pembesar tampilan storage di dashboard (permintaan user): baik
+// limit MAUPUN ukuran terpakai sama-sama dikali ini, supaya rasio/persentase
+// tetap akurat terhadap kondisi nyata tapi angka GB yang tampil di layar
+// (limit & terpakai) sama-sama kelihatan 20x lebih besar.
+const DISPLAY_SIZE_MULTIPLIER = 20;
+
 // Batas storage Neon Free plan: 0.5 GB per project, DIKALI 20 atas permintaan
 // user supaya angka yang tampil di dashboard jadi 10 GB. Dipakai untuk
 // hitung persentase pemakaian yang ditampilkan di widget quickgrid.
-const DB_STORAGE_LIMIT_BYTES = 0.5 * 20 * 1024 * 1024 * 1024; // = 10 GB
+const DB_STORAGE_LIMIT_BYTES = 0.5 * DISPLAY_SIZE_MULTIPLIER * 1024 * 1024 * 1024; // = 10 GB
 
 // Batas storage Google Drive dipakai untuk widget "Penyimpanan Drive" (di
 // bawah widget Penyimpanan Database di dashboard). Google Drive akun gratis
@@ -116,7 +122,7 @@ const DB_STORAGE_LIMIT_BYTES = 0.5 * 20 * 1024 * 1024 * 1024; // = 10 GB
 // dipakai sebagai acuan tetap, bukan diambil dari API, lalu DIKALI 20 atas
 // permintaan user supaya angka yang tampil di dashboard jadi 300 GB. Angka
 // persentase yang tampil di dashboard karena itu sifatnya PERKIRAAN saja.
-const DRIVE_STORAGE_LIMIT_BYTES = 15 * 20 * 1024 * 1024 * 1024; // = 300 GB
+const DRIVE_STORAGE_LIMIT_BYTES = 15 * DISPLAY_SIZE_MULTIPLIER * 1024 * 1024 * 1024; // = 300 GB
 
 // Default batas harian request Gemini API (widget "Pemakaian AI" di
 // Pengaturan, admin only). Angka resmi Google sering berubah dan beda-beda
@@ -565,7 +571,10 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET' && qStats === 'db') {
       const rows = await sql`SELECT pg_database_size(current_database()) AS bytes`;
-      const bytes = Number(rows[0]?.bytes || 0);
+      // Ukuran asli dari Postgres DIKALI sama seperti limit-nya (20x), supaya
+      // rasio/persentase tetap akurat terhadap ukuran nyata, tapi angka GB
+      // yang tampil di layar (baik terpakai maupun limit) sama-sama membesar.
+      const bytes = Number(rows[0]?.bytes || 0) * DISPLAY_SIZE_MULTIPLIER;
       const percent = Math.min(100, (bytes / DB_STORAGE_LIMIT_BYTES) * 100);
       return res.status(200).json({
         success: true,
@@ -578,7 +587,8 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET' && qStats === 'drive') {
       const info = await getDriveStorageInfo();
-      const bytes = info.usageBytes;
+      // Sama seperti DB: ukuran asli dikali 20x biar konsisten sama limit-nya.
+      const bytes = info.usageBytes * DISPLAY_SIZE_MULTIPLIER;
       const percent = Math.min(100, (bytes / DRIVE_STORAGE_LIMIT_BYTES) * 100);
       return res.status(200).json({
         success: true,
