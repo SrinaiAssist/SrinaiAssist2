@@ -409,7 +409,11 @@ async function initPage(){
   setInterval(loadPetugasLocations, POLL_MS);
 }
 
-initPage();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPage);
+} else {
+  initPage();
+}
 </script>
 
 </body>
