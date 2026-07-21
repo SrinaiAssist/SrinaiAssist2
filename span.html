@@ -315,6 +315,40 @@ body{
   margin-bottom:10px;
   border:1px solid var(--border);
 }
+
+/* Modal Edit Span -- sama persis dengan modal Edit Tower di tower.html,
+   supaya konsisten (dropdown, bukan window.prompt() kayak sebelumnya). */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,10,25,.7);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+.modal-overlay.active{display:flex;}
+.modal-sheet{
+  width:100%;max-width:460px;background:var(--bg-card);border-radius:22px 22px 0 0;
+  padding:18px 20px 26px;border:1px solid var(--border);border-bottom:none;
+  max-height:88vh;overflow-y:auto;
+}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;display:block;}
+.form-select, .form-input{
+  width:100%;background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;color:var(--ink);font-family:inherit;font-size:13.5px;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.form-select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2399A5C9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;
+}
+.form-select option{background:var(--bg-card2);color:var(--ink);}
+.form-input::placeholder{color:var(--ink-3);}
+.btn-row{display:flex;gap:8px;margin-top:6px;}
+.btn{
+  flex:1;padding:12px;border-radius:12px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .12s, opacity .12s;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg, var(--blue) 0%, #3A6FD8 100%);color:white;box-shadow:0 4px 14px rgba(74,142,245,0.3);}
+.btn-ghost{background:var(--bg-glass);color:var(--ink-2);border:1px solid var(--border);}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -413,6 +447,41 @@ body{
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-4 4-5.5 7-5.5s5.5 1.5 7 5.5"/></svg>
     <div class="nav-label">Akun</div>
   </a>
+</div>
+
+<!-- Modal Edit Span -->
+<div class="modal-overlay" id="editSpanModal" onclick="if(event.target===this) closeEditSpanModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">Edit Data Span</div>
+    <div class="modal-sub">Perbarui jumlah spacer, joint, dan status span.</div>
+
+    <div class="form-group">
+      <label class="form-label">Jumlah Spacer</label>
+      <input type="number" inputmode="numeric" min="0" class="form-input" id="editSpacer" placeholder="Contoh: 3">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Joint Span</label>
+      <select class="form-select" id="editJoint">
+        <option value="Ada">Ada</option>
+        <option value="Tidak Ada">Tidak Ada</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="editSpanStatus">
+        <option value="Baik">Baik</option>
+        <option value="Perlu Perhatian">Perlu Perhatian</option>
+        <option value="Rusak">Rusak</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeEditSpanModal()">Batal</button>
+      <button class="btn btn-primary" onclick="submitEditSpan()">Simpan</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -732,24 +801,47 @@ function renderSpanList(spans){
   }).join("");
 }
 
-async function editSpan(spanId){
+let editSpanId = null;
+
+function editSpan(spanId){
   const s = spanListCache.find(x=>x.id===spanId);
   if(!s) return;
 
-  const spacer = prompt("Jumlah Spacer", s.spacer);
-  if(spacer===null) return;
-  const joint = prompt("Joint Span (Ada / Tidak Ada)", s.joint);
-  if(joint===null) return;
-  const status = prompt("Status (Baik / Perlu Perhatian / Rusak)", s.status);
-  if(status===null) return;
+  editSpanId = spanId;
+
+  document.getElementById("editSpacer").value = s.spacer ?? "";
+
+  const jointSel = document.getElementById("editJoint");
+  const jointMatch = s.joint && [...jointSel.options].some(o => o.value.toLowerCase() === String(s.joint).toLowerCase());
+  jointSel.value = jointMatch ? [...jointSel.options].find(o => o.value.toLowerCase() === String(s.joint).toLowerCase()).value : "Ada";
+
+  const statusSel = document.getElementById("editSpanStatus");
+  const statusMatch = s.status && [...statusSel.options].some(o => o.value.toLowerCase() === String(s.status).toLowerCase());
+  statusSel.value = statusMatch ? [...statusSel.options].find(o => o.value.toLowerCase() === String(s.status).toLowerCase()).value : "Baik";
+
+  document.getElementById("editSpanModal").classList.add("active");
+}
+
+function closeEditSpanModal(){
+  document.getElementById("editSpanModal").classList.remove("active");
+  editSpanId = null;
+}
+
+async function submitEditSpan(){
+  if(!editSpanId) return;
+
+  const spacer = document.getElementById("editSpacer").value;
+  const joint  = document.getElementById("editJoint").value;
+  const status = document.getElementById("editSpanStatus").value;
 
   await apiRequest("/api/span", {
     method: "PUT",
-    body: JSON.stringify({ id: spanId, fields: { spacer, joint, status } })
+    body: JSON.stringify({ id: editSpanId, fields: { spacer, joint, status } })
   });
 
   // Invalidate cache span supaya loadSpan ambil data fresh
   localStorage.removeItem("srinai_cache_span");
+  closeEditSpanModal();
   await loadSpan();
 }
 
