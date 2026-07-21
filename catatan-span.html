@@ -687,6 +687,26 @@ function updateCatatanTegakanInfo(){
     info.style.display = "none";
     return;
   }
+
+  const sel = document.getElementById("catatanTegakan");
+  const selectedId = sel ? sel.value : "";
+  const selected = selectedId ? tegakanList.find(t => String(t.id) === selectedId) : null;
+
+  // Pilih salah satu tegakan (bukan "Umum") -> tampilkan detail LENGKAP
+  // tegakan itu saja, bukan daftar semua tegakan di span.
+  if(selected){
+    info.innerHTML = "🌳 Tegakan terpilih:<br>" +
+      `&nbsp;&nbsp;• Nama: <b>${selected.nama || "(tanpa nama)"}</b><br>` +
+      `&nbsp;&nbsp;• ID: ${selected.idTegakan || "-"}<br>` +
+      `&nbsp;&nbsp;• Pemilik: ${selected.pemilikNama || "belum diisi"}<br>` +
+      `&nbsp;&nbsp;• Alamat pemilik: ${selected.pemilikAlamat || "belum diisi"}<br>` +
+      `&nbsp;&nbsp;• Petugas: ${selected.petugas || "belum diisi"}`;
+    info.style.display = "block";
+    return;
+  }
+
+  // "Umum" (atau belum ada yang dipilih) -> tampilkan daftar semua tegakan,
+  // sama seperti sebelumnya.
   info.innerHTML = "🌳 Daftar pohon pada span ini:<br>" +
     tegakanList.map(t=>`&nbsp;&nbsp;• <b>${t.nama || "(tanpa nama)"}</b> — ID ${t.idTegakan || "-"}`).join("<br>");
   info.style.display = "block";
