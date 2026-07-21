@@ -92,6 +92,18 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'id dan fields wajib diisi.' });
       }
 
+      // Hapus koordinat: butuh jalur eksplisit (bukan lewat COALESCE) karena
+      // COALESCE tidak bisa dipakai untuk sengaja meng-NULL-kan kolom.
+      if (fields.clearKoordinat === true) {
+        await sql`
+          UPDATE tower SET
+            latitude = NULL, longitude = NULL, akurasi_meter = NULL,
+            koordinat_by = NULL, koordinat_at = NULL
+          WHERE id = ${id}
+        `;
+        return res.status(200).json({ success: true });
+      }
+
       await sql`
         UPDATE tower SET
           jenis         = COALESCE(${fields.jenis ?? null}, jenis),
