@@ -646,6 +646,16 @@ async function saveTowerCoordinate(towerId, latitude, longitude, akurasiMeter, u
     });
 }
 
+async function hapusKoordinatTower(towerId) {
+    return await apiRequest("/api/tower", {
+        method: "PUT",
+        body: JSON.stringify({
+            id: towerId,
+            fields: { clearKoordinat: true }
+        })
+    });
+}
+
 /* =========================================================
    KIRIM KOORDINAT KE GROUP CHAT — pakai /api/chat yang sudah
    ada (field meta), supaya tidak perlu endpoint baru
