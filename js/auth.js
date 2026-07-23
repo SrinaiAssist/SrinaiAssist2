@@ -119,9 +119,28 @@ function getLastLoginUser() {
 const LOGIN_CHECK_CACHE_KEY = "srinai_cache_login_check";
 const LOGIN_CHECK_TTL_MS = 2 * 60 * 1000; // 2 menit
 
+// Logout otomatis 24 jam sekali, dihitung dari waktu login ("loginTime",
+// sudah disimpan di localStorage sejak loginUser()). Dicek di isLoggedIn()
+// SEBELUM cache 2-menit di atas, supaya sesi yang sudah lewat 24 jam tidak
+// "diselamatkan" oleh cache tersebut (yang tujuannya cuma buat status akun
+// aktif/nonaktif dari server, bukan buat expiry waktu). Dicek juga secara
+// berkala lewat startSessionExpiryWatcher() di bawah, buat tab yang
+// dibiarkan terbuka lebih dari 24 jam tanpa pindah halaman.
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 jam
+
+function isSessionExpired() {
+    const loginTime = parseInt(localStorage.getItem("loginTime") || "0", 10);
+    return !!loginTime && (Date.now() - loginTime) >= SESSION_MAX_AGE_MS;
+}
+
 async function isLoggedIn() {
     const username = getCurrentUser();
     if (!username) return false;
+
+    if (isSessionExpired()) {
+        logoutUser();
+        return false;
+    }
 
     try {
         const raw = localStorage.getItem(LOGIN_CHECK_CACHE_KEY);
@@ -968,4 +987,33 @@ if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", startLocationHeartbeat);
 } else {
     startLocationHeartbeat();
+}
+
+/* ─── Watcher sesi 24 jam ────────────────────────────────────────────
+   Guard isLoggedIn() di atas sudah menangani logout otomatis begitu user
+   PINDAH halaman setelah 24 jam. Tambahan ini menangani kasus tab yang
+   dibiarkan terbuka terus tanpa navigasi -- dicek tiap 1 menit (sama
+   interval-nya dengan heartbeat lokasi), begitu kedaluwarsa langsung
+   logout + redirect ke index.html. Tidak jalan di halaman login itu
+   sendiri (hindari redirect loop) atau kalau memang belum login. */
+const SESSION_EXPIRY_CHECK_INTERVAL_MS = 60 * 1000; // 1 menit
+
+function checkSessionExpiryNow() {
+    if (__isLoginPage() || !getCurrentUser()) return;
+    if (isSessionExpired()) {
+        logoutUser();
+        location.href = "index.html";
+    }
+}
+
+function startSessionExpiryWatcher() {
+    if (__isLoginPage() || !getCurrentUser()) return;
+    checkSessionExpiryNow();
+    setInterval(checkSessionExpiryNow, SESSION_EXPIRY_CHECK_INTERVAL_MS);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startSessionExpiryWatcher);
+} else {
+    startSessionExpiryWatcher();
 }
