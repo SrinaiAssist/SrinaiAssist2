@@ -19,6 +19,12 @@
 //        js/auth.js di semua halaman, lihat startLocationHeartbeat())
 // GET    /api/settings?action=locations -> semua lokasi live petugas
 //        sekaligus, dipakai peta.html
+// POST   /api/settings?action=locationLogout  body:{ username }
+//        -> tandai titik lokasi terakhir user itu "loggedOut" (dipanggil
+//        dari logoutUser() di js/auth.js). Lat/lng TIDAK dihapus supaya
+//        titik terakhirnya tetap muncul di peta.html, cuma ditampilkan
+//        redup. Menutup app saja (tanpa logout) TIDAK memicu ini -- titik
+//        harus tetap terlihat normal sampai user benar-benar logout.
 //
 // (Digabung di sini, bukan file /api terpisah, supaya tidak menambah slot
 // serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
@@ -479,11 +485,41 @@ async function handleLocationPost(req, res) {
     lat, lng,
     accuracy: typeof accuracy === 'number' ? accuracy : null,
     updatedAt: new Date().toISOString(),
+    loggedOut: false, // heartbeat baru masuk = user aktif lagi, hapus status redup
   });
   await sql`
     INSERT INTO app_settings (key, value)
     VALUES (${'loc:' + username}, ${value})
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+  `;
+  return res.status(200).json({ success: true });
+}
+
+// Tandai titik lokasi terakhir user sebagai "loggedOut" tanpa menghapus
+// lat/lng-nya -- peta.html jadi bisa tetap menampilkan titik terakhirnya
+// (cuma redup), bukan menghilangkannya. Kalau belum pernah ada heartbeat
+// sama sekali untuk user itu (baris 'loc:<username>' belum ada), tidak
+// ada apa-apa yang perlu ditandai -- diamkan saja, jangan error.
+async function handleLocationLogoutPost(req, res) {
+  const { username } = req.body || {};
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+  const rows = await sql`SELECT value FROM app_settings WHERE key = ${'loc:' + username}`;
+  if (rows.length === 0) {
+    return res.status(200).json({ success: true }); // belum pernah heartbeat, tidak ada yang ditandai
+  }
+  let data;
+  try {
+    data = JSON.parse(rows[0].value);
+  } catch {
+    return res.status(200).json({ success: true }); // value korup, lewati saja
+  }
+  data.loggedOut = true;
+  data.loggedOutAt = new Date().toISOString();
+  await sql`
+    UPDATE app_settings SET value = ${JSON.stringify(data)}, updated_at = now()
+    WHERE key = ${'loc:' + username}
   `;
   return res.status(200).json({ success: true });
 }
@@ -520,6 +556,14 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleLocationsGet(res);
+    }
+
+    if (qAction === 'locationLogout') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleLocationLogoutPost(req, res);
     }
 
     if (qAction === 'backup') {
