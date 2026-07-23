@@ -916,11 +916,14 @@ function initBackgroundMusic() {
         }
     }
 
-    // Hormati pilihan terakhir user: kalau dimatikan manual, jangan autoplay lagi
-    if (localStorage.getItem(MUSIC_ON_KEY) === "0") {
-        __setMusicIcon(false);
-    } else {
+    // Musik TIDAK boleh menyala otomatis. Hanya lanjut main kalau user
+    // sebelumnya sudah menekan tombol musik untuk menyalakannya (MUSIC_ON_KEY
+    // == "1"), misalnya saat pindah halaman sementara musik sedang diputar.
+    // Kalau belum pernah dinyalakan sama sekali, default-nya diam.
+    if (localStorage.getItem(MUSIC_ON_KEY) === "1") {
         tryAutoplay();
+    } else {
+        __setMusicIcon(false);
     }
 
     audio.addEventListener("timeupdate", () => {
