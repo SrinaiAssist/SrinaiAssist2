@@ -142,6 +142,13 @@ body{
   0%,100%{opacity:1;transform:scale(1);}
   50%{opacity:.7;transform:scale(1.18);}
 }
+/* Titik lokasi terakhir user yang sudah logout: redup & diam (tidak
+   berdenyut lagi seperti petugas aktif), grayscale supaya jelas beda. */
+.petugas-dot-redup{
+  animation:none;
+  opacity:.4;
+  filter:grayscale(0.6);
+}
 
 .refresh-btn.active{background:var(--blue-glow);border-color:var(--blue);}
 
@@ -422,12 +429,14 @@ body{
      login & izinkan lokasi).
    - Hijau = petugas dalam radius PROXIMITY_METERS dari tower
      manapun yang sudah punya koordinat. Merah = di luar itu.
-   - Petugas yang heartbeat terakhirnya lebih tua dari
-     STALE_MS dianggap tidak aktif, tidak ditampilkan.
+   - Titik lokasi terakhir TIDAK pernah dihapus hanya karena app
+     ditutup/heartbeat berhenti -- titik tetap tampil di posisi
+     terakhirnya (label waktu jadi "X lalu"). Titik baru jadi REDUP
+     kalau user itu benar-benar logout (flag loc.loggedOut, diset
+     dari logoutUser() di js/auth.js lewat action=locationLogout).
 ========================================================= */
 
 const PROXIMITY_METERS = 75;      // jarak dianggap "di tower" -- bisa disesuaikan
-const STALE_MS = 10 * 60 * 1000;  // 10 menit -- lebih tua dari ini dianggap offline
 const POLL_MS = 25 * 1000;        // refresh posisi petugas tiap 25 detik
 
 let map;
@@ -484,10 +493,11 @@ function warnaPetugas(username){
   return color;
 }
 
-function petugasDivIcon(color, diTower){
+function petugasDivIcon(color, diTower, redup){
+  const kelas = redup ? "petugas-dot petugas-dot-redup" : "petugas-dot";
   return L.divIcon({
     className: "",
-    html: `<div class="petugas-dot" style="background:${color};border-color:${diTower ? "#2DD4A0" : "#F26B6B"};"></div>`,
+    html: `<div class="${kelas}" style="background:${color};border-color:${diTower ? "#2DD4A0" : "#F26B6B"};"></div>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
     popupAnchor: [0, -8],
@@ -612,41 +622,49 @@ async function loadPetugasLocations(){
   const accountMap = {};
   (accounts || []).forEach(a => { accountMap[a.username] = a; });
 
-  const usernameMasihAktif = new Set();
+  const usernameMasihAda = new Set();  // ada titik lokasinya (aktif ATAU redup)
+  const usernameMasihAktif = new Set(); // aktif (login & belum logout) -- buat hitungan & warna tower
   const towerIdKeWarna = {}; // towerId -> warna petugas yang sedang di sana
 
   for(const username of Object.keys(locations)){
     const loc = locations[username];
     if(!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") continue;
 
-    const umurMs = loc.updatedAt ? (Date.now() - new Date(loc.updatedAt).getTime()) : Infinity;
-    if(umurMs > STALE_MS) continue; // dianggap offline, jangan tampilkan
+    usernameMasihAda.add(username);
 
-    usernameMasihAktif.add(username);
+    // Titik TIDAK pernah disembunyikan hanya karena lama tidak update
+    // (app ditutup dsb) -- cuma redup kalau user itu memang sudah logout.
+    const redup = !!loc.loggedOut;
+    if(!redup) usernameMasihAktif.add(username);
 
     const { distance, tower } = towerTerdekat(loc.lat, loc.lng);
-    const diTower = distance <= PROXIMITY_METERS;
+    const diTower = !redup && distance <= PROXIMITY_METERS;
     const warna = warnaPetugas(username);
     if(diTower && tower){ towerIdKeWarna[tower.id] = warna; }
 
     const acc = accountMap[username];
     const peran = acc ? `${acc.role || "-"}${acc.jabatan ? " · " + acc.jabatan : ""}` : "-";
-    const popupHtml = `<b>${username}</b><br>${peran}<br>${diTower ? `Di lokasi Tower ${tower.nomor}` : "Di luar tower"}<br><span style="color:var(--ink-3)">Update ${waktuRelatif(loc.updatedAt)}</span>`;
+    const statusHtml = redup
+      ? `<span style="color:var(--ink-3)">Sudah logout · lokasi terakhir</span>`
+      : (diTower ? `Di lokasi Tower ${tower.nomor}` : "Di luar tower");
+    const popupHtml = `<b>${username}</b><br>${peran}<br>${statusHtml}<br><span style="color:var(--ink-3)">Update ${waktuRelatif(loc.updatedAt)}</span>`;
 
     if(petugasMarkers[username]){
       petugasMarkers[username].setLatLng([loc.lat, loc.lng]);
-      petugasMarkers[username].setIcon(petugasDivIcon(warna, diTower));
+      petugasMarkers[username].setIcon(petugasDivIcon(warna, diTower, redup));
       petugasMarkers[username].setPopupContent(popupHtml);
     } else {
-      petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna, diTower) })
+      petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna, diTower, redup) })
         .addTo(map)
         .bindPopup(popupHtml);
     }
   }
 
-  // Hapus marker petugas yang sudah tidak aktif/stale
+  // Hapus marker HANYA kalau baris lokasinya sendiri sudah tidak ada lagi
+  // di server (bukan karena stale) -- normalnya ini nggak pernah kejadian
+  // secara otomatis, cuma jaga-jaga kalau datanya dihapus manual.
   for(const username of Object.keys(petugasMarkers)){
-    if(!usernameMasihAktif.has(username)){
+    if(!usernameMasihAda.has(username)){
       map.removeLayer(petugasMarkers[username]);
       delete petugasMarkers[username];
     }
