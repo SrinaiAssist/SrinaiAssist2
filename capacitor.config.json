@@ -3,7 +3,7 @@
   "appName": "SRINAI ASSIST",
   "webDir": "www",
   "server": {
-    "url": "https://srinaiassist2.vercel.app",
+    "url": "https://srinai-assist2.vercel.app",
     "androidScheme": "https",
     "cleartext": false
   },
