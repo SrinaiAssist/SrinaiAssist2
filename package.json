@@ -7,9 +7,12 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "bcryptjs": "^2.4.3"
+    "bcryptjs": "^2.4.3",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
   },
   "devDependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@capacitor/cli": "^6.1.2"
   }
 }

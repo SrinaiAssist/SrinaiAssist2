@@ -1,0 +1,13 @@
+{
+  "appId": "com.srinai.assist",
+  "appName": "SRINAI ASSIST",
+  "webDir": "www",
+  "server": {
+    "url": "https://srinaiassist2.vercel.app",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#0B1220"
+  }
+}
