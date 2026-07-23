@@ -68,6 +68,17 @@ async function loginUser(username, password) {
 
 function logoutUser() {
     stopBackgroundMusic();
+    // Tandai titik lokasi terakhir user ini "redup" di peta.html. Sengaja
+    // fire-and-forget (tidak di-await) supaya logout tetap instan meski
+    // request ini lambat/gagal (mis. lagi offline) -- request diambil
+    // SEBELUM localStorage dibersihkan karena butuh username-nya.
+    const username = getCurrentUser();
+    if (username) {
+        apiRequest("/api/settings?action=locationLogout", {
+            method: "POST",
+            body: JSON.stringify({ username }),
+        }).catch(() => { /* diamkan -- ini bukan fitur wajib buat bisa logout */ });
+    }
     localStorage.removeItem("srinaiUser");
     localStorage.removeItem("srinaiRole");
     localStorage.removeItem("loginTime");
