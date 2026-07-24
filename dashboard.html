@@ -692,8 +692,8 @@ body{
       <div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
       <div class="stamp-label">Foto Eviden</div>
     </div>
-    <div class="stamp" data-c="moss" onclick="location.href='chat.html'">
-      <div class="stamp-circle"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+    <div class="stamp" data-c="moss" id="qiChat" onclick="location.href='chat.html'">
+      <div class="stamp-circle" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span id="chatUnreadBadge" class="commandbot-unread-badge" style="display:none;"></span></div>
       <div class="stamp-label">Chat</div>
     </div>
     <div class="stamp" data-c="moss" onclick="location.href='artikel.html'">
@@ -980,6 +980,7 @@ async function initPage(){
 
   loadCommandBotUnreadBadge(currentUser);
   loadActivityBell(currentUser);
+  loadChatUnreadBadge(currentUser);
 
   playDashboardOpenChime();
 }
@@ -1008,6 +1009,38 @@ async function loadCommandBotUnreadBadge(currentUser){
     }
   } catch(e){
     console.warn("Gagal cek notif CommandBot:", e);
+  }
+}
+
+/* =========================================================
+   NOTIF CHAT GRUP (badge + getar ikon "Chat" di Akses Cepat
+   untuk pesan baru yang belum dibaca. Ditandai terbaca lewat
+   localStorage saat chat.html dibuka, sama seperti pola bel
+   aktivitas -- tidak perlu tabel/endpoint baru di server.)
+========================================================= */
+async function loadChatUnreadBadge(currentUser){
+  try {
+    const messages = await getChatMessages(50);
+    const item = document.getElementById("qiChat");
+    const badge = document.getElementById("chatUnreadBadge");
+    if(!item || !badge || !messages || !messages.length) return;
+
+    const lastSeen = localStorage.getItem("srinai_chatSeen_" + currentUser);
+    const unread = messages.filter(m =>
+      m.username !== currentUser &&
+      (!lastSeen || new Date(m.createdAt) > new Date(lastSeen))
+    );
+
+    if(unread.length > 0){
+      item.classList.add("has-unread");
+      badge.textContent = unread.length > 9 ? "9+" : String(unread.length);
+      badge.style.display = "flex";
+    } else {
+      item.classList.remove("has-unread");
+      badge.style.display = "none";
+    }
+  } catch(e){
+    console.warn("Gagal cek notif chat:", e);
   }
 }
 

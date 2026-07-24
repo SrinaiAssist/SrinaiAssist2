@@ -500,6 +500,11 @@ async function loadChat(forceScroll){
   lastMessageId = newestId;
   if(hasNewReply) playChatReplyChime();
 
+  // Tandai chat sudah dibaca (dipakai badge/getar ikon "Chat" di dashboard)
+  if(newList.length && currentUser){
+    localStorage.setItem("srinai_chatSeen_" + currentUser, newList[newList.length-1].createdAt);
+  }
+
   chatList = newList;
   const area = document.getElementById("chatArea");
   const wasNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 80;
