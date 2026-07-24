@@ -139,6 +139,31 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    // Dipanggil dari js/auth.js (startPushRegistration) begitu Capacitor
+    // PushNotifications plugin dapat token dari FCM. Upsert supaya token
+    // yang sama untuk device yang sama tidak dobel-dobel tersimpan.
+    if (req.method === 'POST' && action === 'registerFcmToken') {
+      const { username, token, deviceInfo } = req.body || {};
+      if (!username || !token) {
+        return res.status(400).json({ success: false, message: 'username dan token wajib diisi.' });
+      }
+      await sql`
+        INSERT INTO fcm_tokens (username, token, device_info)
+        VALUES (${username}, ${token}, ${deviceInfo || null})
+        ON CONFLICT (token) DO UPDATE SET username = ${username}, device_info = ${deviceInfo || null}, updated_at = now()
+      `;
+      return res.status(200).json({ success: true });
+    }
+
+    // Dipanggil saat logout supaya device yang sudah logout tidak lagi
+    // menerima push notification atas nama user yang lama.
+    if (req.method === 'POST' && action === 'unregisterFcmToken') {
+      const { token } = req.body || {};
+      if (!token) return res.status(400).json({ success: false, message: 'token wajib diisi.' });
+      await sql`DELETE FROM fcm_tokens WHERE token = ${token}`;
+      return res.status(200).json({ success: true });
+    }
+
     if (req.method === 'POST') {
       // Tambah akun baru
       const { username, password, role, profileFields, actor } = req.body || {};

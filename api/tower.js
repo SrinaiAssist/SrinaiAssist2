@@ -11,6 +11,7 @@
 // DELETE /api/tower?id=..                  -> hapus satu tower
 
 const { sql } = require('../lib/db');
+const { sendPushToJalurOwners } = require('../lib/pushHelper');
 
 function nextId(prefix, existingIds) {
   let maxNum = 0;
@@ -92,6 +93,13 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'id dan fields wajib diisi.' });
       }
 
+      // fields.actor (opsional, dikirim dari js/auth.js getCurrentUser())
+      // dipakai buat exclude si pengedit sendiri dari push notification,
+      // dan buat cek apakah role-nya admin -- kalau bukan admin (LW edit
+      // datanya sendiri), tidak perlu kirim push ke jalur-nya sendiri.
+      const editorRow = fields.actor ? await sql`SELECT role FROM accounts WHERE username = ${fields.actor}` : [];
+      const editorIsAdmin = editorRow[0]?.role === 'admin' || editorRow[0]?.role === 'klw';
+
       // Hapus koordinat: butuh jalur eksplisit (bukan lewat COALESCE) karena
       // COALESCE tidak bisa dipakai untuk sengaja meng-NULL-kan kolom.
       if (fields.clearKoordinat === true) {
@@ -104,7 +112,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: true });
       }
 
-      await sql`
+      const rows = await sql`
         UPDATE tower SET
           jenis         = COALESCE(${fields.jenis ?? null}, jenis),
           isolator      = COALESCE(${fields.isolator ?? null}, isolator),
@@ -118,8 +126,20 @@ module.exports = async (req, res) => {
                                  AND ${fields.longitude ?? null}::double precision IS NOT NULL
                                THEN now() ELSE koordinat_at END
         WHERE id = ${id}
+        RETURNING jalur_id AS "jalurId", nomor
       `;
-      return res.status(200).json({ success: true });
+      res.status(200).json({ success: true });
+
+      // Notifikasi HANYA kalau yang edit admin/KLW -- edit oleh LW/monitor
+      // atas data jalur sendiri tidak perlu notif ke diri sendiri.
+      if (editorIsAdmin && rows[0]) {
+        sendPushToJalurOwners(
+          rows[0].jalurId,
+          { title: 'Data tower diperbarui', body: `Tower T${String(rows[0].nomor).padStart(3, '0')} diubah admin`, data: { type: 'tower', towerId: id } },
+          fields.actor
+        ).catch((err) => console.error('Gagal kirim push update tower:', err.message));
+      }
+      return;
     }
 
     if (req.method === 'DELETE') {

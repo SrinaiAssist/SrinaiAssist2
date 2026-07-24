@@ -50,7 +50,11 @@
 // base64 apa adanya seperti semula supaya fitur tetap jalan.
 
 const { sql } = require('../lib/db');
-const { uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo } = require('../lib/googleDrive');
+const {
+  uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo,
+  createResumableUploadSession, makeFilePublic,
+} = require('../lib/googleDrive');
+const { sendPushToAllUsers } = require('../lib/pushHelper');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -538,6 +542,125 @@ async function handleLocationsGet(res) {
   return res.status(200).json({ success: true, locations });
 }
 
+// ─── Artikel / Berita ────────────────────────────────────────────────
+// Semua role bisa baca (GET), tapi create/update/delete di-cek server-side
+// harus role 'admin' -- BEDA dari kebanyakan endpoint lain di project ini
+// yang cuma ngandelin cek role di client, karena aksi ini nge-trigger push
+// notification ke SEMUA user sekaligus (nyalah gede kalau bisa dipalsukan).
+async function assertIsAdmin(username) {
+  if (!username) return false;
+  const rows = await sql`SELECT role FROM accounts WHERE username = ${username}`;
+  return rows[0]?.role === 'admin';
+}
+
+async function handleArticleList(res) {
+  const articles = await sql`
+    SELECT id, title, content, created_by AS "createdBy",
+           created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM articles
+    WHERE published = true
+    ORDER BY created_at DESC
+  `;
+  const mediaRows = await sql`
+    SELECT article_id AS "articleId", media_type AS "mediaType",
+           drive_file_id AS "driveFileId", file_name AS "fileName",
+           mime_type AS "mimeType", sort_order AS "sortOrder"
+    FROM article_media ORDER BY sort_order
+  `;
+  const mediaByArticle = {};
+  for (const m of mediaRows) {
+    (mediaByArticle[m.articleId] ||= []).push({
+      type: m.mediaType,
+      fileId: m.driveFileId,
+      name: m.fileName,
+      mimeType: m.mimeType,
+      // URL siap pakai: gambar/video bisa langsung ditaruh di <img>/<video src>,
+      // file lain (pdf, dsb) dipakai sebagai link download.
+      url: `https://drive.google.com/uc?export=view&id=${m.driveFileId}`,
+      downloadUrl: `https://drive.google.com/uc?export=download&id=${m.driveFileId}`,
+    });
+  }
+  return { articles: articles.map((a) => ({ ...a, media: mediaByArticle[a.id] || [] })) };
+}
+
+async function handleArticleUploadSession(req, res) {
+  const { fileName, mimeType, fileSizeBytes } = req.body || {};
+  if (!fileName || !mimeType) {
+    return res.status(400).json({ success: false, message: 'fileName dan mimeType wajib diisi.' });
+  }
+  const { uploadUrl } = await createResumableUploadSession(fileName, mimeType, fileSizeBytes);
+  return res.status(200).json({ success: true, uploadUrl });
+}
+
+async function handleArticleCreate(req, res) {
+  const { title, content, actor, media } = req.body || {};
+  if (!(await assertIsAdmin(actor))) {
+    return res.status(403).json({ success: false, message: 'Hanya admin yang bisa membuat artikel.' });
+  }
+  if (!title || !title.trim() || !content || !content.trim()) {
+    return res.status(400).json({ success: false, message: 'title dan content wajib diisi.' });
+  }
+
+  const id = `art-${Date.now()}`;
+  await sql`INSERT INTO articles (id, title, content, created_by) VALUES (${id}, ${title.trim()}, ${content.trim()}, ${actor})`;
+
+  const mediaList = Array.isArray(media) ? media : [];
+  for (let i = 0; i < mediaList.length; i++) {
+    const m = mediaList[i];
+    if (!m?.fileId || !m?.type) continue;
+    await makeFilePublic(m.fileId);
+    await sql`
+      INSERT INTO article_media (article_id, media_type, drive_file_id, file_name, mime_type, sort_order)
+      VALUES (${id}, ${m.type}, ${m.fileId}, ${m.name || null}, ${m.mimeType || null}, ${i})
+    `;
+  }
+
+  res.status(200).json({ success: true, id });
+
+  sendPushToAllUsers(
+    { title: 'Artikel baru', body: title.trim().slice(0, 120), data: { type: 'article', articleId: id } },
+    actor
+  ).catch((err) => console.error('Gagal kirim push artikel baru:', err.message));
+}
+
+async function handleArticleUpdate(req, res) {
+  const { id, title, content, actor, media } = req.body || {};
+  if (!(await assertIsAdmin(actor))) {
+    return res.status(403).json({ success: false, message: 'Hanya admin yang bisa mengubah artikel.' });
+  }
+  if (!id) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+
+  await sql`
+    UPDATE articles SET title = ${title.trim()}, content = ${content.trim()}, updated_at = now()
+    WHERE id = ${id}
+  `;
+
+  if (Array.isArray(media)) {
+    // Ganti total daftar media (sederhana; artikel jarang punya lampiran banyak).
+    await sql`DELETE FROM article_media WHERE article_id = ${id}`;
+    for (let i = 0; i < media.length; i++) {
+      const m = media[i];
+      if (!m?.fileId || !m?.type) continue;
+      await makeFilePublic(m.fileId);
+      await sql`
+        INSERT INTO article_media (article_id, media_type, drive_file_id, file_name, mime_type, sort_order)
+        VALUES (${id}, ${m.type}, ${m.fileId}, ${m.name || null}, ${m.mimeType || null}, ${i})
+      `;
+    }
+  }
+  return res.status(200).json({ success: true });
+}
+
+async function handleArticleDelete(req, res) {
+  const { id, actor } = req.query || {};
+  if (!(await assertIsAdmin(actor))) {
+    return res.status(403).json({ success: false, message: 'Hanya admin yang bisa menghapus artikel.' });
+  }
+  if (!id) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+  await sql`DELETE FROM articles WHERE id = ${id}`;
+  return res.status(200).json({ success: true });
+}
+
 module.exports = async (req, res) => {
   try {
     const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
@@ -611,6 +734,47 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBotNotifyCron(req, res);
+    }
+
+    if (qAction === 'articleList') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      const { articles } = await handleArticleList(res);
+      return res.status(200).json({ success: true, articles });
+    }
+
+    if (qAction === 'articleUploadSession') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleArticleUploadSession(req, res);
+    }
+
+    if (qAction === 'articleCreate') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleArticleCreate(req, res);
+    }
+
+    if (qAction === 'articleUpdate') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleArticleUpdate(req, res);
+    }
+
+    if (qAction === 'articleDelete') {
+      if (req.method !== 'DELETE') {
+        res.setHeader('Allow', 'DELETE');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleArticleDelete(req, res);
     }
 
     if (req.method === 'GET' && qStats === 'db') {

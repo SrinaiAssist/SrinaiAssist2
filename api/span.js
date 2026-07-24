@@ -10,6 +10,7 @@
 // DELETE /api/span?id=..                  -> hapus satu span
 
 const { sql } = require('../lib/db');
+const { sendPushToJalurOwners } = require('../lib/pushHelper');
 
 function nextId(prefix, existingIds) {
   let maxNum = 0;
@@ -91,14 +92,27 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'id dan fields wajib diisi.' });
       }
 
-      await sql`
+      const editorRow = fields.actor ? await sql`SELECT role FROM accounts WHERE username = ${fields.actor}` : [];
+      const editorIsAdmin = editorRow[0]?.role === 'admin' || editorRow[0]?.role === 'klw';
+
+      const rows = await sql`
         UPDATE span SET
           spacer = COALESCE(${fields.spacer ?? null}, spacer),
           joint  = COALESCE(${fields.joint ?? null}, joint),
           status = COALESCE(${fields.status ?? null}, status)
         WHERE id = ${id}
+        RETURNING jalur_id AS "jalurId"
       `;
-      return res.status(200).json({ success: true });
+      res.status(200).json({ success: true });
+
+      if (editorIsAdmin && rows[0]) {
+        sendPushToJalurOwners(
+          rows[0].jalurId,
+          { title: 'Data span diperbarui', body: 'Data span di jalur kamu diubah admin', data: { type: 'span', spanId: id } },
+          fields.actor
+        ).catch((err) => console.error('Gagal kirim push update span:', err.message));
+      }
+      return;
     }
 
     if (req.method === 'DELETE') {

@@ -20,6 +20,7 @@
 
 const { sql } = require('../lib/db');
 const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
+const { sendPushToAllUsers } = require('../lib/pushHelper');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -80,7 +81,20 @@ module.exports = async (req, res) => {
         INSERT INTO chat_messages (id, username, text, foto, meta)
         VALUES (${id}, ${username}, ${text || ''}, ${fotoToSave}, ${meta ? JSON.stringify(meta) : null})
       `;
-      return res.status(200).json({ success: true, id, driveWarning: warning });
+      res.status(200).json({ success: true, id, driveWarning: warning });
+
+      // Push dikirim SETELAH response supaya user pengirim tidak nunggu
+      // proses kirim ke banyak device. Gagal kirim push diamkan saja --
+      // chat sudah tersimpan, itu yang penting.
+      sendPushToAllUsers(
+        {
+          title: `Chat baru dari ${username}`,
+          body: text && text.trim() ? text.trim().slice(0, 120) : (meta ? 'Mengirim data/koordinat' : 'Mengirim foto'),
+          data: { type: 'chat' },
+        },
+        username
+      ).catch((err) => console.error('Gagal kirim push chat:', err.message));
+      return;
     }
 
     if (req.method === 'DELETE') {
