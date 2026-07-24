@@ -150,6 +150,38 @@ body{
   filter:grayscale(0.6);
 }
 
+/* Label nama petugas yang selalu tampil di sebelah titiknya (bukan cuma
+   pas di-tap), disambung garis tipis ke titiknya biar jelas ini punya
+   siapa -- kepakai kalau ada beberapa titik berdekatan di peta. */
+.petugas-label.leaflet-tooltip-top:before,
+.petugas-label.leaflet-tooltip-bottom:before,
+.petugas-label.leaflet-tooltip-left:before,
+.petugas-label.leaflet-tooltip-right:before{
+  display:none; /* matikan panah segitiga bawaan Leaflet, ganti garis custom di bawah */
+}
+.petugas-label{
+  position:relative;
+  background:rgba(8,15,30,0.9);
+  color:#fff;
+  font-weight:800;
+  font-size:11px;
+  padding:3px 9px 3px 8px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,0.3);
+  box-shadow:0 3px 10px rgba(0,0,0,0.35);
+  white-space:nowrap;
+  pointer-events:none;
+}
+.petugas-label:after{
+  content:"";
+  position:absolute;
+  width:18px;height:1.5px;
+  background:rgba(255,255,255,0.75);
+  left:-16px;bottom:2px;
+  transform-origin:right center;
+  transform:rotate(38deg);
+}
+
 .refresh-btn.active{background:var(--blue-glow);border-color:var(--blue);}
 
 .manual-banner{
@@ -656,7 +688,13 @@ async function loadPetugasLocations(){
     } else {
       petugasMarkers[username] = L.marker([loc.lat, loc.lng], { icon: petugasDivIcon(warna, diTower, redup) })
         .addTo(map)
-        .bindPopup(popupHtml);
+        .bindPopup(popupHtml)
+        .bindTooltip(username, {
+          permanent: true,
+          direction: "right",
+          offset: [16, -14],
+          className: "petugas-label",
+        });
     }
   }
 
