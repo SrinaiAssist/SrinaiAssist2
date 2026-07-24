@@ -1,5 +1,10 @@
 package com.srinai.assist;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.media.AudioAttributes;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.core.view.WindowCompat;
@@ -10,11 +15,52 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    // Harus SAMA PERSIS dengan channel_id yang dipakai lib/firebaseAdmin.js
+    // (server) saat kirim FCM message, supaya suara custom ini yang dipakai
+    // dan bukan suara notifikasi default HP.
+    private static final String CHANNEL_ID = "srinai_default";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationTrackerPlugin.class);
         super.onCreate(savedInstanceState);
         hideSystemBars();
+        createNotificationChannel();
+    }
+
+    // Notification channel WAJIB dibuat sebelum notifikasi pertama muncul
+    // di Android 8 (API 26) ke atas -- kalau tidak dibuat manual dengan
+    // suara custom, sistem otomatis bikin channel default dengan suara
+    // bawaan HP begitu FCM message pertama masuk, dan channel itu TIDAK
+    // BISA diubah lagi suaranya (harus uninstall app buat reset).
+    //
+    // File suara "nada_notif.mp3" harus ditaruh di:
+    //   android/app/src/main/res/raw/nada_notif.mp3
+    // (ambil dari assets/audio/chat-reply.wav yang sudah ada, convert ke
+    // .mp3 kalau perlu -- format wav juga didukung, cukup ganti nama file
+    // & referensi di bawah jadi .wav).
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null && manager.getNotificationChannel(CHANNEL_ID) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "SrinaiAssist - Notifikasi Umum",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Chat baru, artikel baru, dan perubahan data tower/span");
+                channel.enableVibration(true);
+
+                Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/nada_notif");
+                AudioAttributes audioAttrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                channel.setSound(soundUri, audioAttrs);
+
+                manager.createNotificationChannel(channel);
+            }
+        }
     }
 
     @Override
