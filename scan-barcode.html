@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Scan Barcode — SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -144,7 +145,7 @@ body{
 <div class="container">
 
   <div class="topbar">
-    <a class="back-btn" href="javascript:void(0)" onclick="history.length>1?history.back():location.href='dashboard.html'" aria-label="Kembali">
+    <a class="back-btn" href="dashboard.html" onclick="event.preventDefault(); smartBack('dashboard.html');" aria-label="Kembali">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="topbar-title">

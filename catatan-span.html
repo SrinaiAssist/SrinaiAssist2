@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Catatan Span - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
 <script src="js/sync.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
@@ -416,7 +417,7 @@ input[type="text"]:focus{outline:none;border-color:var(--blue);}
 </div>
 
 <div class="back-float">
-  <a href="span.html" class="back-btn">← Kembali ke Data Span</a>
+  <a href="span.html" class="back-btn" onclick="event.preventDefault(); smartBack('span.html');">← Kembali ke Data Span</a>
 </div>
 
 <!-- ============ MODAL: Tambah/Edit Tegakan ============ -->

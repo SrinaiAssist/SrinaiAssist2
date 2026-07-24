@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Data Span - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
 <script src="js/sync.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -360,7 +361,7 @@ body{
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <a href="dashboard.html" class="back-btn">
+    <a href="dashboard.html" class="back-btn" onclick="event.preventDefault(); smartBack('dashboard.html');">
       <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="topbar-title">
