@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Artikel & Berita - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --violet:    #7B5CFA;
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{max-width:460px;margin:auto;min-height:100vh;background:var(--bg-deep);padding-bottom:100px;position:relative;overflow-x:hidden;}
+.bg-glow{position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(123,92,250,0.18) 0%, transparent 70%);
+  pointer-events:none;z-index:0;}
+
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;}
+.back-btn:active{background:rgba(255,255,255,0.1);}
+.topbar-title h1{font-size:17px;font-weight:800;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+.article-list{position:relative;z-index:2;margin:16px 20px 0;display:flex;flex-direction:column;gap:12px;}
+.article-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  box-shadow:0 10px 24px rgba(0,0,0,0.28);cursor:pointer;
+}
+.article-thumb{width:100%;height:150px;object-fit:cover;background:var(--bg-card2);display:block;}
+.article-thumb-placeholder{width:100%;height:60px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:24px;}
+.article-body{padding:13px 15px;}
+.article-title{font-size:14.5px;font-weight:800;line-height:1.35;margin-bottom:5px;}
+.article-meta{font-size:10.5px;color:var(--ink-3);margin-bottom:6px;}
+.article-snippet{font-size:12px;color:var(--ink-2);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.article-admin-row{display:flex;gap:8px;margin-top:10px;}
+.mini-btn{flex:1;padding:8px;border:none;border-radius:9px;font-weight:700;font-size:11px;cursor:pointer;}
+.mini-btn.edit{background:rgba(74,142,245,0.15);color:var(--blue);}
+.mini-btn.del{background:var(--red-bg);color:var(--red);}
+
+.empty-state{position:relative;z-index:2;margin:40px 20px;text-align:center;color:var(--ink-3);font-size:12.5px;}
+
+.fab{
+  position:fixed;bottom:28px;right:24px;left:auto;z-index:20;
+  width:56px;height:56px;border-radius:18px;background:var(--violet);
+  display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+  box-shadow:0 10px 26px rgba(123,92,250,0.45);
+}
+.fab svg{width:24px;height:24px;stroke:#fff;}
+@media(min-width:461px){ .fab{ right:calc(50% - 230px + 24px); } }
+
+/* Overlay detail & form (dipakai bergantian, satu dalam satu waktu) */
+.overlay{
+  position:fixed;inset:0;z-index:50;background:rgba(4,8,18,0.7);backdrop-filter:blur(2px);
+  display:none;align-items:flex-end;justify-content:center;
+}
+.overlay.show{display:flex;}
+.sheet{
+  width:100%;max-width:460px;max-height:88vh;overflow-y:auto;background:var(--bg-card);
+  border-radius:22px 22px 0 0;padding:20px 20px 28px;border-top:1px solid var(--border);
+}
+.sheet-close{width:34px;height:34px;border-radius:10px;background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;margin-left:auto;cursor:pointer;}
+.sheet-title{font-size:16px;font-weight:800;margin:12px 0 4px;}
+.sheet-meta{font-size:11px;color:var(--ink-3);margin-bottom:14px;}
+.sheet-content{font-size:13.5px;line-height:1.7;color:var(--ink-2);white-space:pre-wrap;margin-bottom:16px;}
+.sheet-media{display:flex;flex-direction:column;gap:12px;margin-bottom:10px;}
+.sheet-media img, .sheet-media video{width:100%;border-radius:12px;background:#000;}
+.sheet-media .file-link{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-card2);
+  border-radius:10px;color:var(--blue);font-size:12px;font-weight:700;text-decoration:none;}
+
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;}
+.field input, .field textarea{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;
+  padding:11px 12px;color:var(--ink);font-size:13.5px;font-family:inherit;resize:vertical;
+}
+.upload-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.upload-chip{display:flex;align-items:center;gap:6px;background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:20px;padding:6px 10px;font-size:11px;color:var(--ink-2);}
+.upload-chip .x{cursor:pointer;color:var(--red);font-weight:800;}
+.upload-progress{font-size:10.5px;color:var(--teal);margin-bottom:8px;min-height:14px;}
+.btn-primary{width:100%;padding:13px;border:none;border-radius:12px;background:var(--violet);color:#fff;
+  font-weight:800;font-size:13.5px;cursor:pointer;}
+.btn-primary:disabled{opacity:.5;}
+.btn-file{display:inline-flex;align-items:center;gap:6px;background:rgba(56,191,160,0.18);color:var(--teal);
+  border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+</style>
+<link rel="stylesheet" href="css/theme-fieldlog.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>Artikel & Berita</h1>
+      <p id="userInfo"></p>
+    </div>
+  </div>
+
+  <div class="article-list" id="articleList"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">Belum ada artikel.</div>
+
+</div>
+
+<button class="fab" id="fabAdd" style="display:none;" onclick="openForm()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- Detail artikel -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetail()">
+  <div class="sheet">
+    <div style="display:flex;"><div class="sheet-close" onclick="closeDetail()">✕</div></div>
+    <div class="sheet-title" id="detailTitle"></div>
+    <div class="sheet-meta" id="detailMeta"></div>
+    <div class="sheet-media" id="detailMedia"></div>
+    <div class="sheet-content" id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Form tambah/edit (admin) -->
+<div class="overlay" id="formOverlay" onclick="if(event.target===this) closeForm()">
+  <div class="sheet">
+    <div style="display:flex;"><div class="sheet-close" onclick="closeForm()">✕</div></div>
+    <div class="sheet-title" id="formHeading">Artikel Baru</div>
+    <div class="field">
+      <label>Judul</label>
+      <input type="text" id="formTitle" placeholder="Judul artikel">
+    </div>
+    <div class="field">
+      <label>Isi</label>
+      <textarea id="formContent" rows="6" placeholder="Tulis isi artikel di sini..."></textarea>
+    </div>
+    <button class="btn-file" onclick="document.getElementById('formFileInput').click()">📎 Tambah Foto/Video/File</button>
+    <input type="file" id="formFileInput" multiple style="display:none;" onchange="handleFilesSelected(event)">
+    <div class="upload-row" id="uploadChips"></div>
+    <div class="upload-progress" id="uploadProgress"></div>
+    <button class="btn-primary" id="formSaveBtn" onclick="saveArticle()">Simpan Artikel</button>
+  </div>
+</div>
+
+<script>
+const CACHE_KEY = "srinaiArticlesCache";
+let currentArticles = [];
+let editingId = null;
+let pendingMedia = []; // { fileId, type, name, mimeType } -- yang sudah selesai upload ke Drive
+let uploadingCount = 0;
+
+function renderArticles(articles){
+  currentArticles = articles;
+  const list = document.getElementById("articleList");
+  const empty = document.getElementById("emptyState");
+  list.innerHTML = "";
+  if (!articles || articles.length === 0){
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  const admin = isAdmin();
+  articles.forEach(a => {
+    const firstImage = (a.media || []).find(m => m.type === "image");
+    const card = document.createElement("div");
+    card.className = "article-card";
+    card.onclick = () => openDetail(a.id);
+    card.innerHTML = `
+      ${firstImage ? `<img class="article-thumb" src="${firstImage.url}" loading="lazy">` : ""}
+      <div class="article-body">
+        <div class="article-title">${escapeHtml(a.title)}</div>
+        <div class="article-meta">${escapeHtml(a.createdBy)} · ${formatTanggal(a.createdAt)}</div>
+        <div class="article-snippet">${escapeHtml(a.content)}</div>
+        ${admin ? `
+          <div class="article-admin-row" onclick="event.stopPropagation()">
+            <button class="mini-btn edit" onclick="openForm('${a.id}')">Edit</button>
+            <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>
+          </div>` : ""}
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function formatTanggal(iso){
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" });
+  } catch { return ""; }
+}
+function escapeHtml(s){
+  const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML;
+}
+
+async function loadArticles(){
+  // Stale-while-revalidate: tampilkan cache dulu (instan, hemat kuota
+  // Drive/DB kalau lagi jaringan lambat), lalu refresh diam-diam.
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try { renderArticles(JSON.parse(cached)); } catch {}
+  }
+  try {
+    const result = await apiRequest("/api/settings?action=articleList");
+    if (result && result.success) {
+      renderArticles(result.articles);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(result.articles));
+    }
+  } catch (e) {
+    console.warn("Gagal muat artikel dari server, pakai cache:", e);
+  }
+}
+
+function openDetail(id){
+  const a = currentArticles.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById("detailTitle").textContent = a.title;
+  document.getElementById("detailMeta").textContent = `${a.createdBy} · ${formatTanggal(a.createdAt)}`;
+  document.getElementById("detailContent").textContent = a.content;
+
+  const mediaWrap = document.getElementById("detailMedia");
+  mediaWrap.innerHTML = "";
+  (a.media || []).forEach(m => {
+    if (m.type === "image") {
+      mediaWrap.innerHTML += `<img src="${m.url}">`;
+    } else if (m.type === "video") {
+      mediaWrap.innerHTML += `<video src="${m.url}" controls playsinline></video>`;
+    } else {
+      mediaWrap.innerHTML += `<a class="file-link" href="${m.downloadUrl}" target="_blank">📄 ${escapeHtml(m.name || "File lampiran")}</a>`;
+    }
+  });
+
+  document.getElementById("detailOverlay").classList.add("show");
+}
+function closeDetail(){ document.getElementById("detailOverlay").classList.remove("show"); }
+
+function openForm(id){
+  editingId = id || null;
+  pendingMedia = [];
+  document.getElementById("uploadChips").innerHTML = "";
+  document.getElementById("uploadProgress").textContent = "";
+
+  if (id) {
+    const a = currentArticles.find(x => x.id === id);
+    document.getElementById("formHeading").textContent = "Edit Artikel";
+    document.getElementById("formTitle").value = a.title;
+    document.getElementById("formContent").value = a.content;
+    pendingMedia = (a.media || []).map(m => ({ fileId: m.fileId, type: m.type, name: m.name, mimeType: m.mimeType }));
+    renderUploadChips();
+  } else {
+    document.getElementById("formHeading").textContent = "Artikel Baru";
+    document.getElementById("formTitle").value = "";
+    document.getElementById("formContent").value = "";
+  }
+  document.getElementById("formOverlay").classList.add("show");
+}
+function closeForm(){ document.getElementById("formOverlay").classList.remove("show"); }
+
+function renderUploadChips(){
+  const wrap = document.getElementById("uploadChips");
+  wrap.innerHTML = "";
+  pendingMedia.forEach((m, i) => {
+    const chip = document.createElement("div");
+    chip.className = "upload-chip";
+    chip.innerHTML = `${m.type === "image" ? "🖼️" : m.type === "video" ? "🎬" : "📄"} ${escapeHtml(m.name || m.type)} <span class="x" onclick="pendingMedia.splice(${i},1); renderUploadChips();">✕</span>`;
+    wrap.appendChild(chip);
+  });
+}
+
+function mediaTypeFromMime(mime){
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  return "file";
+}
+
+// Upload langsung dari browser ke Google Drive lewat resumable session
+// (backend cuma bikinin URL sesi, file binary TIDAK lewat server kita --
+// supaya video/file besar tidak kena limit ukuran body Vercel Function).
+async function handleFilesSelected(event){
+  const files = Array.from(event.target.files || []);
+  event.target.value = ""; // reset supaya bisa pilih file sama lagi kalau perlu
+  const progressEl = document.getElementById("uploadProgress");
+  const saveBtn = document.getElementById("formSaveBtn");
+
+  for (const file of files) {
+    uploadingCount++;
+    saveBtn.disabled = true;
+    progressEl.textContent = `Mengupload ${file.name}...`;
+    try {
+      const sessionResult = await apiRequest("/api/settings?action=articleUploadSession", {
+        method: "POST",
+        body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileSizeBytes: file.size }),
+      });
+      if (!sessionResult || !sessionResult.success) throw new Error("Gagal buat sesi upload.");
+
+      const putResp = await fetch(sessionResult.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const putData = await putResp.json();
+      if (!putResp.ok || !putData.id) throw new Error("Upload ke Drive gagal.");
+
+      pendingMedia.push({ fileId: putData.id, type: mediaTypeFromMime(file.type || ""), name: file.name, mimeType: file.type });
+      renderUploadChips();
+    } catch (err) {
+      alert(`Gagal upload ${file.name}: ${err.message}`);
+    } finally {
+      uploadingCount--;
+      if (uploadingCount === 0) { saveBtn.disabled = false; progressEl.textContent = ""; }
+    }
+  }
+}
+
+async function saveArticle(){
+  const title = document.getElementById("formTitle").value.trim();
+  const content = document.getElementById("formContent").value.trim();
+  if (!title || !content) { alert("Judul dan isi wajib diisi."); return; }
+  if (uploadingCount > 0) { alert("Tunggu upload selesai dulu."); return; }
+
+  const actor = getCurrentUser();
+  const body = { title, content, actor, media: pendingMedia };
+
+  const url = editingId
+    ? "/api/settings?action=articleUpdate"
+    : "/api/settings?action=articleCreate";
+  if (editingId) body.id = editingId;
+
+  try {
+    const result = await apiRequest(url, { method: "POST", body: JSON.stringify(body) });
+    if (!result || !result.success) throw new Error(result?.message || "Gagal simpan artikel.");
+    closeForm();
+    loadArticles();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function hapusArtikel(id){
+  if (!confirm("Hapus artikel ini?")) return;
+  try {
+    const actor = getCurrentUser();
+    const result = await apiRequest(`/api/settings?action=articleDelete&id=${encodeURIComponent(id)}&actor=${encodeURIComponent(actor)}`, { method: "DELETE" });
+    if (!result || !result.success) throw new Error(result?.message || "Gagal hapus artikel.");
+    loadArticles();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+document.getElementById("userInfo").textContent = getCurrentUser() || "";
+if (isAdmin()) document.getElementById("fabAdd").style.display = "flex";
+loadArticles();
+</script>
+</body>
+</html>
