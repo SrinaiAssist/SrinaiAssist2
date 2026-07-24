@@ -77,7 +77,7 @@ html.theme-fieldlog [class*="sheet"]{
 ========================================================= */
 html.theme-fieldlog[data-page="catatan"] body,
 html.theme-fieldlog[data-page="catatan"] .container,
-html.theme-fieldlog[data-page="catatan"] .bottom-menu{
+html.theme-fieldlog[data-page="catatan"] .back-float{
   background:#DED2AF !important;
 }
 html.theme-fieldlog[data-page="catatan"] .header{
