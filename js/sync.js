@@ -723,6 +723,36 @@ if (document.readyState === "loading") {
   _updateSyncBadge();
 }
 
+/* ═══════════════════════════════════════════════════════
+   AUTO-RECOVERY SAAT KONEKSI KEMBALI
+   Kasus: user matikan data internet lalu nyalakan lagi. Request
+   yang kebetulan berjalan saat itu bisa gagal atau (sebelum ada
+   timeout di apiRequest/auth.js) menggantung, dan halaman yang
+   sudah terlanjur render kosong/basi tidak akan pernah memperbarui
+   diri sendiri tanpa reload manual -- tidak ada yang memicu ulang
+   cachedGetXxx() di halaman itu.
+   Solusi: pantau event offline -> online asli (bukan reconnect
+   sesaat/flapping), lalu diam-diam sinkron ulang cache dari server
+   dan reload halaman SEKALI supaya data yang gagal tampil otomatis
+   muncul begitu koneksi benar-benar pulih, tanpa aksi dari user.
+═══════════════════════════════════════════════════════ */
+let _srinaiWasOffline = !navigator.onLine;
+
+window.addEventListener("offline", () => {
+  _srinaiWasOffline = true;
+});
+
+window.addEventListener("online", async () => {
+  if (!_srinaiWasOffline) return; // bukan pemulihan dari offline nyata, abaikan
+  _srinaiWasOffline = false;
+  try {
+    await syncAll();
+  } catch (e) {
+    console.warn("[sync] Gagal auto-sync saat online kembali:", e);
+  }
+  location.reload();
+});
+
 /* Patch logoutUser agar hapus cache */
 (function() {
   const _origLogout = typeof logoutUser === "function" ? logoutUser : null;

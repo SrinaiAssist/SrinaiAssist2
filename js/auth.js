@@ -31,17 +31,35 @@ function jalurLabel(value) {
     return JALUR_LABEL[value] || value || "-";
 }
 
+// Batas waktu tunggu satu request API. TANPA ini, fetch() bisa "menggantung"
+// tanpa batas waktu saat koneksi dalam kondisi tidak stabil -- misalnya
+// sesaat setelah data seluler dimatikan lalu dinyalakan lagi (radio sudah
+// aktif tapi rute internet belum benar-benar tersambung). Selama fetch
+// menggantung, semua await di halaman (initPage, loadSpan, dst) ikut
+// nyangkut, dan cache-first di sync.js tidak sempat fallback karena
+// promise-nya belum pernah selesai (bukan gagal, cuma belum selesai-selesai).
+const API_TIMEOUT_MS = 15000;
+
 async function apiRequest(url, options) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
     try {
         const res = await fetch(url, {
             headers: { "Content-Type": "application/json" },
-            ...options
+            ...options,
+            signal: controller.signal
         });
         const data = await res.json();
         return data;
     } catch (err) {
+        if (err && err.name === "AbortError") {
+            console.error("Request timeout (>" + API_TIMEOUT_MS + "ms):", url);
+            return { success: false, message: "Koneksi lambat/terputus. Coba lagi setelah sinyal stabil." };
+        }
         console.error("Gagal menghubungi server:", err);
         return { success: false, message: "Tidak bisa menghubungi server. Periksa koneksi internet." };
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
