@@ -574,9 +574,14 @@ async function handleArticleList(res) {
       fileId: m.driveFileId,
       name: m.fileName,
       mimeType: m.mimeType,
-      // URL siap pakai: gambar/video bisa langsung ditaruh di <img>/<video src>,
-      // file lain (pdf, dsb) dipakai sebagai link download.
-      url: `https://drive.google.com/uc?export=view&id=${m.driveFileId}`,
+      // URL siap pakai: pakai format /thumbnail (sama seperti thumbUrl di
+      // lib/googleDrive.js) karena "uc?export=view" sering GAGAL dirender
+      // sebagai <img> oleh Google Drive (dibalikin halaman HTML, bukan
+      // gambar mentah) -- itu penyebab foto artikel tidak tampil.
+      // File lain (pdf, dsb) tetap dipakai sebagai link download.
+      url: m.mediaType === 'image'
+        ? `https://drive.google.com/thumbnail?id=${m.driveFileId}&sz=w2000`
+        : `https://drive.google.com/uc?export=view&id=${m.driveFileId}`,
       downloadUrl: `https://drive.google.com/uc?export=download&id=${m.driveFileId}`,
     });
   }
