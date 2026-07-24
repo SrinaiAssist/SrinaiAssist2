@@ -77,7 +77,7 @@ public class LocationTrackerPlugin extends Plugin {
         ret.put("granted", fineGranted);
         ret.put("backgroundGranted", backgroundGranted);
         call.resolve(ret);
-        releaseCall(call);
+        call.release(bridge);
     }
 
     @Override
