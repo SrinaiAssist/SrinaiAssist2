@@ -29,6 +29,13 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Apply custom native code (hide navigation bar + background location)
+        run: |
+          cp android-native/MainActivity.java android/app/src/main/java/com/srinai/assist/MainActivity.java
+          cp android-native/LocationTrackerPlugin.java android/app/src/main/java/com/srinai/assist/LocationTrackerPlugin.java
+          cp android-native/LocationTrackingService.java android/app/src/main/java/com/srinai/assist/LocationTrackingService.java
+          node scripts/patch-android-manifest.js
+
       - name: Generate app icon from resources/icon.png
         run: npx capacitor-assets generate --android
 
