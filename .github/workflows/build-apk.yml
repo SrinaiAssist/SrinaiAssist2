@@ -34,7 +34,9 @@ jobs:
           cp android-native/MainActivity.java android/app/src/main/java/com/srinai/assist/MainActivity.java
           cp android-native/LocationTrackerPlugin.java android/app/src/main/java/com/srinai/assist/LocationTrackerPlugin.java
           cp android-native/LocationTrackingService.java android/app/src/main/java/com/srinai/assist/LocationTrackingService.java
+          cp android-native/google-services.json android/app/google-services.json
           node scripts/patch-android-manifest.js
+          node scripts/patch-android-gradle.js
 
       - name: Generate app icon from resources/icon.png
         run: npx capacitor-assets generate --android
@@ -47,7 +49,6 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
