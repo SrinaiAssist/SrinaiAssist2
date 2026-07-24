@@ -11,25 +11,27 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationTrackerPlugin.class);
         super.onCreate(savedInstanceState);
-        hideNavigationBar();
+        hideSystemBars();
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         // Re-apply setiap kali app kembali fokus (misal setelah user swipe
-        // buat munculin nav bar sementara, atau setelah buka app lain lalu balik lagi)
+        // buat munculin status/nav bar sementara, atau setelah buka app lain lalu balik lagi)
         if (hasFocus) {
-            hideNavigationBar();
+            hideSystemBars();
         }
     }
 
-    private void hideNavigationBar() {
+    private void hideSystemBars() {
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
     }
