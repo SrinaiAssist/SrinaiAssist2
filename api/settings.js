@@ -588,7 +588,11 @@ async function handleArticleUploadSession(req, res) {
   if (!fileName || !mimeType) {
     return res.status(400).json({ success: false, message: 'fileName dan mimeType wajib diisi.' });
   }
-  const { uploadUrl } = await createResumableUploadSession(fileName, mimeType, fileSizeBytes);
+  // Origin dari browser HARUS diteruskan ke Google saat bikin sesi resumable,
+  // supaya Google mengizinkan PUT langsung dari browser (CORS). Lihat catatan
+  // di lib/googleDrive.js untuk penjelasan lengkap kenapa ini wajib.
+  const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+  const { uploadUrl } = await createResumableUploadSession(fileName, mimeType, fileSizeBytes, origin);
   return res.status(200).json({ success: true, uploadUrl });
 }
 
