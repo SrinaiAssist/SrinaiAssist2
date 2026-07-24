@@ -68,6 +68,7 @@ async function loginUser(username, password) {
 
 function logoutUser() {
     stopBackgroundMusic();
+    stopNativeLocationTracking();
     // Tandai titik lokasi terakhir user ini "redup" di peta.html. Sengaja
     // fire-and-forget (tidak di-await) supaya logout tetap instan meski
     // request ini lambat/gagal (mis. lagi offline) -- request diambil
@@ -1001,6 +1002,41 @@ if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", startLocationHeartbeat);
 } else {
     startLocationHeartbeat();
+}
+
+/* ─── Background location tracking (APK native) ──────────────────────
+   Heartbeat JS di atas cuma jalan selama halaman web-nya aktif -- begitu
+   app native ditutup/di-swipe dari recent apps, semua JS berhenti total.
+   Kalau app ini native (dibuild lewat Capacitor, bukan dibuka di browser
+   biasa), pakai foreground service Android (LocationTrackerPlugin) yang
+   jalan independen dari WebView supaya titik lokasi tetap ke-update ke
+   endpoint yang SAMA (/api/settings?action=location) walau app ditutup.
+   Di browser biasa (window.Capacitor tidak ada), bagian ini no-op --
+   heartbeat JS di atas tetap jadi satu-satunya sumber update lokasi. */
+function isNativeApp() {
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+function startNativeLocationTracking() {
+    const username = getCurrentUser();
+    if (!isNativeApp() || !username) return;
+    const LocationTracker = window.Capacitor.Plugins && window.Capacitor.Plugins.LocationTracker;
+    if (!LocationTracker) return;
+    LocationTracker.requestLocationPermissions()
+        .then(() => LocationTracker.startTracking({ username }))
+        .catch(() => { /* izin ditolak -- diamkan, fitur peta tetap opsional */ });
+}
+
+function stopNativeLocationTracking() {
+    if (!isNativeApp()) return;
+    const LocationTracker = window.Capacitor.Plugins && window.Capacitor.Plugins.LocationTracker;
+    if (LocationTracker) LocationTracker.stopTracking().catch(() => {});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startNativeLocationTracking);
+} else {
+    startNativeLocationTracking();
 }
 
 /* ─── Watcher sesi 24 jam ────────────────────────────────────────────
