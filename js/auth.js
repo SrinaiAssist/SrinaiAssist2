@@ -69,6 +69,7 @@ async function loginUser(username, password) {
 function logoutUser() {
     stopBackgroundMusic();
     stopNativeLocationTracking();
+    unregisterPushToken();
     // Tandai titik lokasi terakhir user ini "redup" di peta.html. Sengaja
     // fire-and-forget (tidak di-await) supaya logout tetap instan meski
     // request ini lambat/gagal (mis. lagi offline) -- request diambil
@@ -1031,6 +1032,63 @@ function stopNativeLocationTracking() {
     if (!isNativeApp()) return;
     const LocationTracker = window.Capacitor.Plugins && window.Capacitor.Plugins.LocationTracker;
     if (LocationTracker) LocationTracker.stopTracking().catch(() => {});
+}
+
+/* ─── Push Notification (FCM) ───────────────────────────────────────
+   Dipanggil sekali tiap halaman dimuat (sama seperti location tracking).
+   Cuma jalan di app native (Capacitor), karena butuh plugin
+   @capacitor/push-notifications -- browser biasa tidak didukung untuk
+   notifikasi yang tetap berbunyi walau app ditutup total. */
+const FCM_TOKEN_CACHE_KEY = "srinaiFcmToken";
+
+function startPushRegistration() {
+    const username = getCurrentUser();
+    if (!isNativeApp() || !username) return;
+    const PushNotifications = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!PushNotifications) return;
+
+    PushNotifications.checkPermissions().then((res) => {
+        const proceed = (res.receive === "granted")
+            ? Promise.resolve()
+            : PushNotifications.requestPermissions().then((r) => {
+                if (r.receive !== "granted") throw new Error("Izin notifikasi ditolak");
+            });
+
+        proceed.then(() => PushNotifications.register()).catch(() => {
+            // izin ditolak -- diamkan, fitur notifikasi tetap opsional
+        });
+    });
+
+    PushNotifications.addListener("registration", (token) => {
+        localStorage.setItem(FCM_TOKEN_CACHE_KEY, token.value);
+        apiRequest("/api/accounts?action=registerFcmToken", {
+            method: "POST",
+            body: JSON.stringify({ username, token: token.value, deviceInfo: navigator.userAgent }),
+        }).catch(() => { /* diamkan -- coba lagi otomatis di load halaman berikutnya */ });
+    });
+
+    PushNotifications.addListener("registrationError", (err) => {
+        console.warn("Gagal daftar push notification:", err);
+    });
+}
+
+/** Dipanggil dari logoutUser() supaya device yang logout berhenti terima
+    push atas nama user lama. */
+function unregisterPushToken() {
+    if (!isNativeApp()) return;
+    const token = localStorage.getItem(FCM_TOKEN_CACHE_KEY);
+    if (!token) return;
+    apiRequest("/api/accounts?action=unregisterFcmToken", {
+        method: "POST",
+        body: JSON.stringify({ token }),
+    }).catch(() => {});
+    localStorage.removeItem(FCM_TOKEN_CACHE_KEY);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startPushRegistration);
+} else {
+    startPushRegistration();
 }
 
 if (document.readyState === "loading") {
