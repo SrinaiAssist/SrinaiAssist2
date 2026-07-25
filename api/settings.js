@@ -588,6 +588,35 @@ async function handleArticleList(res) {
   return { articles: articles.map((a) => ({ ...a, media: mediaByArticle[a.id] || [] })) };
 }
 
+// Satu artikel saja by id -- dipakai halaman publik (artikel-publik.html)
+// supaya link share tidak perlu narik SELURUH daftar artikel. Publik &
+// tanpa login (sama seperti articleList), tapi cuma artikel published.
+async function handleArticleGet(id) {
+  const rows = await sql`
+    SELECT id, title, content, created_by AS "createdBy",
+           created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM articles
+    WHERE id = ${id} AND published = true
+  `;
+  if (rows.length === 0) return { article: null };
+  const mediaRows = await sql`
+    SELECT media_type AS "mediaType", drive_file_id AS "driveFileId",
+           file_name AS "fileName", mime_type AS "mimeType"
+    FROM article_media WHERE article_id = ${id} ORDER BY sort_order
+  `;
+  const media = mediaRows.map((m) => ({
+    type: m.mediaType,
+    fileId: m.driveFileId,
+    name: m.fileName,
+    mimeType: m.mimeType,
+    url: m.mediaType === 'image'
+      ? `https://drive.google.com/thumbnail?id=${m.driveFileId}&sz=w2000`
+      : `https://drive.google.com/uc?export=view&id=${m.driveFileId}`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${m.driveFileId}`,
+  }));
+  return { article: { ...rows[0], media } };
+}
+
 async function handleArticleUploadSession(req, res) {
   const { fileName, mimeType, fileSizeBytes } = req.body || {};
   if (!fileName || !mimeType) {
@@ -752,6 +781,24 @@ module.exports = async (req, res) => {
       }
       const { articles } = await handleArticleList(res);
       return res.status(200).json({ success: true, articles });
+    }
+
+    // Dipakai halaman publik artikel-publik.html?id=... -- tanpa login,
+    // sengaja dipisah dari articleList supaya link share ringan & cepat.
+    if (qAction === 'articleGet') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      const { id: getId } = req.query || {};
+      if (!getId) {
+        return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+      }
+      const { article } = await handleArticleGet(getId);
+      if (!article) {
+        return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan.' });
+      }
+      return res.status(200).json({ success: true, article });
     }
 
     if (qAction === 'articleUploadSession') {
