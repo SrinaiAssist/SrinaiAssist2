@@ -49,6 +49,10 @@ body{
   pointer-events:none;z-index:0;}
 
 .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.topbar-title{flex:1;}
+.topbar-share{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.topbar-share:active{background:rgba(255,255,255,0.1);}
 .back-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;}
 .back-btn:active{background:rgba(255,255,255,0.1);}
@@ -71,7 +75,6 @@ body{
 .mini-btn{flex:1;padding:8px;border:none;border-radius:9px;font-weight:700;font-size:11px;cursor:pointer;}
 .mini-btn.edit{background:rgba(74,142,245,0.15);color:var(--blue);}
 .mini-btn.del{background:var(--red-bg);color:var(--red);}
-.mini-btn.share{background:rgba(56,191,160,0.15);color:var(--teal);}
 
 .empty-state{position:relative;z-index:2;margin:40px 20px;text-align:center;color:var(--ink-3);font-size:12.5px;}
 
@@ -136,6 +139,9 @@ body{
       <h1>Artikel & Berita</h1>
       <p id="userInfo"></p>
     </div>
+    <div class="topbar-share" onclick="shareArticlePage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5"/></svg>
+    </div>
   </div>
 
   <div class="article-list" id="articleList"></div>
@@ -186,6 +192,31 @@ let editingId = null;
 let pendingMedia = []; // { fileId, type, name, mimeType } -- yang sudah selesai upload ke Drive
 let uploadingCount = 0;
 
+function shareArticlePage(){
+  const url = `${location.origin}/artikel-publik.html`;
+  if (navigator.share) {
+    navigator.share({ title: "Artikel & Berita SRINAI ASSIST", url }).catch((err) => {
+      // AbortError = user batal share sendiri, jangan dianggap gagal.
+      if (err && err.name === "AbortError") return;
+      fallbackCopyShare(url);
+    });
+    return;
+  }
+  fallbackCopyShare(url);
+}
+
+function fallbackCopyShare(url){
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Link publik disalin ke clipboard:\n" + url);
+    }).catch(() => {
+      prompt("Salin link publik ini:", url);
+    });
+  } else {
+    prompt("Salin link publik ini:", url);
+  }
+}
+
 function renderArticles(articles){
   currentArticles = articles;
   const list = document.getElementById("articleList");
@@ -209,28 +240,14 @@ function renderArticles(articles){
         <div class="article-title">${escapeHtml(a.title)}</div>
         <div class="article-meta">${escapeHtml(a.createdBy)} · ${formatTanggal(a.createdAt)}</div>
         <div class="article-snippet">${escapeHtml(a.content)}</div>
-        <div class="article-admin-row" onclick="event.stopPropagation()">
-          <button class="mini-btn share" onclick="shareArticle('${a.id}', ${JSON.stringify(a.title)})">🔗 Salin Link Publik</button>
-          ${admin ? `
+        ${admin ? `
+          <div class="article-admin-row" onclick="event.stopPropagation()">
             <button class="mini-btn edit" onclick="openForm('${a.id}')">Edit</button>
-            <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>` : ""}
-        </div>
+            <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>
+          </div>` : ""}
       </div>`;
     list.appendChild(card);
   });
-}
-
-function shareArticle(id, title){
-  const url = `${location.origin}/artikel-publik.html?id=${encodeURIComponent(id)}`;
-  if (navigator.share) {
-    navigator.share({ title: title || "Artikel SRINAI ASSIST", url }).catch(() => {});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(url)
-      .then(() => alert("Link publik disalin:\n" + url))
-      .catch(() => prompt("Salin link publik ini:", url));
-  } else {
-    prompt("Salin link publik ini:", url);
-  }
 }
 
 function formatTanggal(iso){
