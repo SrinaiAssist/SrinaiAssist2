@@ -235,6 +235,8 @@ body{
 /* ---------- storage strip ---------- */
 .storage-strip{margin:14px 18px 0;display:flex;gap:10px;}
 .storage-box{flex:1;border:1px solid var(--line);padding:9px 10px;}
+.storage-box-clickable{cursor:pointer;}
+.storage-box-clickable:active{opacity:0.7;}
 .storage-label{font-family:'JetBrains Mono';font-size:8px;letter-spacing:0.6px;color:var(--ink-faint);text-transform:uppercase;}
 .storage-bar-track{height:4px;background:var(--paper-3);margin:6px 0 4px;border-radius:2px;overflow:visible;}
 .storage-bar-fill{
@@ -742,13 +744,13 @@ body{
   </div>
 
   <div class="storage-strip">
-    <div class="storage-box">
+    <div class="storage-box" id="dbStorageBox">
       <div class="storage-label">Database</div>
       <div class="storage-bar-track"><div class="storage-bar-fill" id="dbStorageBarFill"></div></div>
       <div class="storage-pct" id="dbStoragePercent">–%</div>
       <div class="storage-limit" id="dbStorageLimit">dari – GB</div>
     </div>
-    <div class="storage-box">
+    <div class="storage-box" id="driveStorageBox">
       <div class="storage-label">Drive</div>
       <div class="storage-bar-track"><div class="storage-bar-fill" id="driveStorageBarFill"></div></div>
       <div class="storage-pct" id="driveStoragePercent">–%</div>
@@ -966,6 +968,17 @@ async function initPage(){
   }
   if(typeof isAdmin === "function" && isAdmin()){
     document.getElementById("sidePengaturanBa").style.display = "flex";
+  }
+
+  // Kotak Database & Drive di Ringkasan: khusus admin bisa tap untuk lihat
+  // rincian ukuran ASLI (tanpa pengali tampilan) + rincian per tabel/file.
+  if(typeof isAdmin === "function" && isAdmin()){
+    const dbBox = document.getElementById("dbStorageBox");
+    const driveBox = document.getElementById("driveStorageBox");
+    dbBox.classList.add("storage-box-clickable");
+    driveBox.classList.add("storage-box-clickable");
+    dbBox.onclick = () => location.href = "admin-storage-db.html";
+    driveBox.onclick = () => location.href = "admin-storage-drive.html";
   }
 
   const notice = await cachedGetAppSetting("systemNotice");

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Detail Storage Database - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg-deep);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.container{max-width:460px;margin:auto;min-height:100vh;background:var(--bg-deep);padding-bottom:40px;position:relative;overflow-x:hidden;}
+.bg-glow{position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.13) 0%, transparent 70%);pointer-events:none;z-index:0;}
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+.refresh-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  color:var(--ink-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;}
+
+.hero{position:relative;z-index:2;margin:18px 20px 0;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:20px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+.hero-top{display:flex;align-items:baseline;justify-content:space-between;}
+.hero-used{font-size:26px;font-weight:800;}
+.hero-used span{font-size:13px;font-weight:700;color:var(--ink-3);}
+.hero-pct{font-size:14px;font-weight:800;color:var(--gold);}
+.hero-bar-track{height:9px;border-radius:6px;background:var(--bg-card2);margin-top:12px;overflow:hidden;}
+.hero-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s ease;}
+.hero-bar-fill.warn{background:linear-gradient(90deg,var(--amber),var(--gold));}
+.hero-bar-fill.danger{background:linear-gradient(90deg,#F26B6B,#F4506B);}
+.hero-sub{margin-top:8px;font-size:11px;color:var(--ink-3);}
+.hero-note{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--ink-3);line-height:1.6;}
+.hero-note b{color:var(--ink-2);}
+
+.section-label{position:relative;z-index:2;font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px;margin:22px 20px 10px;}
+.section-label::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+
+.list-wrap{padding:0 20px;position:relative;z-index:2;}
+.tbl-row{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:16px;padding:12px 14px;margin-bottom:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+.tbl-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:var(--blue-glow);
+  display:flex;align-items:center;justify-content:center;font-size:14px;}
+.tbl-info{flex:1;min-width:0;}
+.tbl-name{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--ink);}
+.tbl-bar-track{height:5px;border-radius:4px;background:var(--bg-card2);margin-top:6px;overflow:hidden;}
+.tbl-bar-fill{height:100%;border-radius:4px;background:var(--blue);}
+.tbl-size{font-size:12.5px;font-weight:800;color:var(--ink-2);flex-shrink:0;white-space:nowrap;}
+
+.empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+.loading-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+</style>
+<link rel="stylesheet" href="css/theme-fieldlog.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn" onclick="event.preventDefault(); smartBack('dashboard.html');">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>🗄️ Storage Database</h1>
+      <p id="adminInfo">Memuat...</p>
+    </div>
+    <button class="refresh-btn" onclick="loadDetail()" title="Muat ulang">🔄</button>
+  </div>
+
+  <div class="hero" id="heroBox">
+    <div class="loading-msg" id="heroLoading">Memuat data asli dari database...</div>
+    <div id="heroContent" style="display:none;">
+      <div class="hero-top">
+        <div class="hero-used" id="heroUsed">– <span>MB</span></div>
+        <div class="hero-pct" id="heroPct">–%</div>
+      </div>
+      <div class="hero-bar-track"><div class="hero-bar-fill" id="heroBar"></div></div>
+      <div class="hero-sub" id="heroSub">dari – MB (kuota asli)</div>
+      <div class="hero-note">
+        Ini adalah <b>ukuran sebenarnya</b> dari Postgres (<code>pg_database_size</code>),
+        <b>tanpa</b> pengali tampilan yang dipakai di dashboard biasa. Kuota dasar mengikuti
+        paket gratis Neon.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Ukuran per Tabel</div>
+  <div class="list-wrap" id="tableList">
+    <div class="loading-msg">Memuat rincian tabel...</div>
+  </div>
+
+</div>
+
+<script>
+async function loadDetail(){
+  document.getElementById("heroContent").style.display = "none";
+  document.getElementById("heroLoading").style.display = "block";
+  document.getElementById("heroLoading").textContent = "Memuat data asli dari database...";
+  document.getElementById("tableList").innerHTML = '<div class="loading-msg">Memuat rincian tabel...</div>';
+
+  try{
+    const res = await fetch(`/api/settings?stats=dbDetail&actor=${encodeURIComponent(getCurrentUser())}`);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.message || "Gagal memuat data.");
+
+    document.getElementById("heroLoading").style.display = "none";
+    document.getElementById("heroContent").style.display = "block";
+    document.getElementById("heroUsed").innerHTML = `${data.realMb} <span>MB</span>`;
+    document.getElementById("heroPct").textContent = data.realPercent + "%";
+    document.getElementById("heroSub").textContent = `dari ${data.realLimitMb} MB (kuota asli)`;
+    const bar = document.getElementById("heroBar");
+    bar.style.width = Math.min(100, data.realPercent) + "%";
+    bar.classList.remove("warn","danger");
+    if(data.realPercent >= 90) bar.classList.add("danger");
+    else if(data.realPercent >= 70) bar.classList.add("warn");
+
+    const maxBytes = Math.max(1, ...(data.tables.map(t => t.bytes)));
+    const listEl = document.getElementById("tableList");
+    if(!data.tables.length){
+      listEl.innerHTML = '<div class="empty-msg">Belum ada tabel.</div>';
+    } else {
+      listEl.innerHTML = data.tables.map(t => `
+        <div class="tbl-row">
+          <div class="tbl-icon">📄</div>
+          <div class="tbl-info">
+            <div class="tbl-name">${escapeHtml(t.name)}</div>
+            <div class="tbl-bar-track"><div class="tbl-bar-fill" style="width:${(t.bytes/maxBytes*100).toFixed(1)}%"></div></div>
+          </div>
+          <div class="tbl-size">${formatSize(t.bytes)}</div>
+        </div>`).join("");
+    }
+  } catch(err){
+    document.getElementById("heroLoading").textContent = "⚠️ " + err.message;
+    document.getElementById("tableList").innerHTML = `<div class="empty-msg">Gagal memuat rincian tabel.</div>`;
+  }
+}
+
+function formatSize(bytes){
+  if(bytes >= 1024*1024) return (bytes/(1024*1024)).toFixed(2) + " MB";
+  if(bytes >= 1024) return (bytes/1024).toFixed(1) + " KB";
+  return bytes + " B";
+}
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+  if(!isAdmin()){ alert("Akses ditolak. Halaman ini khusus admin."); location.href="dashboard.html"; return; }
+  document.getElementById("adminInfo").textContent = getCurrentUser() + " · Admin";
+  await loadDetail();
+}
+initPage();
+</script>
+</body>
+</html>
