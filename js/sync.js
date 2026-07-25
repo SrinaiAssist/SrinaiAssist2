@@ -1,7 +1,18 @@
 /* =========================================================
    SRINAI ASSIST — SYNC.JS
    Cache layer: semua data API disimpan ke localStorage agar
-   halaman terasa cepat (baca cache dulu, sync di background).
+   halaman terasa cepat (baca cache dulu).
+
+   PENTING (revisi): cache yang sudah "stale" (lewat TTL) TIDAK
+   lagi dipicu refresh otomatis diam-diam di background. Kalau
+   cache ada, cache itu yang dipakai apa adanya -- walau sudah
+   lama -- sampai user sendiri menekan tombol Sinkron (syncAll()).
+   Ini supaya tiap akun tidak diam-diam menghabiskan kuota/koneksi
+   tiap buka halaman, dan supaya kapan data "resmi" diperbarui
+   selalu jelas dan bisa dikontrol user, bukan tiba-tiba berubah
+   sendiri di tengah pemakaian. Satu-satunya pengecualian: kalau
+   BELUM ADA cache sama sekali, tetap fetch (blocking) supaya
+   halaman tidak kosong total di pemakaian pertama.
 
    CARA PAKAI:
    1. Sertakan SETELAH auth.js di setiap halaman:
@@ -113,11 +124,11 @@ function _cacheClear(key) {
  */
 async function cachedGetAllAccountsFull() {
   const cached = _cacheGetData(CACHE_KEYS.accounts);
-  if (cached) {
-    if (_cacheStale(CACHE_KEYS.accounts)) _refreshAccounts();
-    return cached;
-  }
-  // Belum ada cache — fetch sekarang (blocking pertama kali)
+  // Cache lama TETAP dipakai walau sudah "stale" -- TIDAK ada fetch diam-diam
+  // di background lagi. Data baru cuma masuk lewat syncAll() (tombol Sinkron)
+  // atau invalidate eksplisit setelah user sendiri mengubah data.
+  if (cached) return cached;
+  // Belum ada cache sama sekali — fetch sekarang (blocking pertama kali).
   return await _refreshAccounts();
 }
 
@@ -283,10 +294,7 @@ async function cachedGetFullProfile(username) {
 
 async function cachedGetJalurMasterList() {
   const cached = _cacheGetData(CACHE_KEYS.jalur);
-  if (cached) {
-    if (_cacheStale(CACHE_KEYS.jalur)) _refreshJalur();
-    return cached;
-  }
+  if (cached) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshJalur();
 }
 
@@ -304,7 +312,7 @@ async function cachedGetTowerMasterList(jalurId) {
   // Cache tower tanpa filter (semua); filter di client kalau perlu
   const cached = _cacheGetData(CACHE_KEYS.tower);
   if (cached) {
-    if (_cacheStale(CACHE_KEYS.tower)) _refreshTower();
+    // stale tetap dipakai, hanya syncAll() yang refresh
     return jalurId ? cached.filter(t => t.jalurId === jalurId) : cached;
   }
   const data = await _refreshTower();
@@ -324,7 +332,7 @@ async function _refreshTower() {
 async function cachedGetSpanMasterList(jalurId) {
   const cached = _cacheGetData(CACHE_KEYS.span);
   if (cached) {
-    if (_cacheStale(CACHE_KEYS.span)) _refreshSpan();
+    // stale tetap dipakai, hanya syncAll() yang refresh
     return jalurId ? cached.filter(s => s.jalurId === jalurId) : cached;
   }
   const data = await _refreshSpan();
@@ -343,10 +351,7 @@ async function _refreshSpan() {
 
 async function cachedGetAllBA() {
   const cached = _cacheGetData(CACHE_KEYS.ba);
-  if (cached) {
-    if (_cacheStale(CACHE_KEYS.ba)) _refreshBA();
-    return cached;
-  }
+  if (cached) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshBA();
 }
 
@@ -403,7 +408,7 @@ async function cachedGetAppSetting(key) {
   // Kalau ada tapi kosong, tetap cek ulang ke server dulu (BLOCKING, bukan
   // di background) supaya tidak "nyangkut" salah sampai TTL 30 menit habis.
   if (adaDiCache && !nilaiKosong) {
-    if (_cacheStale(CACHE_KEYS.settings)) _refreshSettings();
+    // stale tetap dipakai, hanya syncAll() yang refresh
     return cached[key];
   }
 
@@ -436,10 +441,7 @@ async function _refreshSettings() {
 async function cachedGetTegakanBySpan(spanId) {
   const key    = _spanTegakanKey(spanId);
   const cached = _cacheGetData(key);
-  if (cached !== null) {
-    if (_spanCacheStale(key)) _refreshTegakanBySpan(spanId); // refresh background
-    return cached;
-  }
+  if (cached !== null) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshTegakanBySpan(spanId);
 }
 
@@ -514,20 +516,14 @@ async function _refreshAllTegakanGrouped() {
  */
 async function cachedGetAllTegakan() {
   const cached = _cacheGetData(CACHE_KEYS.tegakanAll);
-  if (cached) {
-    if (_cacheStale(CACHE_KEYS.tegakanAll)) _refreshAllTegakanGrouped();
-    return cached;
-  }
+  if (cached) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshAllTegakanGrouped();
 }
 
 async function cachedGetCatatanBySpan(spanId) {
   const key    = _spanCatatanKey(spanId);
   const cached = _cacheGetData(key);
-  if (cached !== null) {
-    if (_spanCacheStale(key)) _refreshCatatanBySpan(spanId);
-    return cached;
-  }
+  if (cached !== null) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshCatatanBySpan(spanId);
 }
 

@@ -79,6 +79,13 @@ async function loginUser(username, password) {
         try {
             localStorage.setItem(LOGIN_CHECK_CACHE_KEY, JSON.stringify({ username: result.username, valid: true, ts: Date.now() }));
         } catch (e) { /* localStorage penuh, lewati cache */ }
+        // Tandai login baru (bukan sekadar pindah halaman dalam sesi yang sama).
+        // Dicek oleh dashboard.html untuk memunculkan pemberitahuan sinkronisasi
+        // wajib, karena data cache lama bisa sudah ketinggalan sejak sesi
+        // sebelumnya (logout otomatis 24 jam, atau login di perangkat lain).
+        try {
+            sessionStorage.setItem("srinaiJustLoggedIn", "1");
+        } catch (e) { /* sessionStorage tidak tersedia, lewati */ }
     }
 
     return result;
