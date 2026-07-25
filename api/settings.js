@@ -51,7 +51,7 @@
 
 const { sql } = require('../lib/db');
 const {
-  uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo,
+  uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo, listLargestDriveFiles,
   createResumableUploadSession, makeFilePublic,
 } = require('../lib/googleDrive');
 const { sendPushToAllUsers } = require('../lib/pushHelper');
@@ -849,6 +849,40 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Khusus admin -- angka ASLI database (tanpa dikali DISPLAY_SIZE_MULTIPLIER)
+    // + rincian ukuran per tabel. Dipakai admin-storage-db.html.
+    if (req.method === 'GET' && qStats === 'dbDetail') {
+      const { actor: dbActor } = req.query || {};
+      if (!(await assertIsAdmin(dbActor))) {
+        return res.status(403).json({ success: false, message: 'Khusus admin.' });
+      }
+      const totalRows = await sql`SELECT pg_database_size(current_database()) AS bytes`;
+      const realBytes = Number(totalRows[0]?.bytes || 0);
+      const realLimitBytes = DB_STORAGE_LIMIT_BYTES / DISPLAY_SIZE_MULTIPLIER;
+      const tableRows = await sql`
+        SELECT
+          relname AS table_name,
+          pg_total_relation_size(c.oid) AS bytes
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r' AND n.nspname = 'public'
+        ORDER BY bytes DESC
+      `;
+      return res.status(200).json({
+        success: true,
+        realBytes,
+        realMb: +(realBytes / (1024 * 1024)).toFixed(2),
+        realLimitBytes,
+        realLimitMb: +(realLimitBytes / (1024 * 1024)).toFixed(0),
+        realPercent: +Math.min(100, (realBytes / realLimitBytes) * 100).toFixed(2),
+        tables: tableRows.map(r => ({
+          name: r.table_name,
+          bytes: Number(r.bytes),
+          mb: +(Number(r.bytes) / (1024 * 1024)).toFixed(2),
+        })),
+      });
+    }
+
     if (req.method === 'GET' && qStats === 'drive') {
       const info = await getDriveStorageInfo();
       // Sama seperti DB: ukuran asli dikali 20x biar konsisten sama limit-nya.
@@ -860,6 +894,37 @@ module.exports = async (req, res) => {
         mb: +(bytes / (1024 * 1024)).toFixed(1),
         limitMb: +(DRIVE_STORAGE_LIMIT_BYTES / (1024 * 1024)).toFixed(0),
         percent: +percent.toFixed(1),
+      });
+    }
+
+    // Khusus admin -- angka ASLI Google Drive (tanpa dikali multiplier) +
+    // limit yang benar-benar dilaporkan Google (kalau ada) + daftar file
+    // terbesar. Dipakai admin-storage-drive.html.
+    if (req.method === 'GET' && qStats === 'driveDetail') {
+      const { actor: driveActor } = req.query || {};
+      if (!(await assertIsAdmin(driveActor))) {
+        return res.status(403).json({ success: false, message: 'Khusus admin.' });
+      }
+      const info = await getDriveStorageInfo();
+      const realLimitBytes = info.limitBytes != null ? info.limitBytes : (DRIVE_STORAGE_LIMIT_BYTES / DISPLAY_SIZE_MULTIPLIER);
+      let files = [];
+      let filesError = null;
+      try {
+        files = await listLargestDriveFiles(30);
+      } catch (e) {
+        filesError = e.message;
+      }
+      return res.status(200).json({
+        success: true,
+        realBytes: info.usageBytes,
+        realMb: +(info.usageBytes / (1024 * 1024)).toFixed(2),
+        usageInDriveBytes: info.usageInDriveBytes,
+        realLimitBytes,
+        realLimitMb: realLimitBytes ? +(realLimitBytes / (1024 * 1024)).toFixed(0) : null,
+        limitReportedByGoogle: info.limitBytes != null,
+        realPercent: realLimitBytes ? +Math.min(100, (info.usageBytes / realLimitBytes) * 100).toFixed(2) : null,
+        files: files.map(f => ({ ...f, mb: +(f.bytes / (1024 * 1024)).toFixed(2) })),
+        filesError,
       });
     }
 
