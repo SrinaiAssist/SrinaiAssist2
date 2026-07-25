@@ -87,6 +87,36 @@ body{
   opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:68;
 }
 .activity-scrim.open{opacity:1;pointer-events:auto;}
+
+/* Modal pemberitahuan wajib sinkron setelah login baru */
+.sync-notice-scrim{
+  position:fixed;inset:0;background:rgba(43,42,34,0.5);
+  opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:120;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.sync-notice-scrim.open{opacity:1;pointer-events:auto;}
+.sync-notice-card{
+  width:100%;max-width:360px;background:var(--paper);color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:18px;padding:22px 20px;
+  box-shadow:0 18px 40px rgba(43,42,34,0.35);
+  transform:translateY(12px);transition:transform .22s ease;
+}
+.sync-notice-scrim.open .sync-notice-card{transform:translateY(0);}
+.sync-notice-icon{
+  width:40px;height:40px;border-radius:50%;border:1.5px solid var(--route);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+}
+.sync-notice-icon svg{width:18px;height:18px;stroke:var(--route);}
+.sync-notice-title{font-family:'Bitter';font-weight:800;font-size:16.5px;margin-bottom:6px;}
+.sync-notice-body{font-size:13px;line-height:1.55;color:var(--ink-soft);margin-bottom:16px;}
+.sync-notice-body b{color:var(--ink);}
+.sync-notice-actions{display:flex;gap:8px;}
+.sync-notice-actions button{
+  flex:1;border-radius:12px;padding:11px 10px;font-size:13px;font-weight:700;
+  border:1.5px solid var(--ink);cursor:pointer;font-family:'Inter';
+}
+.sync-notice-later{background:var(--paper);color:var(--ink);}
+.sync-notice-now{background:var(--route);color:var(--paper);border-color:var(--route);}
 .activity-panel{
   position:absolute;top:76px;left:12px;right:12px;
   max-height:min(66vh,460px);overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -544,6 +574,22 @@ body{
   <!-- SIDEBAR (Admin/KLW) -->
   <div class="side-scrim" id="sideScrim" onclick="closeSidebar()"></div>
   <div class="activity-scrim" id="activityScrim" onclick="closeActivityPanel()"></div>
+
+  <div class="sync-notice-scrim" id="syncNoticeScrim">
+    <div class="sync-notice-card">
+      <div class="sync-notice-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9A9 9 0 0120.5 9"/><path d="M20.5 15A9 9 0 013.5 15"/></svg>
+      </div>
+      <div class="sync-notice-title">Sinkronkan data dulu, yuk</div>
+      <div class="sync-notice-body">
+        Sesi sebelumnya berakhir (logout otomatis / login ulang). Data di perangkat ini bisa saja bukan yang terbaru — <b id="syncNoticeLastSync">memeriksa waktu sinkron terakhir…</b> Tekan Sinkron Sekarang supaya data tower, span, tegakan, dan BA yang tampil selalu yang paling baru.
+      </div>
+      <div class="sync-notice-actions">
+        <button type="button" class="sync-notice-later" onclick="dismissSyncNotice()">Nanti saja</button>
+        <button type="button" class="sync-notice-now" onclick="syncNowFromNotice()">Sinkron Sekarang</button>
+      </div>
+    </div>
+  </div>
   <div class="activity-panel" id="activityPanel">
     <div class="activity-panel-head">
       <span>Aktivitas Terbaru</span>
@@ -923,6 +969,8 @@ async function initPage(){
     document.getElementById("brandMark").innerHTML = `<img src="${savedBrandLogo}" alt="Logo">`;
   }
 
+  checkSyncNoticeAfterLogin();
+
   updateDatetime();
   setInterval(updateDatetime, 1000);
 
@@ -1166,6 +1214,36 @@ function playDashboardOpenChime(){
 }
 
 initPage();
+
+/* ─── Pemberitahuan wajib sinkron setelah login baru ──────────────────
+   Dipicu hanya sekali per login baru (flag di sessionStorage diset oleh
+   loginUser() di auth.js), bukan tiap kali pindah halaman dalam sesi yang
+   sama. Cache lama sengaja tidak lagi di-refresh otomatis di background
+   (lihat js/sync.js) supaya user yang sadar kapan datanya diperbarui --
+   jadi begitu login (termasuk setelah logout otomatis 24 jam), user perlu
+   diberitahu untuk menyinkronkan sendiri lewat tombol di sini. */
+function checkSyncNoticeAfterLogin(){
+  let justLoggedIn = false;
+  try { justLoggedIn = sessionStorage.getItem("srinaiJustLoggedIn") === "1"; } catch(e) {}
+  if(!justLoggedIn) return;
+  try { sessionStorage.removeItem("srinaiJustLoggedIn"); } catch(e) {}
+
+  const lastSyncEl = document.getElementById("syncNoticeLastSync");
+  if(lastSyncEl && typeof getLastSyncLabel === "function"){
+    const label = getLastSyncLabel(); // ex: "Disinkron 3 jam lalu" / "Belum pernah disinkron"
+    lastSyncEl.textContent = label.charAt(0).toLowerCase() + label.slice(1) + ".";
+  }
+  document.getElementById("syncNoticeScrim").classList.add("open");
+}
+
+function dismissSyncNotice(){
+  document.getElementById("syncNoticeScrim").classList.remove("open");
+}
+
+async function syncNowFromNotice(){
+  dismissSyncNotice();
+  await doSync();
+}
 
 async function doSync(){
   const btn    = document.getElementById("syncBtn");
