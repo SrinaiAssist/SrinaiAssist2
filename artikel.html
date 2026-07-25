@@ -71,6 +71,7 @@ body{
 .mini-btn{flex:1;padding:8px;border:none;border-radius:9px;font-weight:700;font-size:11px;cursor:pointer;}
 .mini-btn.edit{background:rgba(74,142,245,0.15);color:var(--blue);}
 .mini-btn.del{background:var(--red-bg);color:var(--red);}
+.mini-btn.share{background:rgba(56,191,160,0.15);color:var(--teal);}
 
 .empty-state{position:relative;z-index:2;margin:40px 20px;text-align:center;color:var(--ink-3);font-size:12.5px;}
 
@@ -208,14 +209,28 @@ function renderArticles(articles){
         <div class="article-title">${escapeHtml(a.title)}</div>
         <div class="article-meta">${escapeHtml(a.createdBy)} · ${formatTanggal(a.createdAt)}</div>
         <div class="article-snippet">${escapeHtml(a.content)}</div>
-        ${admin ? `
-          <div class="article-admin-row" onclick="event.stopPropagation()">
+        <div class="article-admin-row" onclick="event.stopPropagation()">
+          <button class="mini-btn share" onclick="shareArticle('${a.id}', ${JSON.stringify(a.title)})">🔗 Salin Link Publik</button>
+          ${admin ? `
             <button class="mini-btn edit" onclick="openForm('${a.id}')">Edit</button>
-            <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>
-          </div>` : ""}
+            <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>` : ""}
+        </div>
       </div>`;
     list.appendChild(card);
   });
+}
+
+function shareArticle(id, title){
+  const url = `${location.origin}/artikel-publik.html?id=${encodeURIComponent(id)}`;
+  if (navigator.share) {
+    navigator.share({ title: title || "Artikel SRINAI ASSIST", url }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url)
+      .then(() => alert("Link publik disalin:\n" + url))
+      .catch(() => prompt("Salin link publik ini:", url));
+  } else {
+    prompt("Salin link publik ini:", url);
+  }
 }
 
 function formatTanggal(iso){
