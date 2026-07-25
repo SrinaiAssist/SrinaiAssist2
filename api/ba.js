@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
           ${pdfToSave}, ${JSON.stringify(fotoToSave)}, ${fileName || null}, ${sumber || 'manual'}, ${uploader}
         )
       `;
-      return res.status(200).json({ success: true, id, driveWarning: driveWarnings[0] || null });
+      return res.status(200).json({ success: true, id, pdf: pdfToSave, driveWarning: driveWarnings[0] || null });
     }
 
     // PUT /api/ba  — edit metadata BA (judul, pemilik, fileName, pdf, foto)
