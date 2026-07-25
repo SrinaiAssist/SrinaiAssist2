@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<title id="pageTitle">Artikel & Berita - SRINAI ASSIST</title>
+<meta id="metaDesc" name="description" content="Artikel & Berita publik dari SRINAI ASSIST.">
+<meta id="ogTitle" property="og:title" content="Artikel & Berita - SRINAI ASSIST">
+<meta id="ogDesc" property="og:description" content="Artikel & Berita publik dari SRINAI ASSIST.">
+<meta id="ogImage" property="og:image" content="/assets/icon.png">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#080F1E; --bg-card:#0D1830; --bg-card2:#111E35;
+  --border:rgba(255,255,255,.09); --violet:#7B5CFA; --blue:#4A8EF5; --teal:#38BFA0;
+  --ink:#FFFFFF; --ink-2:rgba(255,255,255,.65); --ink-3:rgba(255,255,255,.38);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg-deep);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.container{max-width:640px;margin:auto;min-height:100vh;padding:0 20px 60px;}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:24px 0 6px;}
+.topbar .logo{font-size:20px;}
+.topbar h1{font-size:17px;font-weight:800;}
+.topbar p{font-size:11.5px;color:var(--ink-3);margin-top:2px;}
+
+/* ===== List ===== */
+.article-list{margin-top:18px;display:flex;flex-direction:column;gap:14px;}
+.article-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  box-shadow:0 10px 24px rgba(0,0,0,.28);cursor:pointer;text-decoration:none;color:inherit;display:block;}
+.article-thumb{width:100%;height:170px;object-fit:cover;background:var(--bg-card2);display:block;}
+.article-body{padding:14px 16px;}
+.article-title{font-size:15.5px;font-weight:800;line-height:1.35;margin-bottom:6px;}
+.article-meta{font-size:11px;color:var(--ink-3);margin-bottom:7px;}
+.article-snippet{font-size:12.5px;color:var(--ink-2);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* ===== Detail ===== */
+.back-link{display:inline-flex;align-items:center;gap:6px;margin-top:18px;color:var(--ink-2);
+  font-size:12.5px;font-weight:700;text-decoration:none;}
+.article-wrap{margin-top:16px;}
+.article-detail-title{font-size:21px;font-weight:800;line-height:1.35;margin-bottom:8px;}
+.article-detail-meta{font-size:12px;color:var(--ink-3);margin-bottom:16px;}
+.article-media{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+.article-media img,.article-media video{width:100%;border-radius:14px;background:#000;display:block;}
+.article-media .file-link{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bg-card2);
+  border:1px solid var(--border);border-radius:12px;color:var(--blue);font-size:13px;font-weight:700;text-decoration:none;}
+.article-detail-content{font-size:14.5px;line-height:1.8;color:var(--ink-2);white-space:pre-wrap;}
+
+.state-msg{margin:60px 4px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.6;}
+.state-msg .icon{font-size:30px;margin-bottom:10px;}
+
+.footer-note{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--ink-3);text-align:center;}
+.footer-note b{color:var(--ink-2);}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <div class="logo">📰</div>
+    <div>
+      <h1>Artikel &amp; Berita</h1>
+      <p>SRINAI ASSIST — inspeksi jaringan transmisi PLN</p>
+    </div>
+  </div>
+
+  <div id="listView">
+    <div id="loadingList" class="state-msg"><div class="icon">⏳</div>Memuat artikel...</div>
+    <div id="emptyList" class="state-msg" style="display:none;"><div class="icon">📭</div>Belum ada artikel.</div>
+    <div class="article-list" id="articleList"></div>
+  </div>
+
+  <div id="detailView" style="display:none;">
+    <a href="artikel-publik.html" class="back-link">← Semua artikel</a>
+    <div id="loadingDetail" class="state-msg"><div class="icon">⏳</div>Memuat artikel...</div>
+    <div id="notFoundDetail" class="state-msg" style="display:none;"><div class="icon">🔍</div>Artikel tidak ditemukan, sudah dihapus, atau belum dipublikasikan.</div>
+    <div class="article-wrap" id="articleWrap" style="display:none;">
+      <div class="article-detail-title" id="articleTitle"></div>
+      <div class="article-detail-meta" id="articleMeta"></div>
+      <div class="article-media" id="articleMedia"></div>
+      <div class="article-detail-content" id="articleContent"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">Halaman publik <b>SRINAI ASSIST</b> — hanya menampilkan artikel yang sudah dipublikasikan.</div>
+</div>
+
+<script>
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+function formatTanggal(iso){
+  try { return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}); }
+  catch { return ""; }
+}
+function snippetOf(s){ return (s||"").slice(0,150); }
+
+function setMeta({title, desc, image}){
+  document.title = title;
+  document.getElementById("pageTitle").textContent = title;
+  document.getElementById("metaDesc").setAttribute("content", desc);
+  document.getElementById("ogTitle").setAttribute("content", title);
+  document.getElementById("ogDesc").setAttribute("content", desc);
+  if (image) document.getElementById("ogImage").setAttribute("content", image);
+}
+
+async function loadList(){
+  const loading = document.getElementById("loadingList");
+  const empty = document.getElementById("emptyList");
+  const list = document.getElementById("articleList");
+  try {
+    const res = await fetch("/api/settings?action=articleList");
+    const data = await res.json();
+    loading.style.display = "none";
+    const articles = (data && data.success) ? data.articles : [];
+    if (!articles || articles.length === 0) { empty.style.display = "block"; return; }
+
+    articles.forEach(a => {
+      const firstImage = (a.media || []).find(m => m.type === "image");
+      const card = document.createElement("a");
+      card.className = "article-card";
+      card.href = `artikel-publik.html?id=${encodeURIComponent(a.id)}`;
+      card.innerHTML = `
+        ${firstImage ? `<img class="article-thumb" src="${firstImage.url}" loading="lazy">` : ""}
+        <div class="article-body">
+          <div class="article-title">${escapeHtml(a.title)}</div>
+          <div class="article-meta">${escapeHtml(a.createdBy)} · ${formatTanggal(a.createdAt)}</div>
+          <div class="article-snippet">${escapeHtml(a.content)}</div>
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch (e) {
+    loading.style.display = "none";
+    empty.style.display = "block";
+  }
+}
+
+async function loadDetail(id){
+  const loading = document.getElementById("loadingDetail");
+  const notFound = document.getElementById("notFoundDetail");
+  const wrap = document.getElementById("articleWrap");
+  try {
+    const res = await fetch(`/api/settings?action=articleGet&id=${encodeURIComponent(id)}`);
+    const data = await res.json();
+    loading.style.display = "none";
+    if (!data || !data.success || !data.article) { notFound.style.display = "block"; return; }
+
+    const a = data.article;
+    document.getElementById("articleTitle").textContent = a.title;
+    document.getElementById("articleMeta").textContent = `${a.createdBy} · ${formatTanggal(a.createdAt)}`;
+    document.getElementById("articleContent").textContent = a.content;
+
+    const mediaWrap = document.getElementById("articleMedia");
+    mediaWrap.innerHTML = "";
+    (a.media || []).forEach(m => {
+      if (m.type === "image") mediaWrap.innerHTML += `<img src="${m.url}" loading="lazy">`;
+      else if (m.type === "video") mediaWrap.innerHTML += `<video src="${m.url}" controls></video>`;
+      else mediaWrap.innerHTML += `<a class="file-link" href="${m.downloadUrl}" target="_blank">📄 ${escapeHtml(m.name || "Unduh file")}</a>`;
+    });
+
+    wrap.style.display = "block";
+    const firstImage = (a.media || []).find(m => m.type === "image");
+    setMeta({ title: `${a.title} - SRINAI ASSIST`, desc: snippetOf(a.content), image: firstImage ? firstImage.url : null });
+  } catch (e) {
+    loading.style.display = "none";
+    notFound.style.display = "block";
+  }
+}
+
+const id = new URLSearchParams(location.search).get("id");
+if (id) {
+  document.getElementById("listView").style.display = "none";
+  document.getElementById("detailView").style.display = "block";
+  loadDetail(id);
+} else {
+  loadList();
+}
+</script>
+</body>
+</html>
