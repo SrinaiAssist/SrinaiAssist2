@@ -82,7 +82,7 @@ async function loginUser(username, password) {
         // Tandai login baru (bukan sekadar pindah halaman dalam sesi yang sama).
         // Dicek oleh dashboard.html untuk memunculkan pemberitahuan sinkronisasi
         // wajib, karena data cache lama bisa sudah ketinggalan sejak sesi
-        // sebelumnya (logout otomatis 24 jam, atau login di perangkat lain).
+        // sebelumnya (logout otomatis jam 6 pagi, atau login di perangkat lain).
         try {
             sessionStorage.setItem("srinaiJustLoggedIn", "1");
         } catch (e) { /* sessionStorage tidak tersedia, lewati */ }
@@ -157,18 +157,33 @@ function getLastLoginUser() {
 const LOGIN_CHECK_CACHE_KEY = "srinai_cache_login_check";
 const LOGIN_CHECK_TTL_MS = 2 * 60 * 1000; // 2 menit
 
-// Logout otomatis 24 jam sekali, dihitung dari waktu login ("loginTime",
-// sudah disimpan di localStorage sejak loginUser()). Dicek di isLoggedIn()
-// SEBELUM cache 2-menit di atas, supaya sesi yang sudah lewat 24 jam tidak
-// "diselamatkan" oleh cache tersebut (yang tujuannya cuma buat status akun
-// aktif/nonaktif dari server, bukan buat expiry waktu). Dicek juga secara
-// berkala lewat startSessionExpiryWatcher() di bawah, buat tab yang
-// dibiarkan terbuka lebih dari 24 jam tanpa pindah halaman.
-const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 jam
+// Logout otomatis tiap jam 6 pagi (bukan 24 jam sejak waktu login lagi).
+// Begitu jam dinding lewat pukul 06:00 setelah waktu login ("loginTime",
+// sudah disimpan di localStorage sejak loginUser()), sesi dianggap
+// kedaluwarsa. Dicek di isLoggedIn() SEBELUM cache 2-menit di atas, supaya
+// sesi yang sudah lewat jam 6 pagi tidak "diselamatkan" oleh cache
+// tersebut (yang tujuannya cuma buat status akun aktif/nonaktif dari
+// server, bukan buat expiry waktu). Dicek juga secara berkala lewat
+// startSessionExpiryWatcher() di bawah, buat tab yang dibiarkan terbuka
+// terus tanpa pindah halaman.
+const SESSION_EXPIRY_HOUR = 6; // jam 06:00 waktu lokal perangkat
+
+// Mengembalikan timestamp (ms) jam 06:00 TERAKHIR yang sudah lewat,
+// dihitung dari waktu "now". Kalau sekarang masih sebelum jam 6 pagi hari
+// ini, berarti jam 6 terakhir jatuh di hari kemarin.
+function getLastSessionExpiryTime(now) {
+    const d = new Date(now);
+    d.setHours(SESSION_EXPIRY_HOUR, 0, 0, 0);
+    if (d.getTime() > now.getTime()) {
+        d.setDate(d.getDate() - 1);
+    }
+    return d.getTime();
+}
 
 function isSessionExpired() {
     const loginTime = parseInt(localStorage.getItem("loginTime") || "0", 10);
-    return !!loginTime && (Date.now() - loginTime) >= SESSION_MAX_AGE_MS;
+    if (!loginTime) return false;
+    return loginTime < getLastSessionExpiryTime(new Date());
 }
 
 async function isLoggedIn() {
@@ -1122,13 +1137,13 @@ if (document.readyState === "loading") {
     startNativeLocationTracking();
 }
 
-/* ─── Watcher sesi 24 jam ────────────────────────────────────────────
+/* ─── Watcher sesi (logout otomatis jam 6 pagi) ─────────────────────
    Guard isLoggedIn() di atas sudah menangani logout otomatis begitu user
-   PINDAH halaman setelah 24 jam. Tambahan ini menangani kasus tab yang
-   dibiarkan terbuka terus tanpa navigasi -- dicek tiap 1 menit (sama
-   interval-nya dengan heartbeat lokasi), begitu kedaluwarsa langsung
-   logout + redirect ke index.html. Tidak jalan di halaman login itu
-   sendiri (hindari redirect loop) atau kalau memang belum login. */
+   PINDAH halaman setelah lewat jam 6 pagi. Tambahan ini menangani kasus
+   tab yang dibiarkan terbuka terus tanpa navigasi -- dicek tiap 1 menit
+   (sama interval-nya dengan heartbeat lokasi), begitu kedaluwarsa
+   langsung logout + redirect ke index.html. Tidak jalan di halaman login
+   itu sendiri (hindari redirect loop) atau kalau memang belum login. */
 const SESSION_EXPIRY_CHECK_INTERVAL_MS = 60 * 1000; // 1 menit
 
 function checkSessionExpiryNow() {
