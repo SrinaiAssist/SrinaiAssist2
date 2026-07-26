@@ -26,6 +26,19 @@
 //        redup. Menutup app saja (tanpa logout) TIDAK memicu ini -- titik
 //        harus tetap terlihat normal sampai user benar-benar logout.
 //
+// GET    /api/settings?action=telegramLinkStatus&username=..
+//        -> lihat catatan lengkap di dekat handleTelegramLinkStatus di bawah.
+//
+// GET    /api/settings?action=baAutoGet&username=..
+//        -> { enabled, slots:[{slotIndex,tanggal,spanId,petugasUsername,tegakanIds}, ...4] }
+//        dipanggil halaman Pengaturan (kartu "BA Otomatis via Telegram").
+// POST   /api/settings?action=baAutoToggle  body:{ username, enabled }
+//        -> upsert ba_auto_settings.enabled
+// POST   /api/settings?action=baAutoSlotSave  body:{ username, slotIndex,
+//        tanggal, spanId, petugasUsername?, tegakanIds }
+//        -> upsert SATU baris ba_auto_slot (slotIndex 1-4). tanggal null
+//        berarti slot itu dikosongkan/nonaktif.
+//
 // (Digabung di sini, bukan file /api terpisah, supaya tidak menambah slot
 // serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
 // dan project ini sudah pas di batas itu.)
@@ -627,6 +640,97 @@ async function handleTelegramLinkStatus(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────
+// SLOT BA OTOMATIS (halaman Pengaturan -- kartu "BA Otomatis via Telegram")
+// Tabel: ba_auto_settings (toggle on/off), ba_auto_slot (4 slot/username).
+// Lihat scripts/schema.sql / migration-ba-otomatis-srinaiassist2.sql.
+//
+// GET /api/settings?action=baAutoGet&username=..
+async function handleBaAutoGet(req, res) {
+  const { username } = req.query || {};
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+
+  const [settingsRows, slotRows] = await Promise.all([
+    sql`SELECT enabled FROM ba_auto_settings WHERE username = ${username}`,
+    sql`
+      SELECT slot_index AS "slotIndex", tanggal, span_id AS "spanId",
+             petugas_username AS "petugasUsername", tegakan_ids AS "tegakanIds"
+      FROM ba_auto_slot
+      WHERE username = ${username}
+      ORDER BY slot_index
+    `,
+  ]);
+
+  // Selalu kembalikan 4 slot (1-4) -- slot yang belum pernah disimpan
+  // ditampilkan kosong, supaya frontend tidak perlu cek "slot ke berapa
+  // saja yang ada barisnya di DB".
+  const byIndex = {};
+  slotRows.forEach((r) => { byIndex[r.slotIndex] = r; });
+  const slots = [1, 2, 3, 4].map((i) => byIndex[i] || {
+    slotIndex: i, tanggal: null, spanId: null, petugasUsername: null, tegakanIds: [],
+  });
+
+  return res.status(200).json({
+    success: true,
+    enabled: settingsRows.length > 0 ? settingsRows[0].enabled : false,
+    slots,
+  });
+}
+
+// POST /api/settings?action=baAutoToggle  body:{ username, enabled }
+async function handleBaAutoToggle(req, res) {
+  const { username, enabled } = req.body || {};
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+  await sql`
+    INSERT INTO ba_auto_settings (username, enabled)
+    VALUES (${username}, ${!!enabled})
+    ON CONFLICT (username) DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now()
+  `;
+  return res.status(200).json({ success: true });
+}
+
+// POST /api/settings?action=baAutoSlotSave
+// body: { username, slotIndex, tanggal, spanId, petugasUsername?, tegakanIds }
+async function handleBaAutoSlotSave(req, res) {
+  const { username, slotIndex, tanggal, spanId, petugasUsername, tegakanIds } = req.body || {};
+
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+  const idx = Number(slotIndex);
+  if (!Number.isInteger(idx) || idx < 1 || idx > 4) {
+    return res.status(400).json({ success: false, message: 'slotIndex harus angka 1-4.' });
+  }
+  if (tanggal !== null && tanggal !== undefined) {
+    const t = Number(tanggal);
+    if (!Number.isInteger(t) || t < 1 || t > 31) {
+      return res.status(400).json({ success: false, message: 'tanggal harus angka 1-31 (atau kosongkan slot).' });
+    }
+  }
+  if (tegakanIds !== undefined && !Array.isArray(tegakanIds)) {
+    return res.status(400).json({ success: false, message: 'tegakanIds harus berupa array.' });
+  }
+
+  await sql`
+    INSERT INTO ba_auto_slot (username, slot_index, tanggal, span_id, petugas_username, tegakan_ids)
+    VALUES (
+      ${username}, ${idx}, ${tanggal ?? null}, ${spanId ?? null},
+      ${petugasUsername || null}, ${JSON.stringify(tegakanIds || [])}
+    )
+    ON CONFLICT (username, slot_index) DO UPDATE SET
+      tanggal = EXCLUDED.tanggal,
+      span_id = EXCLUDED.span_id,
+      petugas_username = EXCLUDED.petugas_username,
+      tegakan_ids = EXCLUDED.tegakan_ids,
+      updated_at = now()
+  `;
+  return res.status(200).json({ success: true });
+}
+
+// ─────────────────────────────────────────────────────────
 // LOKASI LIVE PETUGAS (fitur peta.html)
 // POST /api/settings?action=location  body:{ username, lat, lng, accuracy? }
 //      -> upsert key "loc:<username>", numpang tabel app_settings yang
@@ -953,6 +1057,30 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleTelegramLinkStatus(req, res);
+    }
+
+    if (qAction === 'baAutoGet') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAutoGet(req, res);
+    }
+
+    if (qAction === 'baAutoToggle') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAutoToggle(req, res);
+    }
+
+    if (qAction === 'baAutoSlotSave') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAutoSlotSave(req, res);
     }
 
     if (qAction === 'articleList') {
