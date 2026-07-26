@@ -49,6 +49,7 @@
 // Kalau kredensial Drive belum diset / upload gagal, fallback: simpan
 // base64 apa adanya seperti semula supaya fitur tetap jalan.
 
+const crypto = require('crypto');
 const { sql } = require('../lib/db');
 const {
   uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo, listLargestDriveFiles,
@@ -470,6 +471,110 @@ async function handleBotNotifyCron(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────
+// LINK TELEGRAM (fitur BA Otomatis -- profile.html "Hubungkan Telegram")
+// Tabel telegram_link_token: lihat migration-ba-otomatis-srinaiassist2.sql
+//
+// POST /api/settings?action=telegramLinkToken  body:{ username }
+//      -> generate token sekali pakai (berlaku 10 menit), dipanggil saat
+//         user tap tombol "Hubungkan Telegram" di profile.html. Frontend
+//         lalu buka deep link https://t.me/<BOT>?start=<token> supaya user
+//         tinggal tap "kirim" sekali di Telegram.
+//
+// POST /api/settings?action=telegramLinkValidate  body:{ token }
+//      -> DIPANGGIL OLEH BOTLAB (bukan browser), saat webhook Botlab
+//         terima pesan "/start <token>". Diproteksi header x-bot-key
+//         (SRINAI_BOT_KEY, sama seperti lib/bot-auth.js) -- BEDA dari
+//         isBotRequestValid() yang cuma "periksa kalau ada": endpoint ini
+//         WAJIB ada header & harus benar, karena hasilnya (username asli
+//         pemilik token) sensitif. Kalau valid & belum kedaluwarsa/dipakai,
+//         token ditandai used_at supaya tidak bisa dipakai dua kali, lalu
+//         username-nya dikembalikan ke Botlab buat ditulis ke
+//         bot_authorized_users di sisi sana.
+//
+// Env var TAMBAHAN yang perlu diisi di Vercel project SrinaiAssist2:
+//   TELEGRAM_BOT_USERNAME -> username bot Botlab tanpa "@", mis. "SrinaiBot"
+//                            (dipakai bikin deep link, BUKAN token bot --
+//                            token bot Telegram asli cuma ada di Botlab)
+function isBotlabRequestValid(req) {
+  const key = req.headers['x-bot-key'];
+  if (!process.env.SRINAI_BOT_KEY) {
+    console.warn('SRINAI_BOT_KEY belum diset -- endpoint telegramLinkValidate akan selalu ditolak.');
+    return false;
+  }
+  return !!key && key === process.env.SRINAI_BOT_KEY;
+}
+
+async function handleTelegramLinkToken(req, res) {
+  const { username } = req.body || {};
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+
+  const acc = await sql`SELECT 1 FROM accounts WHERE username = ${username}`;
+  if (acc.length === 0) {
+    return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
+  }
+
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+  if (!botUsername) {
+    return res.status(500).json({
+      success: false,
+      message: 'TELEGRAM_BOT_USERNAME belum diset di environment variables SrinaiAssist2.',
+    });
+  }
+
+  // Token lama yang belum kepakai punya user ini dibiarkan saja (kadaluwarsa
+  // sendiri lewat expires_at) -- tidak perlu dihapus, cuma numpuk beberapa
+  // baris tak terpakai yang ringan buat DB.
+  const token = crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 menit
+
+  await sql`
+    INSERT INTO telegram_link_token (token, username, expires_at)
+    VALUES (${token}, ${username}, ${expiresAt.toISOString()})
+  `;
+
+  return res.status(200).json({
+    success: true,
+    token,
+    expiresAt: expiresAt.toISOString(),
+    deepLink: `https://t.me/${botUsername}?start=${token}`,
+  });
+}
+
+async function handleTelegramLinkValidate(req, res) {
+  if (!isBotlabRequestValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const { token } = req.body || {};
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'token wajib diisi.' });
+  }
+
+  const rows = await sql`
+    SELECT username, expires_at AS "expiresAt", used_at AS "usedAt"
+    FROM telegram_link_token
+    WHERE token = ${token}
+  `;
+  if (rows.length === 0) {
+    return res.status(404).json({ success: false, message: 'Token tidak ditemukan.' });
+  }
+
+  const row = rows[0];
+  if (row.usedAt) {
+    return res.status(410).json({ success: false, message: 'Token sudah pernah dipakai.' });
+  }
+  if (new Date(row.expiresAt).getTime() < Date.now()) {
+    return res.status(410).json({ success: false, message: 'Token sudah kedaluwarsa, minta link baru dari halaman Profil.' });
+  }
+
+  await sql`UPDATE telegram_link_token SET used_at = now() WHERE token = ${token}`;
+
+  return res.status(200).json({ success: true, username: row.username });
+}
+
+// ─────────────────────────────────────────────────────────
 // LOKASI LIVE PETUGAS (fitur peta.html)
 // POST /api/settings?action=location  body:{ username, lat, lng, accuracy? }
 //      -> upsert key "loc:<username>", numpang tabel app_settings yang
@@ -772,6 +877,22 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBotNotifyCron(req, res);
+    }
+
+    if (qAction === 'telegramLinkToken') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleTelegramLinkToken(req, res);
+    }
+
+    if (qAction === 'telegramLinkValidate') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleTelegramLinkValidate(req, res);
     }
 
     if (qAction === 'articleList') {
