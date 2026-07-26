@@ -574,6 +574,58 @@ async function handleTelegramLinkValidate(req, res) {
   return res.status(200).json({ success: true, username: row.username });
 }
 
+// GET /api/settings?action=telegramLinkStatus&username=..
+//     -> status koneksi Telegram akun ini (dipanggil halaman Profil buat
+//        nampilin "Terhubung sebagai @xxx" atau tombol "Hubungkan Telegram").
+// Proxy server-to-server ke GET /api/commands milik Botlab (action
+// telegramLinkStatus, numpang endpoint yang sudah ada -- lihat catatan di
+// api/commands.js Botlab), sama arah & auth-nya dengan handleBotCommandsCatalog
+// di atas (BOTLAB_API_URL + BOTLAB_ADMIN_KEY -> header x-botlab-key).
+async function handleTelegramLinkStatus(req, res) {
+  const { username } = req.query || {};
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+
+  if (!botlabUrl || !botlabKey) {
+    return res.status(500).json({
+      success: false,
+      message: 'BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.',
+    });
+  }
+
+  try {
+    const upstream = await fetch(
+      `${botlabUrl.replace(/\/+$/, '')}/api/commands?action=telegramLinkStatus&username=${encodeURIComponent(username)}`,
+      { method: 'GET', headers: { 'x-botlab-key': botlabKey } }
+    );
+    const data = await upstream.json();
+
+    if (!upstream.ok || !data.success) {
+      return res.status(upstream.status || 502).json({
+        success: false,
+        message: data.message || 'Botlab menolak permintaan (cek BOTLAB_ADMIN_KEY cocok di kedua project).',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      connected: !!data.connected,
+      chatId: data.chatId || null,
+      telegramUsername: data.telegramUsername || null,
+    });
+  } catch (err) {
+    console.error('Gagal ambil status link Telegram dari Botlab:', err);
+    return res.status(502).json({
+      success: false,
+      message: 'Tidak bisa menghubungi Botlab: ' + err.message,
+    });
+  }
+}
+
 // ─────────────────────────────────────────────────────────
 // LOKASI LIVE PETUGAS (fitur peta.html)
 // POST /api/settings?action=location  body:{ username, lat, lng, accuracy? }
@@ -893,6 +945,14 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleTelegramLinkValidate(req, res);
+    }
+
+    if (qAction === 'telegramLinkStatus') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleTelegramLinkStatus(req, res);
     }
 
     if (qAction === 'articleList') {
