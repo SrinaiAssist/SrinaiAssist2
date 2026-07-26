@@ -189,6 +189,64 @@ select.field-input:focus{border-color:rgba(74,142,245,0.4);}
 /* Version */
 .version-box{text-align:center;color:var(--ink-3);line-height:1.7;font-size:13px;padding:4px 0;}
 .version-box b{color:var(--gold);font-size:15px;display:block;margin-bottom:2px;}
+
+/* BA Otomatis via Telegram */
+.tele-status{
+  font-size:12.5px;border-radius:12px;padding:12px 14px;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;font-weight:600;
+}
+.tele-status.connected{background:var(--green-bg);color:var(--green);}
+.tele-status.disconnected{background:var(--bg-card2);color:var(--ink-3);}
+.tele-status .tele-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tele-status.connected .tele-dot{background:var(--green);}
+.tele-status.disconnected .tele-dot{background:var(--ink-3);}
+
+.baauto-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:2px 0 12px;
+}
+.baauto-toggle-label{font-size:13px;font-weight:700;color:var(--ink);}
+.switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.switch-slider{
+  position:absolute;cursor:pointer;inset:0;background:var(--bg-card2);
+  border:1px solid var(--border);border-radius:24px;transition:.2s;
+}
+.switch-slider::before{
+  content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;
+  background:var(--ink-3);border-radius:50%;transition:.2s;
+}
+.switch input:checked + .switch-slider{background:var(--green-bg);border-color:var(--green);}
+.switch input:checked + .switch-slider::before{transform:translateX(18px);background:var(--green);}
+
+.slot-card{
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:14px;margin-bottom:10px;overflow:hidden;
+}
+.slot-summary{
+  padding:12px 14px;font-size:12.5px;font-weight:700;color:var(--ink);
+  cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.slot-summary::-webkit-details-marker{display:none;}
+.slot-summary-sub{font-size:11px;color:var(--ink-3);font-weight:600;margin-top:2px;}
+.slot-summary-chevron{transition:transform .2s;flex-shrink:0;color:var(--ink-3);}
+details[open] .slot-summary-chevron{transform:rotate(90deg);}
+.slot-body{padding:0 14px 14px;}
+.slot-field{margin-bottom:10px;}
+.slot-field label{display:block;font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;}
+.tegakan-checklist{
+  max-height:180px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;padding:4px 10px;
+}
+.tegakan-check-row{
+  display:flex;align-items:center;gap:8px;padding:7px 0;font-size:12.5px;color:var(--ink-2);
+  border-bottom:1px solid var(--border);
+}
+.tegakan-check-row:last-child{border-bottom:none;}
+.tegakan-check-row input{width:16px;height:16px;accent-color:var(--blue);flex-shrink:0;}
+.tegakan-check-empty{font-size:12px;color:var(--ink-3);padding:10px 0;text-align:center;}
+.slot-actions{display:flex;gap:8px;margin-top:4px;}
+.slot-actions .btn{margin-top:0;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -343,6 +401,30 @@ select.field-input:focus{border-color:rgba(74,142,245,0.4);}
       </div>
     </div>
 
+    <!-- BA Otomatis via Telegram (semua role kecuali Monitor) -->
+    <div id="baAutoSection" class="hidden">
+      <div class="card">
+        <div class="card-title teal">📲 BA Otomatis via Telegram</div>
+        <div class="card-desc">Jadwalkan sampai 4 slot pengiriman BA mingguan. Tiap slot yang aktif akan otomatis dibuatkan BA-nya lalu dikirim sebagai JPEG ke Telegram kamu, di tanggal yang dipilih.</div>
+
+        <div id="teleStatus" class="tele-status disconnected" style="margin-bottom:14px;">
+          <span class="tele-dot"></span>
+          <span id="teleStatusText">Memeriksa status Telegram...</span>
+        </div>
+        <button id="teleConnectBtn" class="btn btn-primary" onclick="connectTelegramFromSettings()" style="margin-bottom:16px;">✈️ Hubungkan Telegram</button>
+
+        <div class="baauto-toggle-row">
+          <span class="baauto-toggle-label">Aktifkan BA Otomatis</span>
+          <label class="switch">
+            <input type="checkbox" id="baAutoEnabledToggle" onchange="toggleBaAuto(this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div id="baAutoSlots"><div class="tegakan-check-empty">Memuat slot...</div></div>
+      </div>
+    </div>
+
     <!-- Semua Role -->
     <div class="card">
       <div class="card-title teal">ℹ️ Informasi Aplikasi</div>
@@ -376,6 +458,11 @@ async function initPage(){
   else if(isKLW()) document.getElementById("klwSection").classList.remove("hidden");
   else if(isMonitor()) document.getElementById("monitorSection").classList.remove("hidden");
   else document.getElementById("lwSection").classList.remove("hidden");
+
+  if(!isMonitor()){
+    document.getElementById("baAutoSection").classList.remove("hidden");
+    initBaAuto(); // async, sengaja tidak di-await supaya sisa initPage() tidak nunggu
+  }
 
   const noticeText = document.getElementById("noticeText");
   if(noticeText){
@@ -525,6 +612,387 @@ function doLogout(){
   if(!confirm("Keluar dari akun sekarang?")) return;
   logoutUser();
   location.href="index.html";
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BA OTOMATIS VIA TELEGRAM
+   Tabel: ba_auto_settings (toggle), ba_auto_slot (4 slot/username).
+   Backend: api/settings.js action=baAutoGet/baAutoToggle/baAutoSlotSave
+            (SrinaiAssist2) + action=telegramLinkToken/telegramLinkStatus
+            (proxy ke Botlab, lihat api/commands.js Botlab).
+   spanId DISENGAJA diperlakukan sebagai STRING ("span_001", dst) --
+   itu format ID asli tabel span (lihat nextId() di api/span.js), BUKAN
+   angka. Jangan di-Number()-kan di mana pun di file ini.
+   ═══════════════════════════════════════════════════════════ */
+let baAuto = null; // { isFullAccess, accounts, petugasOptions, jalurList, spanList, ownSpanIds, slots:[{...}x4] }
+
+/* ─── Status koneksi Telegram (sama datanya dengan kartu di profile.html,
+   ditampilkan lagi di sini supaya user langsung ngeh kalau belum
+   terhubung begitu mau atur slot). ─── */
+async function loadTelegramStatusSettings(){
+  const statusEl = document.getElementById("teleStatus");
+  const textEl = document.getElementById("teleStatusText");
+  const btn = document.getElementById("teleConnectBtn");
+
+  const result = await apiRequest("/api/settings?action=telegramLinkStatus&username=" + encodeURIComponent(currentUser));
+
+  if(!result.success){
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Gagal memeriksa status koneksi.";
+    return;
+  }
+
+  if(result.connected){
+    statusEl.className = "tele-status connected";
+    textEl.textContent = "Terhubung" + (result.telegramUsername ? " sebagai @" + result.telegramUsername : "");
+    btn.textContent = "🔄 Hubungkan Ulang";
+  } else {
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Belum terhubung. Slot BA Otomatis tidak akan terkirim sampai Telegram dihubungkan.";
+    btn.textContent = "✈️ Hubungkan Telegram";
+  }
+}
+
+async function connectTelegramFromSettings(){
+  const btn = document.getElementById("teleConnectBtn");
+  btn.disabled = true;
+  btn.textContent = "Membuat link...";
+
+  const result = await apiRequest("/api/settings?action=telegramLinkToken", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser }),
+  });
+
+  if(!result.success){
+    alert(result.message || "Gagal membuat link Telegram. Coba lagi.");
+    btn.disabled = false;
+    btn.textContent = "✈️ Hubungkan Telegram";
+    return;
+  }
+
+  location.href = result.deepLink;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && baAuto){
+    loadTelegramStatusSettings();
+  }
+});
+
+async function initBaAuto(){
+  await loadTelegramStatusSettings();
+
+  const isFullAccess = isAdmin() || isKLW();
+
+  let getResult, accounts, jalurList, spanList;
+  try{
+    [getResult, accounts, jalurList, spanList] = await Promise.all([
+      apiRequest("/api/settings?action=baAutoGet&username=" + encodeURIComponent(currentUser)),
+      getAllAccountsFull(),
+      getJalurMasterList(),
+      getSpanMasterList(),
+    ]);
+  } catch(err){
+    document.getElementById("baAutoSlots").innerHTML = `<div class="tegakan-check-empty">Gagal memuat data: ${err.message}</div>`;
+    return;
+  }
+
+  if(!getResult.success){
+    document.getElementById("baAutoSlots").innerHTML = `<div class="tegakan-check-empty">Gagal memuat konfigurasi BA Otomatis.</div>`;
+    return;
+  }
+
+  const ownAccount = accounts.find(a => a.username === currentUser);
+  const ownSpanIds = (ownAccount && ownAccount.span_ids) || [];
+
+  // Kandidat "petugas" (buat role akses-semua-span) cuma LW yang sudah
+  // punya span assignment -- konsisten dengan getSpanOwner() di auth.js.
+  const petugasOptions = accounts.filter(a => a.role === "lw" && (a.span_ids || []).length > 0);
+
+  baAuto = {
+    isFullAccess, accounts, jalurList, spanList, ownSpanIds, petugasOptions,
+    slots: getResult.slots.map(s => ({
+      slotIndex: s.slotIndex,
+      tanggal: s.tanggal,
+      spanId: s.spanId,
+      petugasUsername: s.petugasUsername,
+      tegakanIds: new Set(s.tegakanIds || []),
+      jalurId: null, subJalurId: null,   // direkonstruksi dari spanId di bawah
+      tegakanList: [],                    // diisi begitu span diketahui
+      isOpen: false,
+    })),
+  };
+
+  document.getElementById("baAutoEnabledToggle").checked = !!getResult.enabled;
+
+  for(const slot of baAuto.slots){
+    if(slot.spanId){
+      const span = spanList.find(s => s.id === slot.spanId);
+      if(span){
+        const leafJalur = jalurList.find(j => j.id === span.jalurId);
+        if(leafJalur && leafJalur.parentJalurId){
+          slot.jalurId = leafJalur.parentJalurId;
+          slot.subJalurId = leafJalur.id;
+        } else {
+          slot.jalurId = span.jalurId;
+        }
+      }
+      try{ slot.tegakanList = await getTegakanBySpan(slot.spanId); }
+      catch(e){ slot.tegakanList = []; }
+    }
+  }
+
+  renderAllSlots();
+}
+
+async function toggleBaAuto(enabled){
+  const result = await apiRequest("/api/settings?action=baAutoToggle", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser, enabled }),
+  });
+  if(!result.success){
+    alert(result.message || "Gagal menyimpan toggle BA Otomatis.");
+    document.getElementById("baAutoEnabledToggle").checked = !enabled; // rollback tampilan
+  }
+}
+
+function renderAllSlots(){
+  const container = document.getElementById("baAutoSlots");
+  container.innerHTML = baAuto.slots.map(slot => renderSlotHtml(slot)).join("");
+}
+
+function slotSummaryText(slot){
+  if(!slot.tanggal) return "Belum diatur";
+  const spanLabel = slot.spanId
+    ? (baAuto.spanList.find(s => s.id === slot.spanId) ? "Span #" + baAuto.spanList.find(s => s.id === slot.spanId).nomor : slot.spanId)
+    : "span belum dipilih";
+  return `Tanggal ${slot.tanggal} • ${spanLabel} • ${slot.tegakanIds.size} tegakan dipilih`;
+}
+
+function renderSlotHtml(slot){
+  const n = slot.slotIndex;
+  const petugas = (baAuto.isFullAccess && slot.petugasUsername)
+    ? baAuto.petugasOptions.find(a => a.username === slot.petugasUsername) : null;
+
+  // allowedSpanIds === null artinya tidak dibatasi (tampilkan semua span
+  // di jalur terpilih). "NEED_PETUGAS" artinya role akses-semua-span dan
+  // belum pilih petugas -- span/tegakan belum boleh muncul dulu.
+  let allowedSpanIds;
+  if(baAuto.isFullAccess){
+    allowedSpanIds = petugas ? ((petugas.span_ids && petugas.span_ids.length) ? petugas.span_ids : null) : "NEED_PETUGAS";
+  } else {
+    allowedSpanIds = baAuto.ownSpanIds.length ? baAuto.ownSpanIds : null;
+  }
+
+  let petugasField = "";
+  if(baAuto.isFullAccess){
+    petugasField = `
+      <div class="slot-field">
+        <label>Pilih Petugas (LW)</label>
+        <select class="field-input" onchange="onSlotPetugasChange(${n}, this.value)">
+          <option value="">— pilih petugas —</option>
+          ${baAuto.petugasOptions.map(a => `<option value="${a.username}" ${slot.petugasUsername===a.username?"selected":""}>${a.username}</option>`).join("")}
+        </select>
+      </div>`;
+  }
+
+  let jalurField = "";
+  let spanField = "";
+  let tegakanField = "";
+
+  if(allowedSpanIds !== "NEED_PETUGAS"){
+    const topJalur = baAuto.jalurList.filter(j => !j.parentJalurId);
+    jalurField = `
+      <div class="slot-field">
+        <label>Jalur</label>
+        <select class="field-input" onchange="onSlotJalurChange(${n}, this.value)">
+          <option value="">— pilih jalur —</option>
+          ${topJalur.map(j => `<option value="${j.id}" ${slot.jalurId===j.id?"selected":""}>${j.label||j.code}</option>`).join("")}
+        </select>
+      </div>`;
+
+    if(slot.jalurId){
+      const children = baAuto.jalurList.filter(j => j.parentJalurId === slot.jalurId);
+      if(children.length){
+        jalurField += `
+          <div class="slot-field">
+            <label>Sub-Jalur</label>
+            <select class="field-input" onchange="onSlotSubJalurChange(${n}, this.value)">
+              <option value="">— pilih sub-jalur —</option>
+              ${children.map(j => `<option value="${j.id}" ${slot.subJalurId===j.id?"selected":""}>${j.label||j.code}</option>`).join("")}
+            </select>
+          </div>`;
+      }
+
+      const finalJalurId = slot.subJalurId || (children.length ? null : slot.jalurId);
+      if(finalJalurId){
+        const spans = baAuto.spanList.filter(s => s.jalurId === finalJalurId && (allowedSpanIds===null || allowedSpanIds.includes(s.id)));
+        spanField = `
+          <div class="slot-field">
+            <label>Span</label>
+            <select class="field-input" onchange="onSlotSpanChange(${n}, this.value)">
+              <option value="">— pilih span —</option>
+              ${spans.map(s => `<option value="${s.id}" ${slot.spanId===s.id?"selected":""}>Span #${s.nomor}</option>`).join("")}
+            </select>
+            ${spans.length===0 ? '<div class="compress-note">Tidak ada span yang bisa dipilih di jalur ini.</div>' : ''}
+          </div>`;
+      }
+    }
+
+    if(slot.spanId){
+      tegakanField = `
+        <div class="slot-field">
+          <label>Checklist Tegakan</label>
+          <div class="tegakan-checklist">
+            ${slot.tegakanList.length ? slot.tegakanList.map(t => `
+              <label class="tegakan-check-row">
+                <input type="checkbox" ${slot.tegakanIds.has(t.id)?"checked":""} onchange="onSlotTegakanToggle(${n}, ${t.id}, this.checked)">
+                <span>${t.nama || t.idTegakan || "tanpa label"}</span>
+              </label>
+            `).join("") : '<div class="tegakan-check-empty">Belum ada tegakan di span ini.</div>'}
+          </div>
+        </div>`;
+    }
+  }
+
+  const tanggalOptions = Array.from({length:31}, (_,i)=>i+1)
+    .map(d => `<option value="${d}" ${slot.tanggal===d?"selected":""}>${d}</option>`).join("");
+
+  return `
+    <details class="slot-card" ${slot.isOpen ? "open" : ""} ontoggle="onSlotToggle(${n}, this.open)">
+      <summary class="slot-summary">
+        <span>
+          Slot ${n}
+          <div class="slot-summary-sub">${slotSummaryText(slot)}</div>
+        </span>
+        <svg class="slot-summary-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="slot-body">
+        <div class="slot-field">
+          <label>Tanggal Kirim (setiap bulan)</label>
+          <select class="field-input" onchange="onSlotTanggalChange(${n}, this.value)">
+            <option value="">— belum diatur —</option>
+            ${tanggalOptions}
+          </select>
+        </div>
+        ${petugasField}
+        ${jalurField}
+        ${spanField}
+        ${tegakanField}
+        <div class="slot-actions">
+          <button class="btn btn-dark" style="flex:1;" onclick="clearSlot(${n})">🗑 Kosongkan</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="saveSlot(${n})">💾 Simpan Slot ${n}</button>
+        </div>
+      </div>
+    </details>`;
+}
+
+function onSlotToggle(n, isOpen){
+  baAuto.slots[n-1].isOpen = isOpen;
+}
+
+function onSlotTanggalChange(n, value){
+  baAuto.slots[n-1].tanggal = value ? Number(value) : null;
+  renderAllSlots();
+}
+
+function onSlotPetugasChange(n, value){
+  const slot = baAuto.slots[n-1];
+  slot.petugasUsername = value || null;
+  // Ganti petugas -> reset jalur/span/tegakan, span lama belum tentu
+  // valid buat petugas baru.
+  slot.jalurId = null; slot.subJalurId = null; slot.spanId = null;
+  slot.tegakanIds = new Set(); slot.tegakanList = [];
+  slot.isOpen = true;
+  renderAllSlots();
+}
+
+function onSlotJalurChange(n, value){
+  const slot = baAuto.slots[n-1];
+  slot.jalurId = value || null;
+  slot.subJalurId = null; slot.spanId = null;
+  slot.tegakanIds = new Set(); slot.tegakanList = [];
+  slot.isOpen = true;
+  renderAllSlots();
+}
+
+function onSlotSubJalurChange(n, value){
+  const slot = baAuto.slots[n-1];
+  slot.subJalurId = value || null;
+  slot.spanId = null;
+  slot.tegakanIds = new Set(); slot.tegakanList = [];
+  slot.isOpen = true;
+  renderAllSlots();
+}
+
+async function onSlotSpanChange(n, value){
+  const slot = baAuto.slots[n-1];
+  slot.spanId = value || null;
+  slot.tegakanIds = new Set();
+  slot.tegakanList = [];
+  slot.isOpen = true;
+  renderAllSlots();
+  if(slot.spanId){
+    try{ slot.tegakanList = await getTegakanBySpan(slot.spanId); }
+    catch(e){ slot.tegakanList = []; }
+    renderAllSlots();
+  }
+}
+
+function onSlotTegakanToggle(n, tegakanId, checked){
+  const slot = baAuto.slots[n-1];
+  if(checked) slot.tegakanIds.add(tegakanId);
+  else slot.tegakanIds.delete(tegakanId);
+  renderAllSlots();
+}
+
+async function saveSlot(n){
+  const slot = baAuto.slots[n-1];
+
+  if(slot.tanggal && !slot.spanId){
+    alert("Pilih span dulu sebelum menyimpan slot yang aktif.");
+    return;
+  }
+
+  const result = await apiRequest("/api/settings?action=baAutoSlotSave", {
+    method: "POST",
+    body: JSON.stringify({
+      username: currentUser,
+      slotIndex: n,
+      tanggal: slot.tanggal,
+      spanId: slot.spanId,
+      petugasUsername: baAuto.isFullAccess ? slot.petugasUsername : null,
+      tegakanIds: Array.from(slot.tegakanIds),
+    }),
+  });
+
+  if(!result.success){
+    alert(result.message || "Gagal menyimpan slot.");
+    return;
+  }
+  alert(`Slot ${n} berhasil disimpan.`);
+}
+
+async function clearSlot(n){
+  if(!confirm(`Kosongkan Slot ${n}?`)) return;
+  const slot = baAuto.slots[n-1];
+  slot.tanggal = null; slot.spanId = null; slot.petugasUsername = null;
+  slot.jalurId = null; slot.subJalurId = null;
+  slot.tegakanIds = new Set(); slot.tegakanList = [];
+
+  const result = await apiRequest("/api/settings?action=baAutoSlotSave", {
+    method: "POST",
+    body: JSON.stringify({
+      username: currentUser, slotIndex: n,
+      tanggal: null, spanId: null, petugasUsername: null, tegakanIds: [],
+    }),
+  });
+
+  if(!result.success){
+    alert(result.message || "Gagal mengosongkan slot.");
+    return;
+  }
+  renderAllSlots();
 }
 
 const LOGIN_IMG_MAX_LOGO = 400;

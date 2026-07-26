@@ -222,6 +222,18 @@ body{
 .sig-status img{width:50px;height:30px;object-fit:contain;background:rgba(255,255,255,0.05);border-radius:6px;border:1px solid var(--border);}
 .sig-status.empty{background:var(--amber-bg);color:var(--amber);border-color:rgba(244,197,66,0.2);}
 
+.tele-status{
+  font-size:12.5px;border-radius:12px;padding:12px 14px;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;font-weight:600;
+}
+.tele-status.connected{background:var(--green-bg);color:var(--green);}
+.tele-status.disconnected{background:var(--bg-card2);color:var(--ink-3);}
+.tele-status .tele-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tele-status.connected .tele-dot{background:var(--green);}
+.tele-status.disconnected .tele-dot{background:var(--ink-3);}
+.tele-connect-btn{background:#2AABEE;color:white;}
+.tele-connect-btn:disabled{opacity:.6;}
+
 .form-input{
   width:100%;padding:11px 13px;border:1px solid var(--border);
   border-radius:11px;font-size:13.5px;font-family:inherit;
@@ -327,6 +339,19 @@ body{
         <button class="sig-clear-btn" onclick="clearSig()">🗑 Hapus</button>
         <button class="sig-save-btn" onclick="saveSignature()">💾 Simpan</button>
       </div>
+    </div>
+
+    <!-- BA Otomatis via Telegram -->
+    <div id="teleSection" class="card hidden">
+      <div class="card-title teal">📲 BA Otomatis via Telegram</div>
+      <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px;line-height:1.55;">Hubungkan akun Telegram supaya BA yang dijadwalkan di halaman Pengaturan bisa langsung dikirim ke chat kamu.</p>
+
+      <div id="teleStatus" class="tele-status disconnected">
+        <span class="tele-dot"></span>
+        <span id="teleStatusText">Memeriksa status...</span>
+      </div>
+
+      <button id="teleConnectBtn" class="btn tele-connect-btn" onclick="connectTelegram()">✈️ Hubungkan Telegram</button>
     </div>
 
   </div>
@@ -441,8 +466,77 @@ async function showProfile(){
     document.getElementById("pwMsg").className = "pw-msg";
   }
 
+  if(selectedUser === currentUser){
+    document.getElementById("teleSection").classList.remove("hidden");
+    loadTelegramStatus();
+  }
+
   applyPermissions();
 }
+
+/* ─── BA Otomatis via Telegram ───────────────────────────────────
+   Lihat api/settings.js action=telegramLinkToken/telegramLinkStatus
+   (proxy ke Botlab). Alur:
+   1. loadTelegramStatus() cek status terhubung/belum tiap buka halaman
+      Profil, plus tiap tab jadi visible lagi (user kembali dari app
+      Telegram setelah tap deep link).
+   2. connectTelegram() minta token sekali pakai (10 menit), lalu buka
+      deep link https://t.me/<bot>?start=<token> -- user tinggal tap
+      "kirim" sekali di Telegram, sisanya ditangani api/webhook.js Botlab. */
+async function loadTelegramStatus(){
+  const statusEl = document.getElementById("teleStatus");
+  const textEl = document.getElementById("teleStatusText");
+  const btn = document.getElementById("teleConnectBtn");
+
+  const result = await apiRequest("/api/settings?action=telegramLinkStatus&username=" + encodeURIComponent(currentUser));
+
+  if(!result.success){
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Gagal memeriksa status koneksi.";
+    btn.disabled = false;
+    btn.textContent = "✈️ Hubungkan Telegram";
+    return;
+  }
+
+  if(result.connected){
+    statusEl.className = "tele-status connected";
+    textEl.textContent = "Terhubung" + (result.telegramUsername ? " sebagai @" + result.telegramUsername : "");
+    btn.textContent = "🔄 Hubungkan Ulang";
+  } else {
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Belum terhubung.";
+    btn.textContent = "✈️ Hubungkan Telegram";
+  }
+  btn.disabled = false;
+}
+
+async function connectTelegram(){
+  const btn = document.getElementById("teleConnectBtn");
+  btn.disabled = true;
+  btn.textContent = "Membuat link...";
+
+  const result = await apiRequest("/api/settings?action=telegramLinkToken", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser }),
+  });
+
+  if(!result.success){
+    alert(result.message || "Gagal membuat link Telegram. Coba lagi.");
+    btn.disabled = false;
+    btn.textContent = "✈️ Hubungkan Telegram";
+    return;
+  }
+
+  location.href = result.deepLink;
+}
+
+// Begitu user kembali dari app Telegram ke tab ini, cek ulang status --
+// tanpa ini, status baru ke-update kalau halaman Profil dibuka ulang.
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && selectedUser === currentUser && !document.getElementById("teleSection").classList.contains("hidden")){
+    loadTelegramStatus();
+  }
+});
 
 function applyPermissions(){
   const photoInput = document.getElementById("photoInput");
