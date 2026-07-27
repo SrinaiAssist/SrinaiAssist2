@@ -969,6 +969,9 @@ async function initPage(){
     document.getElementById("brandMark").innerHTML = `<img src="${savedBrandLogo}" alt="Logo">`;
   }
 
+  let justLoggedInForWelcome = false;
+  try { justLoggedInForWelcome = sessionStorage.getItem("srinaiJustLoggedIn") === "1"; } catch(e) {}
+
   checkSyncNoticeAfterLogin();
 
   updateDatetime();
@@ -1044,7 +1047,7 @@ async function initPage(){
   loadActivityBell(currentUser);
   loadChatUnreadBadge(currentUser);
 
-  playDashboardOpenChime();
+  if(justLoggedInForWelcome) playWelcomeChime();
 }
 
 /* =========================================================
@@ -1197,11 +1200,13 @@ function closeActivityPanel(){
   document.getElementById("activityScrim").classList.remove("open");
 }
 
-// Bunyi "flute" sekali tiap dashboard dibuka (bukan tiap render ulang data,
-// initPage() sendiri cuma jalan sekali per full page load). Kalau browser
-// blokir autoplay bersuara, otomatis diputar begitu user tap layar.
-function playDashboardOpenChime(){
-  const chime = new Audio("assets/audio/dashboard-open.wav");
+// Bunyi "selamat datang" hanya sekali persis setelah login berhasil dan
+// pertama kali masuk dashboard (dipicu pakai flag srinaiJustLoggedIn yang
+// diset oleh loginUser() di auth.js) -- bukan tiap kali buka/reload
+// dashboard. Kalau browser blokir autoplay bersuara, otomatis diputar
+// begitu user tap layar.
+function playWelcomeChime(){
+  const chime = new Audio("assets/audio/welcome.mp3");
   chime.volume = 0.55;
   const p = chime.play();
   if(p !== undefined){
