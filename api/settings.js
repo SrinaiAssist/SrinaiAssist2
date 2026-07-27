@@ -730,6 +730,102 @@ async function handleBaAutoSlotSave(req, res) {
   return res.status(200).json({ success: true });
 }
 
+// GET /api/settings?action=baAutoCron  (dipanggil Vercel Cron, lihat vercel.json)
+//     -> cari semua slot yang tanggal-nya cocok HARI INI (waktu Jakarta,
+//        BUKAN UTC -- cron sendiri jadwalnya UTC, tapi "tanggal 1-31" yang
+//        user pilih itu maksudnya tanggal lokal Indonesia) dan belum
+//        dijalankan hari ini, generate + kirim BA-nya satu-satu lewat
+//        Botlab (action=sendBaAuto di api/commands.js Botlab), lalu catat
+//        last_run_date supaya tidak dobel kirim kalau cron ke-invoke lagi
+//        di hari yang sama.
+// Diproses SEKUENSIAL (bukan Promise.all) sengaja -- tiap slot generate PDF
+// + upload Drive + kirim Telegram, kalau paralel semua bisa numpuk beban ke
+// Botlab/Drive sekaligus; throughput bukan prioritas buat fitur mingguan
+// begini, keandalan (satu gagal tidak ganggu yang lain) lebih penting.
+function getJakartaDateParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const y = parts.find((p) => p.type === 'year').value;
+  const m = parts.find((p) => p.type === 'month').value;
+  const d = parts.find((p) => p.type === 'day').value;
+  return { dateStr: `${y}-${m}-${d}`, day: parseInt(d, 10) };
+}
+
+async function sendBaViaBotlab({ recipientUsername, spanId, tegakanIds, ownerUsername }) {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+  if (!botlabUrl || !botlabKey) {
+    throw new Error('BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.');
+  }
+
+  const upstream = await fetch(`${botlabUrl.replace(/\/+$/, '')}/api/commands?action=sendBaAuto`, {
+    method: 'POST',
+    headers: { 'x-botlab-key': botlabKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientUsername, spanId, tegakanIds, ownerUsername }),
+  });
+  const data = await upstream.json().catch(() => null);
+  if (!upstream.ok || !data || !data.success) {
+    throw new Error((data && data.message) || `Botlab merespons status ${upstream.status}.`);
+  }
+  return data;
+}
+
+async function handleBaAutoCron(req, res) {
+  if (!isCronRequestValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const { dateStr: todayStr, day: todayDay } = getJakartaDateParts();
+
+  const dueSlots = await sql`
+    SELECT s.username, s.slot_index AS "slotIndex", s.span_id AS "spanId",
+           s.petugas_username AS "petugasUsername", s.tegakan_ids AS "tegakanIds"
+    FROM ba_auto_slot s
+    JOIN ba_auto_settings st ON st.username = s.username AND st.enabled = true
+    WHERE s.tanggal = ${todayDay}
+      AND (s.last_run_date IS NULL OR s.last_run_date <> ${todayStr})
+      AND s.span_id IS NOT NULL
+      AND jsonb_array_length(s.tegakan_ids) > 0
+    ORDER BY s.username, s.slot_index
+  `;
+
+  const results = [];
+  for (const slot of dueSlots) {
+    const ownerUsername = slot.petugasUsername || slot.username;
+    try {
+      await sendBaViaBotlab({
+        recipientUsername: slot.username,
+        spanId: slot.spanId,
+        tegakanIds: slot.tegakanIds,
+        ownerUsername,
+      });
+      await sql`
+        UPDATE ba_auto_slot SET last_run_date = ${todayStr}
+        WHERE username = ${slot.username} AND slot_index = ${slot.slotIndex}
+      `;
+      results.push({ username: slot.username, slotIndex: slot.slotIndex, success: true });
+    } catch (err) {
+      // SENGAJA tidak update last_run_date kalau gagal -- supaya slot ini
+      // masih dianggap "belum jalan hari ini" dan bisa dicoba lagi kalau
+      // cron di-trigger ulang manual (lihat isCronRequestValid, fallback
+      // ?cronKey=...) sebelum hari berganti.
+      console.error(`baAutoCron: gagal kirim BA untuk ${slot.username} slot ${slot.slotIndex}:`, err);
+      results.push({ username: slot.username, slotIndex: slot.slotIndex, success: false, message: err.message });
+    }
+  }
+
+  const sent = results.filter((r) => r.success).length;
+  return res.status(200).json({
+    success: true,
+    date: todayStr,
+    checked: dueSlots.length,
+    sent,
+    failed: dueSlots.length - sent,
+    results,
+  });
+}
+
 // ─────────────────────────────────────────────────────────
 // LOKASI LIVE PETUGAS (fitur peta.html)
 // POST /api/settings?action=location  body:{ username, lat, lng, accuracy? }
@@ -1033,6 +1129,14 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBotNotifyCron(req, res);
+    }
+
+    if (qAction === 'baAutoCron') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAutoCron(req, res);
     }
 
     if (qAction === 'telegramLinkToken') {
