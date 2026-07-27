@@ -405,6 +405,68 @@ function isCronRequestValid(req) {
   return !!queryKey && queryKey === process.env.CRON_SECRET;
 }
 
+// Validasi request MASUK dari ba-control-panel (arah kebalikan dari
+// isBaAutoMasterEnabled di atas, yang panggil KELUAR ke panel). Dipakai
+// oleh action=baAutoAdminList supaya rekap semua user tidak bisa diakses
+// sembarang orang yang tahu URL-nya -- harus bawa header x-panel-key yang
+// sama persis dengan PANEL_SHARED_KEY.
+function isPanelKeyValid(req) {
+  const key = process.env.PANEL_SHARED_KEY;
+  if (!key) {
+    console.warn('PANEL_SHARED_KEY belum diset -- request dari panel akan selalu ditolak.');
+    return false;
+  }
+  const headerKey = req.headers['x-panel-key'];
+  return !!headerKey && headerKey === key;
+}
+
+// GET /api/settings?action=baAutoAdminList  (dipanggil ba-control-panel,
+// lihat api/monitor.js di repo panel -- bukan dipanggil dari frontend
+// SrinaiAssist2 sendiri). Rekap status BA Otomatis SEMUA user sekaligus,
+// buat halaman "Monitor Pengiriman" di panel admin.
+async function handleBaAutoAdminList(req, res) {
+  if (!isPanelKeyValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const rows = await sql`
+    SELECT
+      st.username, st.enabled,
+      s.slot_index AS "slotIndex", s.tanggal, s.span_id AS "spanId",
+      s.petugas_username AS "petugasUsername",
+      jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
+      s.last_run_date AS "lastRunDate",
+      CASE WHEN sp.id IS NOT NULL
+        THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+        ELSE NULL
+      END AS "spanLabel"
+    FROM ba_auto_settings st
+    LEFT JOIN ba_auto_slot s ON s.username = st.username
+    LEFT JOIN span sp ON sp.id = s.span_id
+    ORDER BY st.username, s.slot_index
+  `;
+
+  const byUser = {};
+  for (const r of rows) {
+    if (!byUser[r.username]) {
+      byUser[r.username] = { username: r.username, enabled: r.enabled, slots: [] };
+    }
+    if (r.slotIndex != null) {
+      byUser[r.username].slots.push({
+        slotIndex: r.slotIndex,
+        tanggal: r.tanggal,
+        spanId: r.spanId,
+        spanLabel: r.spanLabel,
+        petugasUsername: r.petugasUsername,
+        tegakanCount: r.tegakanCount || 0,
+        lastRunDate: r.lastRunDate,
+      });
+    }
+  }
+
+  return res.status(200).json({ success: true, users: Object.values(byUser) });
+}
+
 // Untuk satu username: span yang ada di profil (span_ids) TAPI belum
 // punya satu pun baris di tabel tegakan.
 async function findSpanBelumTegakan(username) {
@@ -1223,6 +1285,10 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleTelegramLinkStatus(req, res);
+    }
+
+    if (qAction === 'baAutoAdminList') {
+      return handleBaAutoAdminList(req, res);
     }
 
     if (qAction === 'baAutoGet') {
