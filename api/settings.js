@@ -640,6 +640,43 @@ async function handleTelegramLinkStatus(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────
+// MASTER SWITCH BA OTOMATIS (dikontrol dari website terpisah
+// "BA Control Panel" -- project Vercel + Neon sendiri, lihat repo
+// ba-control-panel). Ini adalah SAKLAR INDUK: kalau OFF, toggle
+// per-user di pengaturan.html TIDAK BISA dinyalakan (user disuruh
+// hubungi admin), dan cron pengiriman (handleBaAutoCron) di-skip
+// total meskipun ada user yang sudah enabled=true dari sebelumnya.
+//
+// ENV VARS TAMBAHAN yang perlu diisi di Vercel project SrinaiAssist2:
+//   BA_PANEL_URL      -> base URL project ba-control-panel, mis.
+//                         https://ba-control-panel.vercel.app (tanpa trailing slash)
+//   PANEL_SHARED_KEY  -> string acak, HARUS SAMA PERSIS dengan
+//                         PANEL_SHARED_KEY di project ba-control-panel
+//
+// FAIL-SAFE: kalau env var belum diset atau panel tidak bisa dihubungi,
+// dianggap OFF (bukan ON) -- supaya kegagalan komunikasi tidak diam-diam
+// membiarkan BA Otomatis tetap jalan tanpa pengawasan admin pusat.
+async function isBaAutoMasterEnabled() {
+  const panelUrl = process.env.BA_PANEL_URL;
+  const panelKey = process.env.PANEL_SHARED_KEY;
+  if (!panelUrl || !panelKey) {
+    console.warn('BA_PANEL_URL/PANEL_SHARED_KEY belum diset -- BA Otomatis dianggap OFF (fail-safe).');
+    return false;
+  }
+  try {
+    const resp = await fetch(`${panelUrl.replace(/\/+$/, '')}/api/master-switch?feature=ba_auto`, {
+      headers: { 'x-panel-key': panelKey },
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data || !data.success) return false;
+    return !!data.enabled;
+  } catch (err) {
+    console.error('Gagal cek status master switch BA Otomatis ke panel:', err);
+    return false; // fail-safe: panel tidak bisa dihubungi -> anggap OFF
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 // SLOT BA OTOMATIS (halaman Pengaturan -- kartu "BA Otomatis via Telegram")
 // Tabel: ba_auto_settings (toggle on/off), ba_auto_slot (4 slot/username).
 // Lihat scripts/schema.sql / migration-ba-otomatis-srinaiassist2.sql.
@@ -684,6 +721,20 @@ async function handleBaAutoToggle(req, res) {
   if (!username || !String(username).trim()) {
     return res.status(400).json({ success: false, message: 'username wajib diisi.' });
   }
+
+  // Cuma perlu cek master switch saat user mau MENYALAKAN. Mematikan
+  // (enabled=false) selalu diizinkan tanpa syarat.
+  if (enabled) {
+    const masterOn = await isBaAutoMasterEnabled();
+    if (!masterOn) {
+      return res.status(200).json({
+        success: false,
+        blocked: true,
+        message: 'Fitur BA Otomatis sedang dinonaktifkan oleh admin pusat. Hubungi admin untuk mengaktifkannya di panel kontrol.',
+      });
+    }
+  }
+
   await sql`
     INSERT INTO ba_auto_settings (username, enabled)
     VALUES (${username}, ${!!enabled})
@@ -774,6 +825,17 @@ async function sendBaViaBotlab({ recipientUsername, spanId, tegakanIds, ownerUse
 async function handleBaAutoCron(req, res) {
   if (!isCronRequestValid(req)) {
     return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  // Saklar induk OFF -> skip semua, meskipun ada user yang toggle
+  // pribadinya enabled=true dari sebelum saklar induk dimatikan.
+  const masterOn = await isBaAutoMasterEnabled();
+  if (!masterOn) {
+    return res.status(200).json({
+      success: true,
+      skipped: true,
+      message: 'Master switch BA Otomatis sedang OFF -- cron dilewati, tidak ada BA yang dikirim.',
+    });
   }
 
   const { dateStr: todayStr, day: todayDay } = getJakartaDateParts();
