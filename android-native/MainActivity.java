@@ -20,12 +20,19 @@ public class MainActivity extends BridgeActivity {
     // dan bukan suara notifikasi default HP.
     private static final String CHANNEL_ID = "srinai_default";
 
+    // Channel terpisah khusus notifikasi "BA Otomatis terkirim" (dipicu dari
+    // api/ba.js -> pushHelper.sendPushToUsers, lihat channel: 'srinai_ba_auto').
+    // HARUS channel baru, bukan numpang CHANNEL_ID di atas -- Android tidak
+    // mengizinkan ganti suara sebuah channel yang sudah pernah dibuat.
+    private static final String CHANNEL_ID_BA_AUTO = "srinai_ba_auto";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationTrackerPlugin.class);
         super.onCreate(savedInstanceState);
         hideSystemBars();
         createNotificationChannel();
+        createBaAutoNotificationChannel();
     }
 
     // Notification channel WAJIB dibuat sebelum notifikasi pertama muncul
@@ -52,6 +59,38 @@ public class MainActivity extends BridgeActivity {
                 channel.enableVibration(true);
 
                 Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/nada_notif");
+                AudioAttributes audioAttrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                channel.setSound(soundUri, audioAttrs);
+
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    // Channel khusus BA Otomatis -- suara "notif_ba_terkirim.mp3" bunyi
+    // meskipun app di-background/tertutup, karena ini push notification
+    // native (FCM), bukan audio yang diputar dari dalam WebView/dashboard.
+    //
+    // File suara harus ditaruh di:
+    //   android/app/src/main/res/raw/notif_ba_terkirim.mp3
+    // (salin dari android-native/res-raw/notif_ba_terkirim.mp3 di repo ini --
+    // folder res-raw/ cuma tempat staging, bukan lokasi asli project Android).
+    private void createBaAutoNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null && manager.getNotificationChannel(CHANNEL_ID_BA_AUTO) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID_BA_AUTO,
+                    "SrinaiAssist - BA Otomatis Terkirim",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Notifikasi saat BA Otomatis selesai dikirim ke Telegram");
+                channel.enableVibration(true);
+
+                Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notif_ba_terkirim");
                 AudioAttributes audioAttrs = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
