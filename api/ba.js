@@ -18,6 +18,7 @@
 
 const { sql } = require('../lib/db');
 const { uploadPhotoToDrive } = require('../lib/googleDrive');
+const { sendPushToUsers } = require('../lib/pushHelper');
 
 function mapRow(r) {
   return {
@@ -116,6 +117,27 @@ module.exports = async (req, res) => {
           ${pdfToSave}, ${JSON.stringify(fotoToSave)}, ${fileName || null}, ${sumber || 'manual'}, ${uploader}
         )
       `;
+      // Notifikasi khusus BA Otomatis (dikirim dari Botlab lewat cron) --
+      // BUKAN untuk BA yang disimpan manual dari catatan-span.html, karena
+      // untuk kasus manual user sudah tahu/lihat langsung hasilnya di app.
+      // Gagal kirim push tidak boleh menggagalkan penyimpanan BA itu sendiri.
+      if (sumber === 'ba-otomatis') {
+        try {
+          await sendPushToUsers(
+            [uploader],
+            {
+              title: 'BA Otomatis terkirim',
+              body: `${judul || 'BA'} sudah dikirim ke Telegram.`,
+              data: { type: 'ba_auto_sent', baId: String(id), spanId: String(spanId) },
+              channel: 'srinai_ba_auto',
+              sound: 'notif_ba_terkirim',
+            },
+          );
+        } catch (err) {
+          console.error('Gagal kirim push notifikasi BA Otomatis:', err.message);
+        }
+      }
+
       return res.status(200).json({ success: true, id, pdf: pdfToSave, driveWarning: driveWarnings[0] || null });
     }
 
