@@ -168,6 +168,19 @@ body{
   font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0;
 }
 .console-send:disabled{opacity:.5;cursor:not-allowed;}
+
+.botlab-link-btn{
+  margin:14px 16px 0;padding:12px 14px;border-radius:14px;
+  background:linear-gradient(135deg, rgba(244,180,0,.16), rgba(244,180,0,.06));
+  border:1px solid rgba(244,180,0,.3);display:flex;align-items:center;gap:10px;
+  text-decoration:none;color:white;cursor:pointer;
+}
+.botlab-link-btn .icon{font-size:18px;flex-shrink:0;}
+.botlab-link-btn .txt{flex:1;min-width:0;}
+.botlab-link-btn .txt b{font-size:13px;display:block;}
+.botlab-link-btn .txt span{font-size:10.5px;color:var(--muted);}
+.botlab-link-btn .arrow{color:var(--gold);flex-shrink:0;}
+.botlab-link-btn.disabled{opacity:.5;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -194,6 +207,17 @@ body{
     <div class="note-strip">
       Katalog ini menampilkan seluruh command bot Telegram (Botlab) apa adanya — read only, diambil langsung dari database Botlab. Untuk menambah/ubah/hapus command, tetap dari dashboard Botlab.
     </div>
+
+    <a class="botlab-link-btn" id="botlabLinkBtn" href="#" target="_blank" rel="noopener">
+      <span class="icon">🚀</span>
+      <span class="txt">
+        <b>Buka Dashboard BotLab</b>
+        <span id="botlabLinkSub">Kelola registry command, lab console, AI pengajar</span>
+      </span>
+      <span class="arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M7 17L17 7M7 7h10v10"/></svg>
+      </span>
+    </a>
 
     <div class="stat-strip">
       <div class="stat-card live">
@@ -283,7 +307,25 @@ async function initPage(){
   consoleChatId = "web:" + consoleUsername;
 
   document.getElementById("mainContent").classList.remove("hidden");
+  loadBotlabDashboardUrl();
   await loadCommands();
+}
+
+async function loadBotlabDashboardUrl(){
+  const btn = document.getElementById("botlabLinkBtn");
+  const sub = document.getElementById("botlabLinkSub");
+  try {
+    const result = await apiRequest("/api/settings?action=botlabDashboardUrl", { method: "GET" });
+    if(!result.success || !result.url){
+      btn.classList.add("disabled");
+      sub.textContent = result.message || "URL Botlab belum dikonfigurasi";
+      return;
+    }
+    btn.href = result.url;
+  } catch(e){
+    btn.classList.add("disabled");
+    sub.textContent = "Gagal memuat URL dashboard Botlab";
+  }
 }
 
 async function loadCommands(){
