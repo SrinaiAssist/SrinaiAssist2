@@ -29,6 +29,10 @@
 // GET    /api/settings?action=telegramLinkStatus&username=..
 //        -> lihat catatan lengkap di dekat handleTelegramLinkStatus di bawah.
 //
+// GET    /api/settings?action=botlabDashboardUrl -> { url } dashboard Botlab
+//        (dari BOTLAB_API_URL), dipakai tombol "Buka Dashboard BotLab" di
+//        workspace-command.html. Tidak mengirim BOTLAB_ADMIN_KEY.
+//
 // GET    /api/settings?action=baAutoGet&username=..
 //        -> { enabled, slots:[{slotIndex,tanggal,spanId,petugasUsername,tegakanIds}, ...4] }
 //        dipanggil halaman Pengaturan (kartu "BA Otomatis via Telegram").
@@ -280,6 +284,24 @@ async function handleBackupRestore(req, res) {
 // ini) -- bukan lewat token sesi server, karena app ini memang belum
 // pakai session token di server. Konsisten dengan pola yang sudah ada,
 // bukan celah baru.
+// GET /api/settings?action=botlabDashboardUrl (admin only, dicek di klien)
+// -> cuma balikin URL dashboard Botlab (dari BOTLAB_API_URL) supaya tombol
+// "Buka Dashboard BotLab" di workspace-command.html tidak perlu hardcode
+// domain di frontend. TIDAK mengirim BOTLAB_ADMIN_KEY ke browser.
+async function handleBotlabDashboardUrl(res) {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  if (!botlabUrl) {
+    return res.status(500).json({
+      success: false,
+      message: 'BOTLAB_API_URL belum diset di environment variables SrinaiAssist2.',
+    });
+  }
+  return res.status(200).json({
+    success: true,
+    url: `${botlabUrl.replace(/\/+$/, '')}/dashboard.html`,
+  });
+}
+
 async function handleBotCommandsCatalog(res) {
   const botlabUrl = process.env.BOTLAB_API_URL;
   const botlabKey = process.env.BOTLAB_ADMIN_KEY;
@@ -1213,6 +1235,14 @@ module.exports = async (req, res) => {
       if (req.method === 'POST') return await handleBackupRestore(req, res);
       res.setHeader('Allow', 'GET, POST');
       return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+    }
+
+    if (qAction === 'botlabDashboardUrl') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBotlabDashboardUrl(res);
     }
 
     if (qAction === 'botCommands') {
