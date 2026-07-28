@@ -136,6 +136,31 @@ module.exports = async (req, res) => {
         } catch (err) {
           console.error('Gagal kirim push notifikasi BA Otomatis:', err.message);
         }
+
+        // Notifikasi TAMBAHAN khusus Admin/KLW/Monitoring -- suara beda
+        // (notif_ba_auto_monitor, lihat android-native/MainActivity.java)
+        // supaya role pengawas tahu setiap kali BA Otomatis terkirim ke
+        // petugas manapun, tanpa harus buka app. exclude uploader supaya
+        // tidak dobel notif kalau kebetulan uploader-nya sendiri admin/klw/
+        // monitor (harusnya jarang terjadi, BA Otomatis biasanya milik LW).
+        try {
+          const monitorRows = await sql`
+            SELECT username FROM accounts WHERE role IN ('admin', 'klw', 'monitor') AND status = 'Aktif'
+          `;
+          await sendPushToUsers(
+            monitorRows.map((r) => r.username),
+            {
+              title: 'BA Otomatis terkirim (Monitoring)',
+              body: `${judul || 'BA'} milik ${uploader} sudah dikirim ke Telegram.`,
+              data: { type: 'ba_auto_sent_monitor', baId: String(id), spanId: String(spanId), petugas: uploader },
+              channel: 'srinai_ba_auto_monitor',
+              sound: 'notif_ba_auto_monitor',
+            },
+            uploader,
+          );
+        } catch (err) {
+          console.error('Gagal kirim push notifikasi monitoring BA Otomatis:', err.message);
+        }
       }
 
       return res.status(200).json({ success: true, id, pdf: pdfToSave, driveWarning: driveWarnings[0] || null });
