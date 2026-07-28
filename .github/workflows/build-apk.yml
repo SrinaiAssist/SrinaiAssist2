@@ -35,6 +35,9 @@ jobs:
           cp android-native/LocationTrackerPlugin.java android/app/src/main/java/com/srinai/assist/LocationTrackerPlugin.java
           cp android-native/LocationTrackingService.java android/app/src/main/java/com/srinai/assist/LocationTrackingService.java
           cp android-native/google-services.json android/app/google-services.json
+          mkdir -p android/app/src/main/res/raw
+          cp android-native/res-raw/nada_notif.wav android/app/src/main/res/raw/nada_notif.wav
+          cp android-native/res-raw/notif_ba_terkirim.mp3 android/app/src/main/res/raw/notif_ba_terkirim.mp3
           node scripts/patch-android-manifest.js
           node scripts/patch-android-gradle.js
 
