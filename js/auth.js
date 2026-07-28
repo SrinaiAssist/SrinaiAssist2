@@ -1110,7 +1110,32 @@ function startPushRegistration() {
     PushNotifications.addListener("registrationError", (err) => {
         console.warn("Gagal daftar push notification:", err);
     });
+
+    // Android/FCM cuma otomatis nampilin notifikasi (+ bunyi channel
+    // custom-nya) kalau app di-background/tertutup total. Kalau app lagi
+    // KEBUKA pas push masuk, sistem TIDAK nampilin apa-apa secara
+    // otomatis -- makanya perlu listener ini buat mainin suara sendiri
+    // dari sisi JS supaya user tetap dengar notifnya walau lagi di app.
+    PushNotifications.addListener("pushNotificationReceived", (notification) => {
+        const type = notification && notification.data && notification.data.type;
+        if (type === "ba_auto_sent") {
+            playBaAutoChime();
+        }
+    });
 }
+
+/** Suara notifikasi "BA Otomatis terkirim" versi foreground (app lagi
+    kebuka). Versi background/tertutup dapat suaranya dari channel Android
+    native (lihat android-native/MainActivity.java, channel srinai_ba_auto)
+    -- ini cuma buat nutup celah pas app kebuka, jadi harus file yang sama
+    persis (cukup versi web-nya di assets/audio/, format apapun boleh beda
+    karena ini diputar lewat <audio> HTML, bukan resource Android). */
+function playBaAutoChime() {
+    try {
+        const chime = new Audio("assets/audio/Notifikasi-female-telegram.mp3");
+        chime.volume = 0.8;
+        chime.play().catch(() => {});
+    } catch (e) { /* diamkan -- suara cuma pelengkap, jangan sampai bikin error lain */ }
 
 /** Dipanggil dari logoutUser() supaya device yang logout berhenti terima
     push atas nama user lama. */
