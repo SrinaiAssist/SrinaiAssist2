@@ -38,6 +38,7 @@ jobs:
           mkdir -p android/app/src/main/res/raw
           cp android-native/res-raw/nada_notif.wav android/app/src/main/res/raw/nada_notif.wav
           cp android-native/res-raw/notif_ba_terkirim.mp3 android/app/src/main/res/raw/notif_ba_terkirim.mp3
+          cp android-native/res-raw/notif_ba_auto_monitor.mp3 android/app/src/main/res/raw/notif_ba_auto_monitor.mp3
           node scripts/patch-android-manifest.js
           node scripts/patch-android-gradle.js
 
