@@ -1136,6 +1136,7 @@ function playBaAutoChime() {
         chime.volume = 0.8;
         chime.play().catch(() => {});
     } catch (e) { /* diamkan -- suara cuma pelengkap, jangan sampai bikin error lain */ }
+}
 
 /** Dipanggil dari logoutUser() supaya device yang logout berhenti terima
     push atas nama user lama. */
