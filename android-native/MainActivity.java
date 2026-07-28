@@ -26,6 +26,14 @@ public class MainActivity extends BridgeActivity {
     // mengizinkan ganti suara sebuah channel yang sudah pernah dibuat.
     private static final String CHANNEL_ID_BA_AUTO = "srinai_ba_auto";
 
+    // Channel khusus notifikasi ke Admin/KLW/Monitoring saat BA Otomatis
+    // terkirim ke Telegram petugas (dipicu dari api/ba.js -> pushHelper
+    // .sendPushToUsers, lihat channel: 'srinai_ba_auto_monitor'). Terpisah
+    // dari CHANNEL_ID_BA_AUTO di atas (yang ke petugas sendiri) karena
+    // suaranya beda dan supaya user bisa atur importance/matikan salah
+    // satu tanpa pengaruh ke yang lain lewat Pengaturan Notifikasi Android.
+    private static final String CHANNEL_ID_BA_AUTO_MONITOR = "srinai_ba_auto_monitor";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationTrackerPlugin.class);
@@ -33,6 +41,7 @@ public class MainActivity extends BridgeActivity {
         hideSystemBars();
         createNotificationChannel();
         createBaAutoNotificationChannel();
+        createBaAutoMonitorNotificationChannel();
     }
 
     // Notification channel WAJIB dibuat sebelum notifikasi pertama muncul
@@ -91,6 +100,39 @@ public class MainActivity extends BridgeActivity {
                 channel.enableVibration(true);
 
                 Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notif_ba_terkirim");
+                AudioAttributes audioAttrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                channel.setSound(soundUri, audioAttrs);
+
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    // Channel khusus Admin/KLW/Monitoring -- suara "notif_ba_auto_monitor.mp3"
+    // bunyi tiap kali BA Otomatis selesai dikirim ke petugas manapun, supaya
+    // role pengawas tahu tanpa harus buka app terus-terusan.
+    //
+    // File suara harus ditaruh di:
+    //   android/app/src/main/res/raw/notif_ba_auto_monitor.mp3
+    // (salin dari android-native/res-raw/notif_ba_auto_monitor.mp3 di repo
+    // ini -- folder res-raw/ cuma tempat staging, bukan lokasi asli project
+    // Android, sama seperti channel BA Otomatis di atas).
+    private void createBaAutoMonitorNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null && manager.getNotificationChannel(CHANNEL_ID_BA_AUTO_MONITOR) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID_BA_AUTO_MONITOR,
+                    "SrinaiAssist - Monitoring BA Otomatis",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Notifikasi ke Admin/KLW/Monitoring saat BA Otomatis terkirim ke petugas");
+                channel.enableVibration(true);
+
+                Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notif_ba_auto_monitor");
                 AudioAttributes audioAttrs = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
