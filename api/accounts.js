@@ -66,7 +66,17 @@ async function resolveFotoForRead(fotoRaw) {
   }
 }
 
-async function listAccounts(filterUsername) {
+// includeFoto=false (dipakai syncAll() lewat ?includeFoto=false): SKIP
+// download+resolve foto dari Drive sama sekali, kirim referensi mentahnya
+// apa adanya (mis. "drive:<fileId>", beberapa puluh karakter). Ini ekivalen
+// dengan fix includeTtd=false di api/tegakan.js -- sebelumnya endpoint ini
+// selalu resolve foto SEMUA akun jadi base64 tiap dipanggil (termasuk tiap
+// kali tombol Sinkron ditekan lewat syncAll()), padahal yang butuh gambar
+// aslinya cuma halaman yang benar-benar menampilkan avatar. Referensi
+// mentah itu juga dipakai client sebagai fingerprint: kalau referensinya
+// sama dengan sync sebelumnya, fotonya dianggap tidak berubah dan tidak
+// perlu diresolve ulang.
+async function listAccounts(filterUsername, includeFoto = true) {
   const rows = filterUsername
     ? await sql`
         SELECT
@@ -87,6 +97,10 @@ async function listAccounts(filterUsername) {
         ORDER BY a.username
       `;
 
+  if (!includeFoto) {
+    return rows.map((r) => ({ ...r, foto: r.foto || '' }));
+  }
+
   // Resolve semua referensi Drive jadi base64 sebelum dikirim ke browser.
   return Promise.all(
     rows.map(async (r) => ({ ...r, foto: await resolveFotoForRead(r.foto) }))
@@ -95,10 +109,11 @@ async function listAccounts(filterUsername) {
 
 module.exports = async (req, res) => {
   try {
-    const { action, username: qUsername, actor: qActor } = req.query || {};
+    const { action, username: qUsername, actor: qActor, includeFoto: qIncludeFoto } = req.query || {};
 
     if (req.method === 'GET') {
-      const accounts = await listAccounts(qUsername);
+      const includeFoto = qIncludeFoto !== 'false';
+      const accounts = await listAccounts(qUsername, includeFoto);
       return res.status(200).json({ success: true, accounts });
     }
 

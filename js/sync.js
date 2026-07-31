@@ -60,6 +60,7 @@ function _spanTegakanKey(spanId) { return "srinai_cache_tegakan_" + spanId; }
    cache TTD tiap kali Sinkron ditekan. Lihat komentar di
    _refreshAllTegakanGrouped() untuk detail. */
 const TEGAKAN_FP_KEY = "srinai_sync_tegakan_fp";
+const ACCOUNTS_FOTO_FP_KEY = "srinai_sync_accounts_foto_fp"; // username -> referensi foto mentah terakhir
 function _spanCatatanKey(spanId) { return "srinai_cache_catatan_"  + spanId; }
 function _spanCacheStale(key) {
   const obj = _cacheGet(key);
@@ -659,6 +660,65 @@ async function syncPending() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   AKUN — refresh SELEKTIF (fix kuota Fast Origin Transfer)
+   Sama seperti tegakan/TTD: sebelumnya tiap Sinkron menekan
+   syncAll(), server resolve foto SEMUA akun dari Drive jadi
+   base64 dan mengirim semuanya lagi -- padahal mayoritas foto
+   tidak berubah. Sekarang: ambil dulu daftar ringan (referensi
+   foto mentah saja, tanpa download Drive), bandingkan dengan
+   referensi hasil sync sebelumnya. HANYA akun yang referensi
+   fotonya berubah (atau akun baru) yang di-resolve ulang;
+   sisanya pakai foto hasil resolve yang sudah ada di cache lama.
+   Akun yang sudah dihapus di server otomatis hilang dari cache
+   (tidak ada lagi di daftar ringan), tanpa perlu hapus-semua dulu.
+═══════════════════════════════════════════════════════ */
+async function _refreshAccountsSelective() {
+  const light = await getAllAccountsFull(false); // ringan: foto = referensi mentah saja
+
+  const oldFp = _cacheGetData(ACCOUNTS_FOTO_FP_KEY) || {};
+  const oldAccounts = _cacheGetData(CACHE_KEYS.accounts) || [];
+  const oldByUsername = {};
+  oldAccounts.forEach(a => { oldByUsername[a.username] = a; });
+
+  const newFp = {};
+  const toResolve = []; // username yang perlu foto baru
+
+  light.forEach(acc => {
+    const ref = acc.foto || "";
+    newFp[acc.username] = ref;
+    if (oldFp[acc.username] !== ref) {
+      toResolve.push(acc.username);
+    }
+  });
+
+  // Resolve foto HANYA untuk akun yang berubah/baru, satu per satu
+  // (bukan endpoint massal), supaya bandwidth sebanding dengan jumlah
+  // yang benar-benar berubah, bukan jumlah total akun.
+  const resolvedFoto = {};
+  for (const username of toResolve) {
+    try {
+      resolvedFoto[username] = await getAccountFotoResolved(username);
+    } catch (e) {
+      // Gagal resolve satu akun -> pakai foto lama (kalau ada) sbg fallback
+      resolvedFoto[username] = oldByUsername[username] ? oldByUsername[username].foto : "";
+    }
+  }
+
+  const merged = light.map(acc => {
+    if (Object.prototype.hasOwnProperty.call(resolvedFoto, acc.username)) {
+      return { ...acc, foto: resolvedFoto[acc.username] };
+    }
+    // Referensi tidak berubah -> pakai foto hasil resolve dari cache lama
+    const old = oldByUsername[acc.username];
+    return { ...acc, foto: old ? old.foto : acc.foto };
+  });
+
+  _cacheSet(CACHE_KEYS.accounts, merged);
+  _cacheSet(ACCOUNTS_FOTO_FP_KEY, newFp);
+  return merged;
+}
+
+/* ═══════════════════════════════════════════════════════
    SYNC ALL — refresh semua cache dari server
 ═══════════════════════════════════════════════════════ */
 
@@ -669,7 +729,7 @@ async function syncPending() {
  */
 async function syncAll(onProgress) {
   const steps = [
-    { key: CACHE_KEYS.accounts, fn: getAllAccountsFull,   label: "Akun pengguna"    },
+    { key: CACHE_KEYS.accounts, fn: _refreshAccountsSelective, selfCached: true, label: "Akun pengguna" },
     { key: CACHE_KEYS.jalur,    fn: getJalurMasterList,   label: "Master jalur"     },
     { key: CACHE_KEYS.tower,    fn: getTowerMasterList,   label: "Master tower"     },
     { key: CACHE_KEYS.span,     fn: getSpanMasterList,    label: "Master span"      },
@@ -694,6 +754,10 @@ async function syncAll(onProgress) {
         if (s.grouped) {
           // _refreshAllTegakanGrouped() sudah menyimpan tiap span ke
           // key cache-nya sendiri — tidak ada satu key tunggal untuk diisi di sini.
+        } else if (s.selfCached) {
+          // _refreshAccountsSelective() sudah menyimpan cache (+ fingerprint
+          // foto) sendiri di dalam fungsinya — jangan _cacheSet lagi di sini,
+          // supaya foto yang tidak berubah tidak balik ke referensi mentah.
         } else if (s.key === CACHE_KEYS.settings) {
           // Settings: simpan sebagai object langsung
           const existing = _cacheGetData(CACHE_KEYS.settings) || {};
