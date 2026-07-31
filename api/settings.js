@@ -1718,6 +1718,99 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Khusus admin -- data Vercel (deployment terbaru + daftar deployment
+    // + jumlah serverless function terpakai vs limit Hobby). Dipakai
+    // admin-storage-vercel.html. Butuh env VERCEL_TOKEN (Access Token dari
+    // Vercel Account Settings). Project ID diambil otomatis dari system env
+    // VERCEL_PROJECT_ID (aktifkan "Automatically expose System Environment
+    // Variables" di Project Settings -> Environment Variables kalau belum
+    // muncul), atau fallback ke env VERCEL_PROJECT_ID_MANUAL kalau mau diisi
+    // manual.
+    if (req.method === 'GET' && qStats === 'vercelDetail') {
+      const { actor: vercelActor } = req.query || {};
+      if (!(await assertIsAdmin(vercelActor))) {
+        return res.status(403).json({ success: false, message: 'Khusus admin.' });
+      }
+      const token = process.env.VERCEL_TOKEN;
+      const projectId = process.env.VERCEL_PROJECT_ID || process.env.VERCEL_PROJECT_ID_MANUAL;
+      const teamId = process.env.VERCEL_TEAM_ID || null;
+      if (!token) {
+        return res.status(200).json({
+          success: false,
+          message: 'VERCEL_TOKEN belum diset di Environment Variables project ini.',
+        });
+      }
+      if (!projectId) {
+        return res.status(200).json({
+          success: false,
+          message: 'Project ID Vercel tidak ditemukan. Aktifkan "Automatically expose System Environment Variables" di Project Settings, atau set VERCEL_PROJECT_ID_MANUAL.',
+        });
+      }
+
+      const vHeaders = { Authorization: `Bearer ${token}` };
+      const teamQ = teamId ? `&teamId=${encodeURIComponent(teamId)}` : '';
+
+      try {
+        const depRes = await fetch(
+          `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectId)}&limit=10${teamQ}`,
+          { headers: vHeaders }
+        );
+        const depJson = await depRes.json();
+        if (!depRes.ok) {
+          throw new Error(depJson?.error?.message || `Vercel API error (${depRes.status})`);
+        }
+        const deployments = (depJson.deployments || []).map(d => ({
+          uid: d.uid,
+          state: d.state || d.readyState,
+          target: d.target || (d.meta?.githubCommitRef ? 'production' : 'preview'),
+          url: d.url,
+          createdAt: d.createdAt || d.created,
+          creator: d.creator?.username || d.creator?.email || null,
+          commitMessage: d.meta?.githubCommitMessage || d.meta?.gitCommitMessage || null,
+          commitRef: d.meta?.githubCommitRef || d.meta?.gitCommitRef || null,
+        }));
+
+        // Hitung jumlah serverless function dari deployment TERBARU (file
+        // di bawah folder api/ dengan ekstensi .js/.ts), buat dibandingkan
+        // ke limit 12 punya paket Hobby.
+        let functionCount = null;
+        let functionFiles = [];
+        if (deployments[0]?.uid) {
+          try {
+            const filesRes = await fetch(
+              `https://api.vercel.com/v6/deployments/${deployments[0].uid}/files${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`,
+              { headers: vHeaders }
+            );
+            const filesJson = await filesRes.json();
+            const collected = [];
+            const walk = (nodes, prefix) => {
+              for (const n of (nodes || [])) {
+                const p = prefix ? `${prefix}/${n.name}` : n.name;
+                if (n.type === 'directory') walk(n.children, p);
+                else if (/^api\/.*\.(js|ts)$/.test(p)) collected.push(p);
+              }
+            };
+            walk(filesJson, '');
+            functionFiles = collected;
+            functionCount = collected.length;
+          } catch (e) {
+            // Diamkan -- bagian ini best-effort, jangan sampai gagalkan seluruh respons.
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          deployments,
+          functionCount,
+          functionLimit: 12,
+          functionFiles,
+          note: 'Bandwidth/usage kuota Hobby tidak punya endpoint REST publik dari Vercel -- cek langsung di dashboard Vercel > Usage untuk angka itu.',
+        });
+      } catch (err) {
+        return res.status(200).json({ success: false, message: err.message || 'Gagal menghubungi Vercel API.' });
+      }
+    }
+
     if (req.method === 'GET' && qStats === 'ai') {
       const todayKey = 'ai_usage_' + new Date().toISOString().slice(0, 10);
       const rows = await sql`
