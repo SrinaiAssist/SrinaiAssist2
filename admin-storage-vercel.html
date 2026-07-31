@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Detail Vercel - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg-deep);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.container{max-width:460px;margin:auto;min-height:100vh;background:var(--bg-deep);padding-bottom:40px;position:relative;overflow-x:hidden;}
+.bg-glow{position:fixed;top:0;left:0;right:0;max-width:460px;margin:auto;height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.13) 0%, transparent 70%);pointer-events:none;z-index:0;}
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:20px 20px 0;}
+.back-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+.refresh-btn{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:var(--bg-glass);border:1px solid var(--border);
+  color:var(--ink-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;}
+
+.hero{position:relative;z-index:2;margin:18px 20px 0;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:20px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+.hero-top{display:flex;align-items:baseline;justify-content:space-between;}
+.hero-used{font-size:26px;font-weight:800;}
+.hero-used span{font-size:13px;font-weight:700;color:var(--ink-3);}
+.hero-pct{font-size:14px;font-weight:800;color:var(--gold);}
+.hero-bar-track{height:9px;border-radius:6px;background:var(--bg-card2);margin-top:12px;overflow:hidden;}
+.hero-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s ease;}
+.hero-bar-fill.warn{background:linear-gradient(90deg,var(--amber),var(--gold));}
+.hero-bar-fill.danger{background:linear-gradient(90deg,#F26B6B,#F4506B);}
+.hero-sub{margin-top:8px;font-size:11px;color:var(--ink-3);}
+.hero-note{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--ink-3);line-height:1.6;}
+.hero-note b{color:var(--ink-2);}
+
+.section-label{position:relative;z-index:2;font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px;margin:22px 20px 10px;}
+.section-label::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--blue);display:block;}
+
+.list-wrap{padding:0 20px;position:relative;z-index:2;}
+.dep-row{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:16px;padding:12px 14px;margin-bottom:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);text-decoration:none;color:inherit;}
+.dep-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.dep-icon.ready{background:var(--green-bg);}
+.dep-icon.error{background:var(--red-bg);}
+.dep-icon.building{background:var(--amber-bg);}
+.dep-icon.other{background:var(--bg-glass);}
+.dep-info{flex:1;min-width:0;}
+.dep-title{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dep-sub{font-size:10.5px;color:var(--ink-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dep-badge{font-size:10px;font-weight:800;padding:4px 8px;border-radius:8px;flex-shrink:0;white-space:nowrap;}
+.dep-badge.ready{background:var(--green-bg);color:var(--green);}
+.dep-badge.error{background:var(--red-bg);color:var(--red);}
+.dep-badge.building{background:var(--amber-bg);color:var(--amber);}
+.dep-badge.other{background:var(--bg-glass);color:var(--ink-3);}
+
+.info-box{position:relative;z-index:2;margin:0 20px;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:16px;padding:14px 16px;font-size:11.5px;color:var(--ink-3);line-height:1.6;}
+.info-box b{color:var(--ink-2);}
+.info-box a{color:var(--blue);text-decoration:none;font-weight:700;}
+
+.empty-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+.loading-msg{text-align:center;color:var(--ink-3);padding:30px 20px;font-size:12.5px;}
+</style>
+<link rel="stylesheet" href="css/theme-fieldlog.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn" onclick="event.preventDefault(); smartBack('dashboard.html');">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>▲ Vercel</h1>
+      <p id="adminInfo">Memuat...</p>
+    </div>
+    <button class="refresh-btn" onclick="loadDetail()" title="Muat ulang">🔄</button>
+  </div>
+
+  <div class="hero" id="heroBox">
+    <div class="loading-msg" id="heroLoading">Memuat data dari Vercel...</div>
+    <div id="heroContent" style="display:none;">
+      <div class="hero-top">
+        <div class="hero-used" id="heroUsed">– <span>function</span></div>
+        <div class="hero-pct" id="heroPct">–%</div>
+      </div>
+      <div class="hero-bar-track"><div class="hero-bar-fill" id="heroBar"></div></div>
+      <div class="hero-sub" id="heroSub">dari – function (batas paket Hobby)</div>
+      <div class="hero-note" id="heroNote">
+        Jumlah <b>serverless function</b> aktif (file di folder <code>api/</code>) pada deployment
+        production terbaru, dibandingkan batas 12 function paket Vercel Hobby.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Deployment Terbaru</div>
+  <div class="list-wrap" id="latestDeployWrap">
+    <div class="loading-msg">Memuat deployment...</div>
+  </div>
+
+  <div class="section-label">Riwayat Deployment</div>
+  <div class="list-wrap" id="deployList">
+    <div class="loading-msg">Memuat riwayat...</div>
+  </div>
+
+  <div class="info-box" id="usageInfoBox" style="margin-top:0;">
+    ℹ️ Vercel <b>tidak menyediakan endpoint REST publik</b> untuk angka bandwidth/usage
+    paket Hobby, jadi data itu tidak bisa ditarik ke sini. Cek langsung di
+    <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel Dashboard → Usage</a>.
+  </div>
+
+</div>
+
+<script>
+function timeAgo(iso){
+  if(!iso) return "-";
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const min = Math.floor(diffMs / 60000);
+  if(min < 1) return "baru saja";
+  if(min < 60) return `${min} menit lalu`;
+  const hr = Math.floor(min / 60);
+  if(hr < 24) return `${hr} jam lalu`;
+  const day = Math.floor(hr / 24);
+  if(day < 30) return `${day} hari lalu`;
+  return d.toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" });
+}
+function stateClass(state){
+  const s = (state || "").toUpperCase();
+  if(s === "READY") return "ready";
+  if(s === "ERROR" || s === "CANCELED") return "error";
+  if(s === "BUILDING" || s === "QUEUED" || s === "INITIALIZING") return "building";
+  return "other";
+}
+function stateIcon(cls){
+  if(cls === "ready") return "✅";
+  if(cls === "error") return "⚠️";
+  if(cls === "building") return "⏳";
+  return "•";
+}
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+function renderDeployRow(d){
+  const cls = stateClass(d.state);
+  const title = d.commitMessage ? d.commitMessage.split("\n")[0] : (d.url || d.uid || "Deployment");
+  const target = (d.target || "preview") === "production" ? "Production" : "Preview";
+  const sub = [target, d.commitRef, d.creator].filter(Boolean).join(" · ");
+  return `
+    <div class="dep-row">
+      <div class="dep-icon ${cls}">${stateIcon(cls)}</div>
+      <div class="dep-info">
+        <div class="dep-title">${escapeHtml(title)}</div>
+        <div class="dep-sub">${escapeHtml(sub)} · ${timeAgo(d.createdAt)}</div>
+      </div>
+      <div class="dep-badge ${cls}">${escapeHtml((d.state || "-").toUpperCase())}</div>
+    </div>`;
+}
+
+async function loadDetail(){
+  document.getElementById("heroContent").style.display = "none";
+  document.getElementById("heroLoading").style.display = "block";
+  document.getElementById("heroLoading").textContent = "Memuat data dari Vercel...";
+  document.getElementById("latestDeployWrap").innerHTML = '<div class="loading-msg">Memuat deployment...</div>';
+  document.getElementById("deployList").innerHTML = '<div class="loading-msg">Memuat riwayat...</div>';
+
+  try{
+    const res = await fetch(`/api/settings?stats=vercelDetail&actor=${encodeURIComponent(getCurrentUser())}`);
+    const data = await res.json();
+    if(!data.success){
+      document.getElementById("heroLoading").textContent = "⚠️ " + (data.message || "Gagal memuat data Vercel.");
+      document.getElementById("latestDeployWrap").innerHTML = `<div class="empty-msg">Belum bisa memuat deployment.</div>`;
+      document.getElementById("deployList").innerHTML = "";
+      return;
+    }
+
+    // Hero: jumlah function vs limit 12
+    document.getElementById("heroLoading").style.display = "none";
+    document.getElementById("heroContent").style.display = "block";
+    const fc = data.functionCount;
+    const limit = data.functionLimit || 12;
+    if(fc == null){
+      document.getElementById("heroUsed").innerHTML = `– <span>function</span>`;
+      document.getElementById("heroPct").textContent = "-";
+      document.getElementById("heroSub").textContent = "Jumlah function tidak terdeteksi dari deployment terbaru.";
+      document.getElementById("heroBar").style.width = "0%";
+    } else {
+      const pct = Math.min(100, (fc / limit) * 100);
+      document.getElementById("heroUsed").innerHTML = `${fc} <span>/ ${limit} function</span>`;
+      document.getElementById("heroPct").textContent = pct.toFixed(0) + "%";
+      document.getElementById("heroSub").textContent = `dari ${limit} function (batas paket Hobby)`;
+      const bar = document.getElementById("heroBar");
+      bar.style.width = pct + "%";
+      bar.classList.remove("warn","danger");
+      if(pct >= 90) bar.classList.add("danger");
+      else if(pct >= 70) bar.classList.add("warn");
+    }
+
+    const deployments = data.deployments || [];
+    const latestWrap = document.getElementById("latestDeployWrap");
+    latestWrap.innerHTML = deployments.length ? renderDeployRow(deployments[0]) : `<div class="empty-msg">Belum ada deployment.</div>`;
+
+    const listWrap = document.getElementById("deployList");
+    const rest = deployments.slice(1);
+    listWrap.innerHTML = rest.length ? rest.map(renderDeployRow).join("") : `<div class="empty-msg">Tidak ada riwayat lain.</div>`;
+
+  } catch(err){
+    document.getElementById("heroLoading").textContent = "⚠️ " + err.message;
+    document.getElementById("latestDeployWrap").innerHTML = `<div class="empty-msg">Gagal memuat deployment.</div>`;
+    document.getElementById("deployList").innerHTML = "";
+  }
+}
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+  if(!isAdmin()){ alert("Akses ditolak. Halaman ini khusus admin."); location.href="dashboard.html"; return; }
+  document.getElementById("adminInfo").textContent = getCurrentUser() + " · Admin";
+  await loadDetail();
+}
+initPage();
+</script>
+</body>
+</html>

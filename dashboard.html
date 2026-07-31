@@ -808,6 +808,13 @@ body{
     </div>
   </div>
 
+  <div class="storage-strip" id="vercelStorageStrip" style="display:none;">
+    <div class="storage-box" id="vercelStorageBox">
+      <div class="storage-label">▲ Vercel</div>
+      <div class="storage-pct" id="vercelStorageSummary" style="font-size:12px;">Tap untuk lihat detail</div>
+    </div>
+  </div>
+
   <div class="radiobar">
     <div class="radio-left">
       <div class="bars"><div></div><div></div><div></div><div></div></div>
@@ -1032,6 +1039,12 @@ async function initPage(){
     driveBox.classList.add("storage-box-clickable");
     dbBox.onclick = () => location.href = "admin-storage-db.html";
     driveBox.onclick = () => location.href = "admin-storage-drive.html";
+
+    const vercelStrip = document.getElementById("vercelStorageStrip");
+    const vercelBox = document.getElementById("vercelStorageBox");
+    vercelStrip.style.display = "block";
+    vercelBox.classList.add("storage-box-clickable");
+    vercelBox.onclick = () => location.href = "admin-storage-vercel.html";
   }
 
   const notice = await cachedGetAppSetting("systemNotice");
