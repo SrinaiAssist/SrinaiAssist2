@@ -552,7 +552,7 @@ body{
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </div>
       <div class="brand-mark" id="brandMark">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/><path d="M12 7l2.5 4.5L9.5 16.5 12 7z"/></svg>
+        <img src="/assets/img/brand-logo-animasi.webp" alt="Logo">
       </div>
       <div class="brand-text">
         <div class="brand-name">SRINAI <span>ASSIST</span></div>
@@ -968,10 +968,8 @@ async function initPage(){
   const profile = await cachedGetFullProfile(currentUser);
   if(!profile){ logoutUser(); location.href = "index.html"; return; }
 
-  const savedBrandLogo = await cachedGetAppSetting("loginLogo");
-  if(savedBrandLogo){
-    document.getElementById("brandMark").innerHTML = `<img src="${savedBrandLogo}" alt="Logo">`;
-  }
+  // Logo pojok kiri atas sekarang pakai animasi statis (/assets/img/brand-logo-animasi.webp),
+  // jadi setting "loginLogo" lama TIDAK lagi dipakai untuk brandMark (sengaja tidak di-fetch/di-apply).
 
   let justLoggedInForWelcome = false;
   try { justLoggedInForWelcome = sessionStorage.getItem("srinaiJustLoggedIn") === "1"; } catch(e) {}
