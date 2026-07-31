@@ -724,6 +724,138 @@ async function handleTelegramLinkStatus(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────
+// BROADCAST FILE VIA TELEGRAM (halaman telegram.html, khusus admin)
+// Beda dengan BA Otomatis di atas (kirim BA per-user pas dijadwalkan):
+// ini admin upload SATU file lalu langsung disebar ke SEMUA user yang
+// sudah terhubung Telegram. SrinaiAssist2 manggil Telegram Bot API
+// LANGSUNG (bukan proxy lewat Botlab kayak fitur BA Otomatis), pakai
+// env var baru TELEGRAM_BOT_TOKEN (token bot yang sama persis dengan
+// yang dipakai Botlab).
+//
+// Alur lengkap:
+// 1. Admin pilih file di telegram.html -> upload resumable ke Drive
+//    (numpang action=articleUploadSession yang sudah ada, sama seperti
+//    artikel.html, supaya file besar tidak kena limit body Vercel).
+// 2. POST /api/settings?action=telegramBroadcastFile
+//    body:{ actor, fileId, fileName, caption }
+//    -> makeFilePublic(fileId) supaya bisa diakses Telegram, lalu:
+//    a. ambil daftar user yang sudah connect dari Botlab
+//    b. loop kirim sendDocument ke tiap chatId lewat Telegram Bot API asli
+//
+// *** PENTING -- BAGIAN YANG PERLU DITAMBAHKAN DI PROJECT BOTLAB ***
+// Endpoint di bawah ini BELUM ADA di Botlab (Botlab tidak termasuk di
+// zip SrinaiAssist2 ini), baru dokumentasi kontrak API-nya:
+//   GET /api/commands?action=telegramConnectedList
+//   Header: x-botlab-key: <BOTLAB_ADMIN_KEY>
+//   Response sukses: { success:true, users:[ { username, chatId,
+//                       telegramUsername } , ... ] }
+//   (daftar SEMUA baris di tabel bot_authorized_users milik Botlab --
+//   sama sumber datanya dengan yang dipakai telegramLinkStatus per-user
+//   di atas, cuma di sini butuh versi list semua sekaligus.)
+//
+// Env var TAMBAHAN yang perlu diisi di Vercel project SrinaiAssist2:
+//   TELEGRAM_BOT_TOKEN -> token asli bot Telegram (BUKAN BOTLAB_ADMIN_KEY,
+//                          harus sama persis dengan token yang dipakai
+//                          Botlab buat panggil Telegram Bot API)
+async function fetchTelegramConnectedUsers() {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+  if (!botlabUrl || !botlabKey) {
+    return {
+      success: false,
+      message: 'BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.',
+    };
+  }
+  try {
+    const upstream = await fetch(
+      `${botlabUrl.replace(/\/+$/, '')}/api/commands?action=telegramConnectedList`,
+      { method: 'GET', headers: { 'x-botlab-key': botlabKey } }
+    );
+    const data = await upstream.json();
+    if (!upstream.ok || !data.success) {
+      return {
+        success: false,
+        message: data.message || 'Botlab menolak permintaan (cek BOTLAB_ADMIN_KEY cocok di kedua project, dan pastikan endpoint telegramConnectedList sudah ada di Botlab).',
+      };
+    }
+    return { success: true, users: Array.isArray(data.users) ? data.users : [] };
+  } catch (err) {
+    console.error('Gagal ambil daftar user Telegram dari Botlab:', err);
+    return { success: false, message: 'Tidak bisa menghubungi Botlab: ' + err.message };
+  }
+}
+
+// GET /api/settings?action=telegramConnectedList&actor=<username_admin>
+//     -> dipakai telegram.html buat nampilin "N petugas akan menerima"
+//        sebelum admin kirim broadcast.
+async function handleTelegramConnectedListRoute(req, res) {
+  const { actor } = req.query || {};
+  if (!(await assertIsAdmin(actor))) {
+    return res.status(403).json({ success: false, message: 'Hanya admin yang bisa melihat daftar ini.' });
+  }
+  const result = await fetchTelegramConnectedUsers();
+  if (!result.success) return res.status(502).json(result);
+  return res.status(200).json(result);
+}
+
+async function sendTelegramDocument(chatId, documentUrl, caption) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const resp = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, document: documentUrl, caption: caption || undefined }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.ok) {
+    throw new Error((data && data.description) || `status ${resp.status}`);
+  }
+}
+
+async function handleTelegramBroadcastFile(req, res) {
+  const { actor, fileId, caption } = req.body || {};
+  if (!(await assertIsAdmin(actor))) {
+    return res.status(403).json({ success: false, message: 'Hanya admin yang bisa membagikan file lewat Telegram.' });
+  }
+  if (!fileId) {
+    return res.status(400).json({ success: false, message: 'fileId wajib diisi (upload file ke Drive dulu).' });
+  }
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    return res.status(500).json({ success: false, message: 'TELEGRAM_BOT_TOKEN belum diset di environment variables SrinaiAssist2.' });
+  }
+
+  const listResult = await fetchTelegramConnectedUsers();
+  if (!listResult.success) {
+    return res.status(502).json(listResult);
+  }
+  const users = listResult.users || [];
+  if (users.length === 0) {
+    return res.status(200).json({ success: true, total: 0, message: 'Belum ada petugas yang terhubung Telegram.' });
+  }
+
+  await makeFilePublic(fileId);
+  const documentUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+  // Jawab dulu ke admin (biar HP tidak nunggu lama), baru kirim ke semua
+  // user secara paralel di background -- pola sama dengan sendPushToAllUsers
+  // di handleArticleCreate di atas.
+  res.status(200).json({
+    success: true,
+    total: users.length,
+    message: `Sedang mengirim ke ${users.length} petugas yang terhubung Telegram...`,
+  });
+
+  const results = await Promise.allSettled(
+    users.map((u) => sendTelegramDocument(u.chatId, documentUrl, caption))
+  );
+  const failedDetails = results
+    .map((r, i) => (r.status === 'rejected' ? `${users[i].username} (${r.reason?.message || 'unknown'})` : null))
+    .filter(Boolean);
+  if (failedDetails.length > 0) {
+    console.error(`Broadcast Telegram: ${failedDetails.length}/${users.length} gagal terkirim ->`, failedDetails.join(', '));
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 // MASTER SWITCH BA OTOMATIS (dikontrol dari website terpisah
 // "BA Control Panel" -- project Vercel + Neon sendiri, lihat repo
 // ba-control-panel). Ini adalah SAKLAR INDUK: kalau OFF, toggle
@@ -1315,6 +1447,22 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleTelegramLinkStatus(req, res);
+    }
+
+    if (qAction === 'telegramConnectedList') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleTelegramConnectedListRoute(req, res);
+    }
+
+    if (qAction === 'telegramBroadcastFile') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleTelegramBroadcastFile(req, res);
     }
 
     if (qAction === 'baAutoAdminList') {
