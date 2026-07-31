@@ -1144,10 +1144,21 @@ function playBaAutoChime() {
     foreground (app lagi kebuka). Versi background/tertutup dapat suaranya
     dari channel Android native srinai_broadcast_file (lihat
     android-native/MainActivity.java) -- sama polanya dengan playBaAutoChime
-    di atas, cuma untuk fitur broadcast file admin (bukan BA Otomatis). */
+    di atas, cuma untuk fitur broadcast file admin (bukan BA Otomatis).
+
+    CATATAN FIX: sebelumnya file ini merujuk ke "Notif-telegram.mp3" yang
+    TIDAK PERNAH ADA di folder assets/audio/ (cuma ada
+    "Notifikasi-female-telegram.mp3"). Karena chime.play().catch(() => {})
+    menelan error 404-nya diam-diam, ini jadi penyebab kenapa broadcast
+    file sukses terkirim & FCM sukses diterima device, tapi TIDAK ADA
+    bunyi/apa pun sama sekali saat app foreground -- bukan masalah FCM/
+    token, murni file audio yang direferensikan tidak pernah ada. Untuk
+    sementara dipakaikan file yang sama dengan playBaAutoChime() supaya
+    tetap bunyi; ganti ke file audio broadcast yang sesungguhnya begitu
+    tersedia. */
 function playBroadcastFileChime() {
     try {
-        const chime = new Audio("assets/audio/Notif-telegram.mp3");
+        const chime = new Audio("assets/audio/Notifikasi-female-telegram.mp3");
         chime.volume = 0.8;
         chime.play().catch(() => {});
     } catch (e) { /* diamkan -- suara cuma pelengkap, jangan sampai bikin error lain */ }
