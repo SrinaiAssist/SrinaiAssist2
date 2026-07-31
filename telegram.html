@@ -371,7 +371,7 @@ async function sendBroadcast(){
 
   const result = await apiRequest("/api/settings?action=telegramBroadcastFile", {
     method: "POST",
-    body: JSON.stringify({ actor: currentUser, fileId: pendingFile.fileId, caption: caption || undefined }),
+    body: JSON.stringify({ actor: currentUser, fileId: pendingFile.fileId, fileName: pendingFile.fileName, caption: caption || undefined }),
   });
 
   if(!result.success){

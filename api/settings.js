@@ -798,12 +798,37 @@ async function handleTelegramConnectedListRoute(req, res) {
   return res.status(200).json(result);
 }
 
-async function sendTelegramDocument(chatId, documentUrl, caption) {
+// CATATAN (fix "Bad Request: failed to get HTTP URL content"):
+// Sebelumnya fungsi ini kirim { document: <url drive.google.com/uc?export=download> }
+// ke Telegram, lalu Telegram SENDIRI yang fetch URL itu. Link Drive model gitu
+// TIDAK reliable buat bot: Drive kadang balikin halaman HTML "konfirmasi virus
+// scan" (bukan file mentah) atau butuh cookie/redirect yang nggak diikuti
+// Telegram -> Telegram gagal narik isinya -> error di atas. Fix-nya: JANGAN
+// kasih URL ke Telegram. Download file-nya sendiri dari Drive pakai Drive API
+// (access token, alt=media), lalu upload langsung ke Telegram via
+// multipart/form-data (attach binary, bukan link).
+async function sendTelegramDocument(chatId, fileId, fileName, caption) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
+  const { getAccessToken } = require('../lib/googleDrive');
+
+  const accessToken = await getAccessToken();
+  const driveResp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!driveResp.ok) {
+    const t = await driveResp.text().catch(() => '');
+    throw new Error(`Gagal ambil file dari Drive (status ${driveResp.status}): ${t || 'unknown'}`);
+  }
+  const fileBuffer = Buffer.from(await driveResp.arrayBuffer());
+
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  if (caption) form.append('caption', caption);
+  form.append('document', new Blob([fileBuffer]), fileName || 'file');
+
   const resp = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, document: documentUrl, caption: caption || undefined }),
+    body: form,
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data.ok) {
@@ -812,7 +837,7 @@ async function sendTelegramDocument(chatId, documentUrl, caption) {
 }
 
 async function handleTelegramBroadcastFile(req, res) {
-  const { actor, fileId, caption } = req.body || {};
+  const { actor, fileId, fileName, caption } = req.body || {};
   if (!(await assertIsAdmin(actor))) {
     return res.status(403).json({ success: false, message: 'Hanya admin yang bisa membagikan file lewat Telegram.' });
   }
@@ -832,8 +857,10 @@ async function handleTelegramBroadcastFile(req, res) {
     return res.status(200).json({ success: true, total: 0, sent: 0, failed: 0, message: 'Belum ada petugas yang terhubung Telegram.' });
   }
 
-  await makeFilePublic(fileId);
-  const documentUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  // makeFilePublic() TIDAK dipanggil lagi -- sekarang file diambil langsung
+  // dari Drive pakai access token OAuth admin (bukan link publik), jadi file
+  // boleh tetap private. Sekalian ini yang jadi penyebab error sebelumnya:
+  // link publik Drive tetap saja tidak reliable buat di-fetch Telegram.
 
   // DITUNGGU sampai selesai (bukan jawab duluan lalu lanjut di background)
   // -- daftar petugas yang terhubung Telegram masih kecil, jadi aman
@@ -841,7 +868,7 @@ async function handleTelegramBroadcastFile(req, res) {
   // laporan hasil ASLI (berapa sukses/gagal beserta sebabnya), bukan cuma
   // pesan "sedang mengirim..." yang menggantung tanpa pernah dikonfirmasi.
   const results = await Promise.allSettled(
-    users.map((u) => sendTelegramDocument(u.chatId, documentUrl, caption))
+    users.map((u) => sendTelegramDocument(u.chatId, fileId, fileName, caption))
   );
   const failedUsers = results
     .map((r, i) => (r.status === 'rejected' ? { username: users[i].username, reason: r.reason?.message || 'unknown' } : null))
