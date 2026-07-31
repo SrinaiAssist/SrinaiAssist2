@@ -85,6 +85,7 @@ function mapRow(r) {
     ttdType: r.ttdType,
     ttdData: r.ttdData,
     tanggal: r.tanggal,
+    updatedAt: r.updatedAt,
   };
 }
 
@@ -106,7 +107,8 @@ module.exports = async (req, res) => {
               id, span_id AS "spanId", nama, id_tegakan AS "idTegakan",
               pemilik_nama AS "pemilikNama", pemilik_alamat AS "pemilikAlamat",
               pemilik_telp AS "pemilikTelp", petugas,
-              ttd_type AS "ttdType", ttd_data AS "ttdData", tanggal
+              ttd_type AS "ttdType", ttd_data AS "ttdData", tanggal,
+              updated_at AS "updatedAt"
             FROM tegakan
             WHERE span_id = ${qSpanId}
             ORDER BY created_at ASC
@@ -116,7 +118,8 @@ module.exports = async (req, res) => {
               id, span_id AS "spanId", nama, id_tegakan AS "idTegakan",
               pemilik_nama AS "pemilikNama", pemilik_alamat AS "pemilikAlamat",
               pemilik_telp AS "pemilikTelp", petugas,
-              ttd_type AS "ttdType", ttd_data AS "ttdData", tanggal
+              ttd_type AS "ttdType", ttd_data AS "ttdData", tanggal,
+              updated_at AS "updatedAt"
             FROM tegakan
             ORDER BY created_at ASC
           `;
