@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-fieldlog">
+<head>
+  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<title>Telegram - SRINAI ASSIST</title>
+<script src="js/auth.js"></script>
+<script src="js/back-nav.js"></script>
+<script src="js/sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:   #080F1E;
+  --bg-card:   #0D1830;
+  --bg-card2:  #111E35;
+  --bg-glass:  rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.09);
+  --gold:      #F4C542;
+  --gold-dim:  rgba(244,197,66,0.15);
+  --blue:      #4A8EF5;
+  --blue-glow: rgba(74,142,245,0.25);
+  --teal:      #38BFA0;
+  --ink:    #FFFFFF;
+  --ink-2:  rgba(255,255,255,0.65);
+  --ink-3:  rgba(255,255,255,0.38);
+  --green:     #2DD4A0;
+  --green-bg:  rgba(45,212,160,0.15);
+  --amber:     #F4C542;
+  --amber-bg:  rgba(244,197,66,0.12);
+  --red:       #F26B6B;
+  --red-bg:    rgba(242,107,107,0.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Plus Jakarta Sans',Arial,sans-serif;
+  background:var(--bg-deep);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.container{
+  max-width:460px;
+  margin:auto;
+  min-height:100vh;
+  background:var(--bg-deep);
+  padding-bottom:96px;
+  position:relative;
+  overflow-x:hidden;
+}
+.bg-glow{
+  position:fixed;top:0;left:0;right:0;
+  max-width:460px;margin:auto;
+  height:300px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74,142,245,0.14) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px 0;
+}
+.back-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-decoration:none;
+}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+.topbar-title p{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+.content{position:relative;z-index:2;padding:18px 20px 0;}
+
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:18px;padding:16px;margin-bottom:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  display:flex;align-items:center;gap:6px;margin-bottom:14px;
+}
+.card-title::before{
+  content:"";width:3px;height:14px;border-radius:2px;
+  background:var(--blue);display:block;
+}
+.card-title.gold::before{background:var(--gold);}
+.card-title.teal::before{background:var(--teal);}
+.card-desc{font-size:12px;color:var(--ink-3);margin-bottom:12px;line-height:1.55;}
+
+.btn{
+  width:100%;padding:13px;border:none;border-radius:12px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:6px;
+}
+.btn-primary{background:var(--blue);color:white;}
+.btn:disabled{opacity:.6;}
+
+.tele-status{
+  font-size:12.5px;border-radius:12px;padding:12px 14px;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;font-weight:600;
+}
+.tele-status.connected{background:var(--green-bg);color:var(--green);}
+.tele-status.disconnected{background:var(--bg-card2);color:var(--ink-3);}
+.tele-status .tele-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tele-status.connected .tele-dot{background:var(--green);}
+.tele-status.disconnected .tele-dot{background:var(--ink-3);}
+.tele-connect-btn{background:#2AABEE;color:white;}
+
+.admin-badge{
+  font-size:10px;font-weight:700;color:var(--gold);
+  background:var(--gold-dim);border:1px solid rgba(244,197,66,0.25);
+  padding:3px 9px;border-radius:20px;display:inline-block;margin-bottom:12px;
+}
+.recipient-count{
+  font-size:12px;color:var(--ink-2);background:var(--bg-card2);
+  border-radius:11px;padding:10px 12px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.recipient-count b{color:var(--ink);font-size:14px;}
+
+.form-input,.form-textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--border);
+  border-radius:11px;font-size:13.5px;font-family:inherit;
+  background:var(--bg-card2);color:var(--ink);outline:none;margin-bottom:10px;
+}
+.form-textarea{resize:vertical;min-height:64px;}
+.form-input:focus,.form-textarea:focus{border-color:rgba(74,142,245,0.4);}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--ink-3);}
+
+.file-input-hidden{display:none;}
+.file-pick-btn{
+  width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:13px;
+  cursor:pointer;font-family:inherit;text-align:center;margin-bottom:10px;
+  background:var(--bg-card2);color:var(--ink-2);border:1px dashed var(--border);
+}
+.file-chip{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:11px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;
+}
+.file-chip .x{margin-left:auto;color:var(--red);cursor:pointer;font-weight:700;}
+.upload-progress{font-size:12px;color:var(--ink-3);margin-bottom:8px;min-height:16px;}
+
+.broadcast-msg{
+  font-size:12px;border-radius:11px;padding:10px 12px;margin-top:10px;display:none;
+}
+.broadcast-msg.show{display:block;}
+.broadcast-msg.ok{background:var(--green-bg);color:var(--green);}
+.broadcast-msg.err{background:var(--red-bg);color:var(--red);}
+
+.hidden{display:none;}
+</style>
+<link rel="stylesheet" href="css/theme-fieldlog.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="container">
+
+  <div class="topbar">
+    <a href="dashboard.html" class="back-btn" onclick="event.preventDefault(); smartBack('dashboard.html');">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <h1>✈️ Telegram</h1>
+      <p>Koneksi &amp; berbagi file lewat bot</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="card">
+      <div class="card-title teal">📲 Status Koneksi Kamu</div>
+      <div class="card-desc">Hubungkan akun Telegram supaya BA Otomatis dan file yang dibagikan admin bisa langsung masuk ke chat kamu.</div>
+
+      <div id="teleStatus" class="tele-status disconnected">
+        <span class="tele-dot"></span>
+        <span id="teleStatusText">Memeriksa status...</span>
+      </div>
+
+      <button id="teleConnectBtn" class="btn tele-connect-btn" onclick="connectTelegram()">✈️ Hubungkan Telegram</button>
+    </div>
+
+    <div id="adminSection" class="card hidden">
+      <div class="admin-badge">KHUSUS ADMIN</div>
+      <div class="card-title gold">📤 Bagikan File ke Petugas</div>
+      <div class="card-desc">File akan dikirim otomatis oleh bot Telegram ke petugas yang <b>sudah terhubung</b> Telegram. Petugas yang belum terhubung tidak menerima apa pun sampai mereka menghubungkan akunnya di atas.</div>
+
+      <div class="recipient-count">
+        <span>Akan diterima oleh</span>
+        <b id="recipientCountText">memuat...</b>
+      </div>
+
+      <input type="file" id="broadcastFileInput" class="file-input-hidden" onchange="handleBroadcastFileSelected(event)">
+      <button type="button" class="file-pick-btn" id="filePickBtn" onclick="document.getElementById('broadcastFileInput').click()">📎 Pilih File</button>
+      <div id="fileChipWrap"></div>
+      <div class="upload-progress" id="uploadProgress"></div>
+
+      <textarea id="broadcastCaption" class="form-textarea" placeholder="Keterangan (opsional)..."></textarea>
+
+      <button id="sendBroadcastBtn" class="btn btn-primary" onclick="sendBroadcast()" disabled>✈️ Kirim ke Semua Petugas</button>
+
+      <div id="broadcastMsg" class="broadcast-msg"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+let pendingFile = null; // { fileId, fileName, mimeType }
+
+async function initPage(){
+  if(!(await isLoggedIn())){ location.href="index.html"; return; }
+  currentUser = getCurrentUser();
+
+  loadTelegramStatus();
+
+  if(isAdmin()){
+    document.getElementById("adminSection").classList.remove("hidden");
+    loadRecipientCount();
+  }
+}
+
+/* ─── Status koneksi Telegram (sama pola dengan profile.html) ─── */
+async function loadTelegramStatus(){
+  const statusEl = document.getElementById("teleStatus");
+  const textEl = document.getElementById("teleStatusText");
+  const btn = document.getElementById("teleConnectBtn");
+
+  const result = await apiRequest("/api/settings?action=telegramLinkStatus&username=" + encodeURIComponent(currentUser));
+
+  if(!result.success){
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Gagal memeriksa status koneksi.";
+    btn.disabled = false;
+    btn.textContent = "✈️ Hubungkan Telegram";
+    return;
+  }
+
+  if(result.connected){
+    statusEl.className = "tele-status connected";
+    textEl.textContent = "Terhubung" + (result.telegramUsername ? " sebagai @" + result.telegramUsername : "");
+    btn.textContent = "🔄 Hubungkan Ulang";
+  } else {
+    statusEl.className = "tele-status disconnected";
+    textEl.textContent = "Belum terhubung.";
+    btn.textContent = "✈️ Hubungkan Telegram";
+  }
+  btn.disabled = false;
+}
+
+async function connectTelegram(){
+  const btn = document.getElementById("teleConnectBtn");
+  btn.disabled = true;
+  btn.textContent = "Membuat link...";
+
+  const result = await apiRequest("/api/settings?action=telegramLinkToken", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser }),
+  });
+
+  if(!result.success){
+    alert(result.message || "Gagal membuat link Telegram. Coba lagi.");
+    btn.disabled = false;
+    btn.textContent = "✈️ Hubungkan Telegram";
+    return;
+  }
+
+  location.href = result.deepLink;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible"){
+    loadTelegramStatus();
+    if(isAdmin()) loadRecipientCount();
+  }
+});
+
+/* ─── Admin: jumlah penerima ─── */
+async function loadRecipientCount(){
+  const el = document.getElementById("recipientCountText");
+  const result = await apiRequest("/api/settings?action=telegramConnectedList&actor=" + encodeURIComponent(currentUser));
+  if(!result.success){
+    el.textContent = "gagal memuat";
+    return;
+  }
+  const n = (result.users || []).length;
+  el.textContent = n + " petugas";
+}
+
+/* ─── Admin: upload file (resumable ke Drive, sama pola artikel.html) ─── */
+async function handleBroadcastFileSelected(event){
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if(!file) return;
+
+  const progressEl = document.getElementById("uploadProgress");
+  const pickBtn = document.getElementById("filePickBtn");
+  const sendBtn = document.getElementById("sendBroadcastBtn");
+  pickBtn.disabled = true;
+  sendBtn.disabled = true;
+  progressEl.textContent = `Mengupload ${file.name}...`;
+
+  try {
+    const sessionResult = await apiRequest("/api/settings?action=articleUploadSession", {
+      method: "POST",
+      body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileSizeBytes: file.size }),
+    });
+    if (!sessionResult || !sessionResult.success) throw new Error(sessionResult.message || "Gagal buat sesi upload.");
+
+    const putResp = await fetch(sessionResult.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    const putData = await putResp.json();
+    if (!putResp.ok || !putData.id) throw new Error("Upload ke Drive gagal.");
+
+    pendingFile = { fileId: putData.id, fileName: file.name, mimeType: file.type };
+    renderFileChip();
+    sendBtn.disabled = false;
+  } catch (err) {
+    alert(`Gagal upload ${file.name}: ${err.message}`);
+  } finally {
+    pickBtn.disabled = false;
+    progressEl.textContent = "";
+  }
+}
+
+function renderFileChip(){
+  const wrap = document.getElementById("fileChipWrap");
+  wrap.innerHTML = "";
+  if(!pendingFile) return;
+  const chip = document.createElement("div");
+  chip.className = "file-chip";
+  chip.innerHTML = `📄 ${escapeHtml(pendingFile.fileName)} <span class="x" onclick="clearPendingFile()">✕</span>`;
+  wrap.appendChild(chip);
+}
+
+function clearPendingFile(){
+  pendingFile = null;
+  renderFileChip();
+  document.getElementById("sendBroadcastBtn").disabled = true;
+}
+
+function escapeHtml(s){
+  const d = document.createElement("div");
+  d.textContent = s || "";
+  return d.innerHTML;
+}
+
+/* ─── Admin: kirim broadcast ─── */
+async function sendBroadcast(){
+  if(!pendingFile){ alert("Pilih file dulu."); return; }
+  const btn = document.getElementById("sendBroadcastBtn");
+  const msgEl = document.getElementById("broadcastMsg");
+  const caption = document.getElementById("broadcastCaption").value.trim();
+
+  btn.disabled = true;
+  btn.textContent = "Mengirim...";
+  msgEl.className = "broadcast-msg";
+
+  const result = await apiRequest("/api/settings?action=telegramBroadcastFile", {
+    method: "POST",
+    body: JSON.stringify({ actor: currentUser, fileId: pendingFile.fileId, caption: caption || undefined }),
+  });
+
+  if(!result.success){
+    msgEl.className = "broadcast-msg show err";
+    msgEl.textContent = "⚠️ " + (result.message || "Gagal mengirim.");
+  } else {
+    msgEl.className = "broadcast-msg show ok";
+    msgEl.textContent = "✅ " + (result.message || `Dikirim ke ${result.total} petugas.`);
+    pendingFile = null;
+    renderFileChip();
+    document.getElementById("broadcastCaption").value = "";
+  }
+
+  btn.disabled = false;
+  btn.textContent = "✈️ Kirim ke Semua Petugas";
+}
+
+initPage();
+</script>
+
+</body>
+</html>
