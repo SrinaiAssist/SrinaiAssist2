@@ -72,7 +72,7 @@ const {
   uploadPhotoToDrive, downloadFileAsDataUrl, getDriveStorageInfo, listLargestDriveFiles,
   createResumableUploadSession, makeFilePublic,
 } = require('../lib/googleDrive');
-const { sendPushToAllUsers } = require('../lib/pushHelper');
+const { sendPushToAllUsers, sendPushToUsers } = require('../lib/pushHelper');
 
 const DRIVE_PREFIX = 'drive:';
 
@@ -877,6 +877,32 @@ async function handleTelegramBroadcastFile(req, res) {
 
   if (failedUsers.length > 0) {
     console.error(`Broadcast Telegram: ${failedUsers.length}/${users.length} gagal terkirim ->`, failedUsers.map((f) => `${f.username} (${f.reason})`).join(', '));
+  }
+
+  // Notifikasi push (FCM) ke tiap petugas yang FILE-nya berhasil terkirim
+  // ke Telegram -- pola sama persis seperti notifikasi "BA Otomatis
+  // terkirim" di api/ba.js (channel_id Android beda tiap jenis suara,
+  // karena Android tidak izinkan ganti suara channel yang sudah dibuat).
+  // Gagal kirim push TIDAK BOLEH menggagalkan response ke admin.
+  const failedUsernames = new Set(failedUsers.map((f) => f.username));
+  const sentUsernames = users
+    .map((u) => u.username)
+    .filter((username) => username && !failedUsernames.has(username));
+  if (sentUsernames.length > 0) {
+    try {
+      await sendPushToUsers(
+        sentUsernames,
+        {
+          title: 'File baru di Telegram',
+          body: fileName ? `${fileName} sudah dikirim admin ke chat Telegram kamu.` : 'Admin mengirim file baru ke chat Telegram kamu.',
+          data: { type: 'broadcast_file_sent', fileId: String(fileId) },
+          channel: 'srinai_broadcast_file',
+          sound: 'notif_broadcast_file',
+        },
+      );
+    } catch (err) {
+      console.error('Gagal kirim push notifikasi broadcast file:', err.message);
+    }
   }
 
   return res.status(200).json({

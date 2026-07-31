@@ -34,6 +34,13 @@ public class MainActivity extends BridgeActivity {
     // satu tanpa pengaruh ke yang lain lewat Pengaturan Notifikasi Android.
     private static final String CHANNEL_ID_BA_AUTO_MONITOR = "srinai_ba_auto_monitor";
 
+    // Channel khusus notifikasi "File baru dikirim admin lewat Telegram"
+    // (dipicu dari api/settings.js -> handleTelegramBroadcastFile ->
+    // pushHelper.sendPushToUsers, lihat channel: 'srinai_broadcast_file').
+    // Terpisah dari channel BA Otomatis di atas karena ini fitur beda
+    // (admin broadcast file manual ke telegram.html, bukan BA Otomatis cron).
+    private static final String CHANNEL_ID_BROADCAST_FILE = "srinai_broadcast_file";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationTrackerPlugin.class);
@@ -42,6 +49,7 @@ public class MainActivity extends BridgeActivity {
         createNotificationChannel();
         createBaAutoNotificationChannel();
         createBaAutoMonitorNotificationChannel();
+        createBroadcastFileNotificationChannel();
     }
 
     // Notification channel WAJIB dibuat sebelum notifikasi pertama muncul
@@ -133,6 +141,38 @@ public class MainActivity extends BridgeActivity {
                 channel.enableVibration(true);
 
                 Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notif_ba_auto_monitor");
+                AudioAttributes audioAttrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                channel.setSound(soundUri, audioAttrs);
+
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    // Channel khusus "File baru dikirim admin lewat Telegram" -- suara
+    // "notif_broadcast_file.mp3" bunyi meskipun app di-background/tertutup.
+    //
+    // File suara harus ditaruh di:
+    //   android/app/src/main/res/raw/notif_broadcast_file.mp3
+    // (salin dari android-native/res-raw/notif_broadcast_file.mp3 di repo
+    // ini -- folder res-raw/ cuma tempat staging, bukan lokasi asli project
+    // Android, sama seperti channel BA Otomatis di atas).
+    private void createBroadcastFileNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null && manager.getNotificationChannel(CHANNEL_ID_BROADCAST_FILE) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID_BROADCAST_FILE,
+                    "SrinaiAssist - File dari Admin (Telegram)",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Notifikasi saat admin mengirim file baru lewat Telegram");
+                channel.enableVibration(true);
+
+                Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notif_broadcast_file");
                 AudioAttributes audioAttrs = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)

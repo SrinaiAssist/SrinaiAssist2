@@ -1120,6 +1120,8 @@ function startPushRegistration() {
         const type = notification && notification.data && notification.data.type;
         if (type === "ba_auto_sent") {
             playBaAutoChime();
+        } else if (type === "broadcast_file_sent") {
+            playBroadcastFileChime();
         }
     });
 }
@@ -1133,6 +1135,19 @@ function startPushRegistration() {
 function playBaAutoChime() {
     try {
         const chime = new Audio("assets/audio/Notifikasi-female-telegram.mp3");
+        chime.volume = 0.8;
+        chime.play().catch(() => {});
+    } catch (e) { /* diamkan -- suara cuma pelengkap, jangan sampai bikin error lain */ }
+}
+
+/** Suara notifikasi "File baru dikirim admin lewat Telegram" versi
+    foreground (app lagi kebuka). Versi background/tertutup dapat suaranya
+    dari channel Android native srinai_broadcast_file (lihat
+    android-native/MainActivity.java) -- sama polanya dengan playBaAutoChime
+    di atas, cuma untuk fitur broadcast file admin (bukan BA Otomatis). */
+function playBroadcastFileChime() {
+    try {
+        const chime = new Audio("assets/audio/Notif-telegram.mp3");
         chime.volume = 0.8;
         chime.play().catch(() => {});
     } catch (e) { /* diamkan -- suara cuma pelengkap, jangan sampai bikin error lain */ }
