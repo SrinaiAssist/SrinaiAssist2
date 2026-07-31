@@ -888,8 +888,12 @@ async function handleTelegramBroadcastFile(req, res) {
   const sentUsernames = users
     .map((u) => u.username)
     .filter((username) => username && !failedUsernames.has(username));
+
+  let pushDebug = `sentUsernames=${JSON.stringify(sentUsernames)}`;
   if (sentUsernames.length > 0) {
     try {
+      const tokenCheck = await sql`SELECT username FROM fcm_tokens WHERE username = ANY(${sentUsernames})`;
+      pushDebug += ` | tokenRows=${tokenCheck.length}`;
       await sendPushToUsers(
         sentUsernames,
         {
@@ -900,9 +904,12 @@ async function handleTelegramBroadcastFile(req, res) {
           sound: 'notif_broadcast_file',
         },
       );
+      pushDebug += ' | sendPushToUsers=selesai tanpa error';
     } catch (err) {
-      console.error('Gagal kirim push notifikasi broadcast file:', err.message);
+      pushDebug += ` | ERROR: ${err.message}`;
     }
+  } else {
+    pushDebug += ' | SKIP push (sentUsernames kosong)';
   }
 
   return res.status(200).json({
@@ -911,9 +918,11 @@ async function handleTelegramBroadcastFile(req, res) {
     sent: sentCount,
     failed: failedUsers.length,
     failedUsers,
-    message: failedUsers.length === 0
+    pushDebug,
+    message: (failedUsers.length === 0
       ? `Berhasil dikirim ke ${sentCount} petugas.`
-      : `Terkirim ke ${sentCount} dari ${users.length} petugas. Gagal: ${failedUsers.map((f) => f.username).join(', ')}.`,
+      : `Terkirim ke ${sentCount} dari ${users.length} petugas. Gagal: ${failedUsers.map((f) => f.username).join(', ')}.`)
+      + ` [PUSH DEBUG: ${pushDebug}]`,
   });
 }
 
