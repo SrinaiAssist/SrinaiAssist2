@@ -84,11 +84,42 @@ const FOTO_EMPTY_CACHE_TTL_MS = 5 * 60 * 1000;
 function _fotoProfilKey(username) { return FOTO_CACHE_PREFIX + username; }
 
 /* ═══════════════════════════════════════════════════════
+   NAMESPACE CACHE PER AKUN
+   Semua key di atas (CACHE_KEYS.*, key per-span, fingerprint, antrian
+   pending, meta sync) di-namespace pakai username yang sedang login.
+   Tujuannya:
+   1) Logout TIDAK menghapus cache (lihat logoutUser() di js/auth.js --
+      cuma hapus srinaiUser/srinaiRole/loginTime, tidak pernah sentuh
+      cache sync). Data tetap ada, tidak perlu download ulang saat
+      login lagi dengan akun yang sama.
+   2) Ganti akun di device yang sama TIDAK memakai cache akun lain
+      secara tidak sengaja (tower/span/jalur bisa beda hak akses per
+      akun). Tiap akun otomatis punya "kotak" cache sendiri.
+   3) Balik ke akun semula: cache akun itu masih ada di kotaknya
+      sendiri, langsung terpakai lagi tanpa download ulang.
+   Pengecualian: cache foto profil user LAIN (_fotoProfilKey, prefix
+   FOTO_CACHE_PREFIX) sengaja TIDAK di-namespace -- itu bukan data yang
+   beda per hak akses (foto akun X sama saja dilihat dari akun mana
+   pun), jadi lebih baik dipakai bersama supaya tidak download ulang
+   sia-sia tiap ganti akun. */
+function _currentCacheUser() {
+  try {
+    return (typeof getCurrentUser === "function" && getCurrentUser()) || "_guest";
+  } catch (e) {
+    return "_guest";
+  }
+}
+function _scopedKey(key) {
+  if (key.indexOf(FOTO_CACHE_PREFIX) === 0) return key; // lihat catatan di atas
+  return key + "::u:" + _currentCacheUser();
+}
+
+/* ═══════════════════════════════════════════════════════
    UTILITAS CACHE
 ═══════════════════════════════════════════════════════ */
 function _cacheSet(key, data) {
   try {
-    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+    localStorage.setItem(_scopedKey(key), JSON.stringify({ ts: Date.now(), data }));
   } catch(e) {
     console.warn("[sync] localStorage full, skip cache:", key);
   }
@@ -96,7 +127,7 @@ function _cacheSet(key, data) {
 
 function _cacheGet(key) {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(_scopedKey(key));
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (!obj || obj.data === undefined) return null;
@@ -118,7 +149,7 @@ function _cacheStale(key) {
 }
 
 function _cacheClear(key) {
-  localStorage.removeItem(key);
+  localStorage.removeItem(_scopedKey(key));
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -465,7 +496,7 @@ async function _refreshTegakanBySpan(spanId) {
 
 /** Invalidate cache tegakan span — panggil setelah add/update/delete */
 function invalidateTegakanCache(spanId) {
-  localStorage.removeItem(_spanTegakanKey(spanId));
+  _cacheClear(_spanTegakanKey(spanId));
   // Total tegakan dashboard juga harus dianggap stale supaya
   // statTegakanCard tidak menampilkan angka basi.
   _cacheClear(CACHE_KEYS.tegakanAll);
@@ -542,7 +573,7 @@ async function _refreshAllTegakanGrouped() {
       const fp = _tegakanFingerprint(bySpan[spanId]);
       newFp[spanId] = fp;
       if (oldFp[spanId] !== fp) {
-        localStorage.removeItem(_spanTegakanKey(spanId));
+        _cacheClear(_spanTegakanKey(spanId));
       }
     });
 
@@ -551,7 +582,7 @@ async function _refreshAllTegakanGrouped() {
     // harus dibuang, kalau tidak akan tetap menampilkan tegakan yang
     // sudah tidak ada.
     Object.keys(oldFp).forEach(spanId => {
-      if (!bySpan[spanId]) localStorage.removeItem(_spanTegakanKey(spanId));
+      if (!bySpan[spanId]) _cacheClear(_spanTegakanKey(spanId));
     });
 
     _cacheSet(TEGAKAN_FP_KEY, newFp);
@@ -597,7 +628,7 @@ async function _refreshCatatanBySpan(spanId) {
 
 /** Invalidate cache catatan span — panggil setelah add/edit/delete */
 function invalidateCatatanCache(spanId) {
-  localStorage.removeItem(_spanCatatanKey(spanId));
+  _cacheClear(_spanCatatanKey(spanId));
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -613,13 +644,13 @@ function invalidateCatatanCache(spanId) {
 function queuePendingWrite(type, payload) {
   const queue = _getPendingQueue();
   queue.push({ id: Date.now() + "_" + Math.random().toString(36).slice(2), type, payload, ts: Date.now() });
-  localStorage.setItem(CACHE_KEYS.pending, JSON.stringify(queue));
+  localStorage.setItem(_scopedKey(CACHE_KEYS.pending), JSON.stringify(queue));
   _updateSyncBadge();
 }
 
 function _getPendingQueue() {
   try {
-    return JSON.parse(localStorage.getItem(CACHE_KEYS.pending)) || [];
+    return JSON.parse(localStorage.getItem(_scopedKey(CACHE_KEYS.pending))) || [];
   } catch(e) { return []; }
 }
 
@@ -654,7 +685,7 @@ async function syncPending() {
     }
   }
 
-  localStorage.setItem(CACHE_KEYS.pending, JSON.stringify(remaining));
+  localStorage.setItem(_scopedKey(CACHE_KEYS.pending), JSON.stringify(remaining));
   _updateSyncBadge();
   return { sent, failed };
 }
@@ -776,7 +807,7 @@ async function syncAll(onProgress) {
   }
 
   // Simpan metadata sinkronisasi terakhir
-  localStorage.setItem(SYNC_KEY_META, JSON.stringify({
+  localStorage.setItem(_scopedKey(SYNC_KEY_META), JSON.stringify({
     lastSync: Date.now(),
     version: SYNC_VERSION,
     success, failed
@@ -788,8 +819,8 @@ async function syncAll(onProgress) {
 
 /** Hapus semua cache (berguna saat logout) */
 function clearAllCache() {
-  Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(k));
-  localStorage.removeItem(SYNC_KEY_META);
+  Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(_scopedKey(k)));
+  localStorage.removeItem(_scopedKey(SYNC_KEY_META));
   // Hapus juga semua cache foto profil per-user (key dinamis, prefix FOTO_CACHE_PREFIX)
   Object.keys(localStorage)
     .filter(k => k.startsWith(FOTO_CACHE_PREFIX))
@@ -799,7 +830,7 @@ function clearAllCache() {
 /** Waktu sinkronisasi terakhir */
 function getLastSyncTime() {
   try {
-    const meta = JSON.parse(localStorage.getItem(SYNC_KEY_META));
+    const meta = JSON.parse(localStorage.getItem(_scopedKey(SYNC_KEY_META)));
     return meta ? meta.lastSync : null;
   } catch(e) { return null; }
 }
@@ -841,17 +872,13 @@ if (document.readyState === "loading") {
 }
 
 /* ═══════════════════════════════════════════════════════
-   AUTO-RECOVERY SAAT KONEKSI KEMBALI
-   Kasus: user matikan data internet lalu nyalakan lagi. Request
-   yang kebetulan berjalan saat itu bisa gagal atau (sebelum ada
-   timeout di apiRequest/auth.js) menggantung, dan halaman yang
-   sudah terlanjur render kosong/basi tidak akan pernah memperbarui
-   diri sendiri tanpa reload manual -- tidak ada yang memicu ulang
-   cachedGetXxx() di halaman itu.
-   Solusi: pantau event offline -> online asli (bukan reconnect
-   sesaat/flapping), lalu diam-diam sinkron ulang cache dari server
-   dan reload halaman SEKALI supaya data yang gagal tampil otomatis
-   muncul begitu koneksi benar-benar pulih, tanpa aksi dari user.
+   DETEKSI KONEKSI KEMBALI (TANPA aksi otomatis)
+   Sebelumnya di sini ada auto-sync + reload diam-diam saat koneksi
+   pulih dari offline. Itu dihapus karena bertentangan dengan prinsip
+   utama file ini: TIDAK ADA pembaruan data yang terjadi tanpa aksi
+   eksplisit dari user (tombol Sinkron). Yang tersisa cuma reset flag
+   supaya status offline/online tetap konsisten dipakai bagian lain
+   kalau diperlukan -- tidak ada fetch atau reload yang dipicu di sini.
 ═══════════════════════════════════════════════════════ */
 let _srinaiWasOffline = !navigator.onLine;
 
@@ -859,24 +886,14 @@ window.addEventListener("offline", () => {
   _srinaiWasOffline = true;
 });
 
-window.addEventListener("online", async () => {
-  if (!_srinaiWasOffline) return; // bukan pemulihan dari offline nyata, abaikan
+window.addEventListener("online", () => {
   _srinaiWasOffline = false;
-  try {
-    await syncAll();
-  } catch (e) {
-    console.warn("[sync] Gagal auto-sync saat online kembali:", e);
-  }
-  location.reload();
 });
 
-/* Patch logoutUser agar hapus cache */
-(function() {
-  const _origLogout = typeof logoutUser === "function" ? logoutUser : null;
-  if (_origLogout) {
-    window.logoutUser = function() {
-      clearAllCache();
-      _origLogout();
-    };
-  }
-})();
+/* Catatan: logoutUser() (di js/auth.js) SENGAJA tidak dipatch untuk
+   memanggil clearAllCache() di sini. Cache tetap dipertahankan setelah
+   logout -- baik untuk login ulang dengan akun yang sama (tidak perlu
+   download ulang) maupun ganti akun (cache akun lain sudah dipisah lewat
+   namespace _scopedKey() di atas, jadi tidak akan tertukar). clearAllCache()
+   masih tersedia untuk dipakai manual (mis. tombol "reset cache" di
+   pengaturan.html), tapi tidak lagi otomatis terpicu saat logout. */
