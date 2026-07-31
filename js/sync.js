@@ -53,6 +53,13 @@ const CACHE_KEYS = {
 /* Key dinamis per span — TTL lebih pendek (5 mnt) karena data lebih sering berubah */
 const SPAN_CACHE_TTL_MS = 5 * 60 * 1000;
 function _spanTegakanKey(spanId) { return "srinai_cache_tegakan_" + spanId; }
+
+/* Fingerprint per-span (jumlah tegakan + updated_at terbaru) dari sync
+   terakhir -- dipakai _refreshAllTegakanGrouped() untuk invalidasi
+   TERPILIH (hanya span yang benar-benar berubah), bukan hapus semua
+   cache TTD tiap kali Sinkron ditekan. Lihat komentar di
+   _refreshAllTegakanGrouped() untuk detail. */
+const TEGAKAN_FP_KEY = "srinai_sync_tegakan_fp";
 function _spanCatatanKey(spanId) { return "srinai_cache_catatan_"  + spanId; }
 function _spanCacheStale(key) {
   const obj = _cacheGet(key);
@@ -461,46 +468,96 @@ function invalidateTegakanCache(spanId) {
   // Total tegakan dashboard juga harus dianggap stale supaya
   // statTegakanCard tidak menampilkan angka basi.
   _cacheClear(CACHE_KEYS.tegakanAll);
+  // Hapus juga fingerprint span ini. Tanpa ini, ADA celah kecil: kalau
+  // syncAll() berikutnya kebetulan menghitung fingerprint yang sama
+  // (mis. jam server & jam yang tersimpan kebetulan cocok di detik yang
+  // sama), span ini bisa salah dianggap "tidak berubah" dan cache lama
+  // (yang sudah di-invalidate manual di sini) tidak pernah diisi ulang.
+  // Menghapus entry-nya memaksa _refreshAllTegakanGrouped() menganggap
+  // span ini "berubah" pada sync berikutnya, apa pun fingerprint barunya.
+  const fp = _cacheGetData(TEGAKAN_FP_KEY);
+  if (fp && Object.prototype.hasOwnProperty.call(fp, spanId)) {
+    delete fp[spanId];
+    _cacheSet(TEGAKAN_FP_KEY, fp);
+  }
 }
 
 /**
- * Ambil SEMUA tegakan (satu request, semua span) lalu sebar ke
- * masing-masing key cache per-span yang sudah ada (srinai_cache_tegakan_<spanId>).
- * Dipanggil dari syncAll() supaya setelah Sinkron, cachedGetTegakanBySpan()
- * untuk SETIAP span langsung hit cache — tidak perlu fetch on-demand lagi.
- * Memakai endpoint /api/tegakan yang sama (tanpa parameter spanId = ambil semua),
- * tidak ada file API baru.
+ * Ambil SEMUA tegakan (satu request, semua span) -- HANYA metadata, TANPA
+ * foto TTD (includeTtd=false). Dipakai buat statistik dashboard & grouping
+ * per span, yang keduanya tidak pernah menampilkan gambar TTD.
+ *
+ * PENTING (fix kuota Fast Origin Transfer, Jul 2026): sebelumnya endpoint
+ * ini dipanggil TANPA includeTtd=false, jadi server ikut resolve TTD tiap
+ * tegakan dari Google Drive jadi base64 dan mengirim SEMUANYA ke browser
+ * setiap kali syncAll() jalan -- padahal cuma butuh metadata. Ini penyebab
+ * utama lonjakan Fast Origin Transfer. Endpoint /api/tegakan sudah punya
+ * logic strip TTD (includeTtd=false -> ttdData jadi true/null saja),
+ * sekarang benar-benar dipakai di sini.
  */
 async function getAllTegakan() {
-  const result = await apiRequest("/api/tegakan");
+  const result = await apiRequest("/api/tegakan?includeTtd=false");
   if (!result.success) throw new Error(result.message || "Gagal memuat data tegakan.");
   return result.tegakan || [];
+}
+
+/**
+ * Hitung fingerprint satu span dari daftar tegakan metadata-nya:
+ * "<jumlah tegakan>:<updated_at terbaru>". Kalau fingerprint span sama
+ * dengan sync sebelumnya, berarti span itu TIDAK berubah (tidak ada
+ * tambah/edit/hapus) sejak sync terakhir.
+ */
+function _tegakanFingerprint(items) {
+  let maxUpdated = "";
+  for (let i = 0; i < items.length; i++) {
+    const u = items[i].updatedAt || "";
+    if (u > maxUpdated) maxUpdated = u;
+  }
+  return items.length + ":" + maxUpdated;
 }
 
 async function _refreshAllTegakanGrouped() {
   try {
     const all = await getAllTegakan();
+
+    // Kelompokkan per span dulu supaya bisa dihitung fingerprint per span.
     const bySpan = {};
     (all || []).forEach(item => {
-      if (!bySpan[item.spanId]) bySpan[item.spanId] = [];
-      bySpan[item.spanId].push(item);
+      const sid = item.spanId;
+      if (!bySpan[sid]) bySpan[sid] = [];
+      bySpan[sid].push(item);
     });
 
-    // PENTING: hapus dulu SEMUA cache tegakan per-span yang ada sebelum
-    // ditulis ulang. Tanpa ini, span yang tegakannya sudah 0 (semua item
-    // baru saja dihapus) tidak akan pernah muncul di `bySpan` di atas --
-    // jadi cache lamanya (masih berisi tegakan yang sudah dihapus) tidak
-    // pernah ditimpa/dibersihkan, walau Sinkron sudah dijalankan.
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf("srinai_cache_tegakan_") === 0) localStorage.removeItem(k);
-    }
+    // INVALIDASI TERPILIH (bukan hapus semua): bandingkan fingerprint tiap
+    // span dengan hasil sync sebelumnya. Cuma span yang datanya BENAR-BENAR
+    // berubah (ada tambah/edit/hapus tegakan) yang cache-nya (berisi TTD
+    // asli) dibuang. Span yang tidak berubah -- cache lama dibiarkan apa
+    // adanya, supaya cachedGetTegakanBySpan() tetap hit cache tanpa perlu
+    // refetch TTD dari Drive sia-sia.
+    const oldFp = _cacheGetData(TEGAKAN_FP_KEY) || {};
+    const newFp = {};
 
     Object.keys(bySpan).forEach(spanId => {
-      _cacheSet(_spanTegakanKey(spanId), bySpan[spanId]);
+      const fp = _tegakanFingerprint(bySpan[spanId]);
+      newFp[spanId] = fp;
+      if (oldFp[spanId] !== fp) {
+        localStorage.removeItem(_spanTegakanKey(spanId));
+      }
     });
-    // Simpan juga daftar lengkap (dipakai statistik dashboard) supaya
-    // tidak perlu fetch ulang /api/tegakan tanpa parameter di tempat lain.
+
+    // Span yang dulu punya fingerprint tapi sekarang tidak muncul lagi di
+    // bySpan (semua tegakan-nya baru saja dihapus) -- cache lamanya juga
+    // harus dibuang, kalau tidak akan tetap menampilkan tegakan yang
+    // sudah tidak ada.
+    Object.keys(oldFp).forEach(spanId => {
+      if (!bySpan[spanId]) localStorage.removeItem(_spanTegakanKey(spanId));
+    });
+
+    _cacheSet(TEGAKAN_FP_KEY, newFp);
+
+    // Simpan daftar lengkap (metadata saja) -- dipakai statistik dashboard
+    // & grouping per span, supaya tidak perlu fetch ulang /api/tegakan
+    // tanpa parameter di tempat lain.
     _cacheSet(CACHE_KEYS.tegakanAll, all || []);
     return all;
   } catch(e) {
