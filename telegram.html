@@ -377,6 +377,12 @@ async function sendBroadcast(){
   if(!result.success){
     msgEl.className = "broadcast-msg show err";
     msgEl.textContent = "⚠️ " + (result.message || "Gagal mengirim.");
+  } else if(result.failed > 0){
+    msgEl.className = "broadcast-msg show err";
+    msgEl.textContent = "⚠️ " + (result.message || `Terkirim ke ${result.sent} dari ${result.total} petugas.`);
+    pendingFile = null;
+    renderFileChip();
+    document.getElementById("broadcastCaption").value = "";
   } else {
     msgEl.className = "broadcast-msg show ok";
     msgEl.textContent = "✅ " + (result.message || `Dikirim ke ${result.total} petugas.`);

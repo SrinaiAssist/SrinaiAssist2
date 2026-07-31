@@ -829,30 +829,39 @@ async function handleTelegramBroadcastFile(req, res) {
   }
   const users = listResult.users || [];
   if (users.length === 0) {
-    return res.status(200).json({ success: true, total: 0, message: 'Belum ada petugas yang terhubung Telegram.' });
+    return res.status(200).json({ success: true, total: 0, sent: 0, failed: 0, message: 'Belum ada petugas yang terhubung Telegram.' });
   }
 
   await makeFilePublic(fileId);
   const documentUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
 
-  // Jawab dulu ke admin (biar HP tidak nunggu lama), baru kirim ke semua
-  // user secara paralel di background -- pola sama dengan sendPushToAllUsers
-  // di handleArticleCreate di atas.
-  res.status(200).json({
-    success: true,
-    total: users.length,
-    message: `Sedang mengirim ke ${users.length} petugas yang terhubung Telegram...`,
-  });
-
+  // DITUNGGU sampai selesai (bukan jawab duluan lalu lanjut di background)
+  // -- daftar petugas yang terhubung Telegram masih kecil, jadi aman
+  // ditunggu dalam satu request tanpa kena timeout. Ini supaya admin dapat
+  // laporan hasil ASLI (berapa sukses/gagal beserta sebabnya), bukan cuma
+  // pesan "sedang mengirim..." yang menggantung tanpa pernah dikonfirmasi.
   const results = await Promise.allSettled(
     users.map((u) => sendTelegramDocument(u.chatId, documentUrl, caption))
   );
-  const failedDetails = results
-    .map((r, i) => (r.status === 'rejected' ? `${users[i].username} (${r.reason?.message || 'unknown'})` : null))
+  const failedUsers = results
+    .map((r, i) => (r.status === 'rejected' ? { username: users[i].username, reason: r.reason?.message || 'unknown' } : null))
     .filter(Boolean);
-  if (failedDetails.length > 0) {
-    console.error(`Broadcast Telegram: ${failedDetails.length}/${users.length} gagal terkirim ->`, failedDetails.join(', '));
+  const sentCount = users.length - failedUsers.length;
+
+  if (failedUsers.length > 0) {
+    console.error(`Broadcast Telegram: ${failedUsers.length}/${users.length} gagal terkirim ->`, failedUsers.map((f) => `${f.username} (${f.reason})`).join(', '));
   }
+
+  return res.status(200).json({
+    success: true,
+    total: users.length,
+    sent: sentCount,
+    failed: failedUsers.length,
+    failedUsers,
+    message: failedUsers.length === 0
+      ? `Berhasil dikirim ke ${sentCount} petugas.`
+      : `Terkirim ke ${sentCount} dari ${users.length} petugas. Gagal: ${failedUsers.map((f) => f.username).join(', ')}.`,
+  });
 }
 
 // ─────────────────────────────────────────────────────────
