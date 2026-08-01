@@ -76,6 +76,14 @@ async function loginUser(username, password) {
         localStorage.setItem("srinaiRole", result.role);
         localStorage.setItem("lastLoginUser", result.username);
         localStorage.setItem("loginTime", Date.now());
+        // Password masih default (baru dibuat / baru direset admin) -- wajib
+        // diganti dulu sebelum bisa pakai halaman lain. Dicek di index.html
+        // (redirect) dan profile.html (buka otomatis form ganti password).
+        if (result.mustChangePassword) {
+            localStorage.setItem("srinaiMustChangePassword", "1");
+        } else {
+            localStorage.removeItem("srinaiMustChangePassword");
+        }
         try {
             localStorage.setItem(LOGIN_CHECK_CACHE_KEY, JSON.stringify({ username: result.username, valid: true, ts: Date.now() }));
         } catch (e) { /* localStorage penuh, lewati cache */ }
@@ -110,6 +118,7 @@ function logoutUser() {
     localStorage.removeItem("srinaiRole");
     localStorage.removeItem("loginTime");
     localStorage.removeItem(LOGIN_CHECK_CACHE_KEY);
+    localStorage.removeItem("srinaiMustChangePassword");
 }
 
 /** Ringkasan log login semua akun (admin) — last_login & jumlah login */

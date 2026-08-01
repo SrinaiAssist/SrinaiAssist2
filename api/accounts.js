@@ -40,6 +40,17 @@ const DRIVE_PREFIX = 'drive:';
 // SEBAIKNYA DEFAULT_PASSWORD selalu diisi manual di Vercel.
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'Srinai#Ganti2026!';
 
+// Validasi server-side: pastikan yang manggil resetPassword / tambah akun
+// BENAR admin, dicek dari tabel accounts langsung (bukan cuma percaya field
+// "actor" yang dikirim client, yang selama ini bisa dipalsukan lewat request
+// API langsung tanpa lewat UI sama sekali). Pola sama dengan assertIsAdmin
+// di api/settings.js.
+async function assertIsAdmin(username) {
+  if (!username) return false;
+  const rows = await sql`SELECT role, status FROM accounts WHERE username = ${username}`;
+  return rows[0]?.role === 'admin' && rows[0]?.status === 'Aktif';
+}
+
 async function resolveFotoForSave(foto, fileNamePrefix) {
   if (!foto || typeof foto !== 'string' || !foto.startsWith('data:')) {
     // Kosong, atau sudah berupa referensi Drive lama -> simpan apa adanya
@@ -127,10 +138,14 @@ module.exports = async (req, res) => {
     if (req.method === 'POST' && action === 'resetPassword') {
       const { username, actor } = req.body || {};
       if (!username) return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+      if (!(await assertIsAdmin(actor))) {
+        return res.status(403).json({ success: false, message: 'Hanya admin yang boleh reset password.' });
+      }
 
       const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
       const result = await sql`
-        UPDATE accounts SET password_hash = ${passwordHash} WHERE username = ${username}
+        UPDATE accounts SET password_hash = ${passwordHash}, must_change_password = true
+        WHERE username = ${username}
         RETURNING username
       `;
       if (result.length === 0) return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
@@ -157,7 +172,10 @@ module.exports = async (req, res) => {
       if (!cocok) return res.status(401).json({ success: false, message: 'Password lama salah.' });
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
-      await sql`UPDATE accounts SET password_hash = ${passwordHash} WHERE username = ${username}`;
+      await sql`
+        UPDATE accounts SET password_hash = ${passwordHash}, must_change_password = false
+        WHERE username = ${username}
+      `;
       return res.status(200).json({ success: true });
     }
 
@@ -193,18 +211,23 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Username wajib diisi.' });
       }
 
+      if (!(await assertIsAdmin(actor))) {
+        return res.status(403).json({ success: false, message: 'Hanya admin yang boleh menambah akun.' });
+      }
+
       const trimmed = username.trim();
       const existing = await sql`SELECT username FROM accounts WHERE username = ${trimmed}`;
       if (existing.length > 0) {
         return res.status(200).json({ success: false, message: 'Akun sudah ada.' });
       }
 
+      const usingDefaultPassword = !password;
       const passwordHash = await bcrypt.hash(password || DEFAULT_PASSWORD, 10);
       const finalRole = role || 'lw';
 
       await sql`
-        INSERT INTO accounts (username, password_hash, role, status)
-        VALUES (${trimmed}, ${passwordHash}, ${finalRole}, 'Aktif')
+        INSERT INTO accounts (username, password_hash, role, status, must_change_password)
+        VALUES (${trimmed}, ${passwordHash}, ${finalRole}, 'Aktif', ${usingDefaultPassword})
       `;
 
       const pf = profileFields || {};

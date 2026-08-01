@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
     }
 
     const rows = await sql`
-      SELECT username, password_hash, role, status
+      SELECT username, password_hash, role, status, must_change_password
       FROM accounts
       WHERE username = ${username.trim()}
     `;
@@ -73,6 +73,7 @@ module.exports = async (req, res) => {
       success: true,
       username: account.username,
       role: account.role,
+      mustChangePassword: !!account.must_change_password,
     });
   } catch (err) {
     console.error('Login error:', err);
