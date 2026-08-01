@@ -852,9 +852,11 @@ async function setAppSetting(key, value) {
 }
 
 async function deleteAppSetting(key) {
-    return await apiRequest("/api/settings?key=" + encodeURIComponent(key), {
-        method: "DELETE"
-    });
+    const actor = getCurrentUser();
+    return await apiRequest(
+        "/api/settings?key=" + encodeURIComponent(key) + "&actor=" + encodeURIComponent(actor || ""),
+        { method: "DELETE" }
+    );
 }
 
 /* =========================================================

@@ -406,7 +406,7 @@ async function backupData(){
   const originalLabel = btn.textContent;
   btn.disabled = true; btn.textContent = "⏳ Menyiapkan backup...";
   try{
-    const result = await apiRequest("/api/settings?action=backup");
+    const result = await apiRequest("/api/settings?action=backup&actor=" + encodeURIComponent(getCurrentUser() || ""));
     if(!result.success){
       alert(result.message || "Gagal mengambil data backup dari server.");
       return;
@@ -457,7 +457,7 @@ async function restoreData(){
 
     const res = await apiRequest("/api/settings?action=backup", {
       method: "POST",
-      body: JSON.stringify({ tables })
+      body: JSON.stringify({ tables, actor: getCurrentUser() })
     });
 
     if(!res.success){

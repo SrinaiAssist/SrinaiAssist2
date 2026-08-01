@@ -1438,6 +1438,13 @@ module.exports = async (req, res) => {
     }
 
     if (qAction === 'backup') {
+      // Paling kritis: export membocorkan password_hash SEMUA akun,
+      // restore bisa menimpa SELURUH isi database (termasuk akun & role).
+      // Wajib admin, dicek dari DB -- bukan cuma percaya klien.
+      const backupActor = req.method === 'GET' ? req.query?.actor : (req.body || {}).actor;
+      if (!(await assertIsAdmin(backupActor))) {
+        return res.status(403).json({ success: false, message: 'Hanya admin yang boleh mengakses backup data.' });
+      }
       if (req.method === 'GET') return await handleBackupExport(res);
       if (req.method === 'POST') return await handleBackupRestore(req, res);
       res.setHeader('Allow', 'GET, POST');
@@ -1884,6 +1891,10 @@ module.exports = async (req, res) => {
 
     if (req.method === 'DELETE') {
       if (!qKey) return res.status(400).json({ success: false, message: 'key wajib diisi.' });
+      const { actor: deleteActor } = req.query || {};
+      if (!(await assertIsAdmin(deleteActor))) {
+        return res.status(403).json({ success: false, message: 'Hanya admin yang boleh menghapus setting.' });
+      }
       await sql`DELETE FROM app_settings WHERE key = ${qKey}`;
       return res.status(200).json({ success: true });
     }
