@@ -1,6 +1,10 @@
 // api/chat.js
 //
 // GET    /api/chat?limit=50                -> ambil pesan terbaru (urut lama->baru)
+// GET    /api/chat?sinceId=169900000       -> ambil pesan BARU saja (id > sinceId),
+//                                              dipakai polling ringan chat.html supaya
+//                                              tidak narik ulang seluruh history tiap
+//                                              kali polling (hemat Fast Origin Transfer)
 // POST   /api/chat                         -> kirim pesan baru
 //        body: { username, text, foto, meta }
 //        meta (opsional) untuk pesan non-teks biasa, mis. kirim koordinat tower:
@@ -52,9 +56,27 @@ async function resolveFotoForRead(fotoRaw) {
 
 module.exports = async (req, res) => {
   try {
-    const { limit: qLimit, id: qId, all: qAll } = req.query || {};
+    const { limit: qLimit, id: qId, all: qAll, sinceId: qSinceId } = req.query || {};
 
     if (req.method === 'GET') {
+      // Mode polling ringan: hanya pesan dengan id > sinceId. Dipakai chat.html
+      // tiap 5 detik supaya kalau tidak ada pesan baru, respons hampir kosong
+      // (bukan narik ulang ratusan pesan tiap kali).
+      if (qSinceId) {
+        const sinceId = parseInt(qSinceId, 10) || 0;
+        const rows = await sql`
+          SELECT id, username, text, foto, meta, created_at AS "createdAt"
+          FROM chat_messages
+          WHERE id > ${sinceId}
+          ORDER BY created_at ASC
+          LIMIT 300
+        `;
+        const resolved = await Promise.all(
+          rows.map(async (r) => ({ ...r, foto: await resolveFotoForRead(r.foto) }))
+        );
+        return res.status(200).json({ success: true, messages: resolved });
+      }
+
       const limit = Math.min(parseInt(qLimit) || 100, 300);
       const rows = await sql`
         SELECT id, username, text, foto, meta, created_at AS "createdAt"
@@ -83,9 +105,6 @@ module.exports = async (req, res) => {
       `;
       res.status(200).json({ success: true, id, driveWarning: warning });
 
-      // Push dikirim SETELAH response supaya user pengirim tidak nunggu
-      // proses kirim ke banyak device. Gagal kirim push diamkan saja --
-      // chat sudah tersimpan, itu yang penting.
       sendPushToAllUsers(
         {
           title: `Chat baru dari ${username}`,

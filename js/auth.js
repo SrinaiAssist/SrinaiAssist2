@@ -863,6 +863,16 @@ async function getChatMessages(limit) {
     return result.messages || [];
 }
 
+/** Ambil hanya pesan BARU (id > sinceId) -- dipakai polling ringan
+ *  chat.html tiap 5 detik supaya tidak narik ulang seluruh history
+ *  (150 pesan) tiap kali polling. Kalau tidak ada pesan baru, server
+ *  balas array kosong -- hampir tanpa payload, hemat Fast Origin
+ *  Transfer dibanding versi lama yang selalu fetch limit penuh. */
+async function getChatMessagesSince(sinceId) {
+    const result = await apiRequest("/api/chat?sinceId=" + encodeURIComponent(sinceId));
+    return result.messages || [];
+}
+
 async function sendChatMessage(username, text, foto) {
     return await apiRequest("/api/chat", {
         method: "POST",

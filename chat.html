@@ -248,6 +248,14 @@ let chatList = [];
 let pendingPhoto = null;
 let pollTimer = null;
 let lastMessageId = 0;
+let pollTick = 0;
+
+// Tiap berapa kali tick polling (5 detik/tick) dilakukan full-refresh
+// (narik ulang 150 pesan) alih-alih delta saja. Full-refresh perlu supaya
+// penghapusan pesan / "Bersihkan chat" oleh admin tetap kelihatan di
+// perangkat user lain -- delta (sinceId) cuma nangkep pesan BARU, tidak
+// nangkep pesan yang DIHAPUS. 6 tick x 5 detik = full-refresh tiap 30 detik.
+const FULL_RESYNC_EVERY_TICKS = 6;
 
 const AI_BACKEND_URL = "/api/gemini";
 const AI_TIMEOUT_MS = 20000;
@@ -285,8 +293,13 @@ async function initPage(){
 
   await loadChat(true);
 
-  // Polling ringan agar pesan dari petugas lain ikut muncul tanpa refresh manual
-  pollTimer = setInterval(()=>loadChat(false), 5000);
+  // Polling ringan: tiap 5 detik cuma minta pesan BARU (id > lastMessageId)
+  // lewat getChatMessagesSince, bukan narik ulang 150 pesan penuh seperti
+  // sebelumnya. Kalau tidak ada pesan baru, respons kosong -- hampir tanpa
+  // payload, jauh lebih hemat Fast Origin Transfer di Vercel. Sesekali
+  // (tiap 30 detik) tetap full-refresh supaya hapus pesan/"Bersihkan chat"
+  // ikut tersinkron.
+  pollTimer = setInterval(pollChat, 5000);
 }
 
 function getTimeLabel(iso){
@@ -483,10 +496,52 @@ function closeLightbox(e){
   document.getElementById("lightbox").classList.remove("active");
 }
 
+/* Dipanggil oleh setInterval tiap 5 detik. Sebagian besar tick cuma minta
+   delta (pesan baru saja) lewat getChatMessagesSince -- jauh lebih hemat
+   dibanding full fetch 150 pesan tiap kali. Tiap FULL_RESYNC_EVERY_TICKS
+   tick, sekali-sekali full-refresh biar hapus pesan/"Bersihkan chat" oleh
+   admin tetap kelihatan di perangkat user lain. */
+async function pollChat(){
+  if(!lastMessageId){
+    // Load awal belum kelar (jarang terjadi), biarkan loadChat(true) yang urus.
+    return;
+  }
+
+  pollTick++;
+  if(pollTick % FULL_RESYNC_EVERY_TICKS === 0){
+    await loadChat(false);
+    return;
+  }
+
+  await pollChatIncremental();
+}
+
+async function pollChatIncremental(){
+  const newMsgs = await getChatMessagesSince(lastMessageId);
+  if(!newMsgs.length) return; // tidak ada pesan baru -- tidak ada render ulang sama sekali
+
+  const newestMsg = newMsgs[newMsgs.length - 1];
+  const hasNewReply = newestMsg.username !== currentUser;
+
+  chatList = chatList.concat(newMsgs);
+  if(chatList.length > 150){
+    chatList = chatList.slice(chatList.length - 150);
+  }
+  lastMessageId = newestMsg.id;
+
+  if(hasNewReply) playChatReplyChime();
+
+  if(currentUser){
+    localStorage.setItem("srinai_chatSeen_" + currentUser, newestMsg.createdAt);
+  }
+
+  renderChatList(false);
+}
+
 async function loadChat(forceScroll){
   const newList = await getChatMessages(150);
 
-  // Hindari render ulang penuh setiap polling kalau tidak ada pesan baru
+  // Hindari render ulang penuh setiap full-refresh kalau tidak ada pesan baru
   const newestId = newList.length ? newList[newList.length-1].id : 0;
   if(!forceScroll && newestId === lastMessageId) return;
 
@@ -507,6 +562,10 @@ async function loadChat(forceScroll){
   }
 
   chatList = newList;
+  renderChatList(forceScroll);
+}
+
+function renderChatList(forceScroll){
   const area = document.getElementById("chatArea");
   const wasNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 80;
 
