@@ -48,8 +48,8 @@
 // dan project ini sudah pas di batas itu.)
 //
 // PENTING (perbaikan kuota transfer Neon): key berikut berisi gambar yang
-// bisa cukup besar (logo/background/contoh layout BA):
-//   baLogo, baBackground, baContohLayout
+// bisa cukup besar (logo/background/contoh layout BA, tanda tangan TL JARGI):
+//   baLogo, baBackground, baContohLayout, ttdJargiLogo
 // PLUS: key apa pun berawalan "qr:" (mis. qr:tower:<id>, qr:span:<id>) --
 // dipakai untuk cache QR Code Tower/Span (dashboard.html, tower.html).
 // (Catatan: loginLogo & loginBackground dulu ada di daftar ini juga, tapi
@@ -84,10 +84,10 @@ const DRIVE_PREFIX = 'drive:';
 // ("image/jpeg", ...) di pengaturan.html & pengaturan-ba.html), jadi aman
 // hardcode mimeType 'image/jpeg' saat resolve balik dari Drive.
 const IMAGE_SETTING_KEYS = new Set([
-  'baLogo', 'baBackground', 'baContohLayout',
+  'baLogo', 'baBackground', 'baContohLayout', 'ttdJargiLogo',
 ]);
 
-// Selain 5 key tetap di atas, key apa pun berawalan "qr:" (contoh:
+// Selain key tetap di atas, key apa pun berawalan "qr:" (contoh:
 // "qr:tower:<id>", "qr:span:<id>") JUGA diperlakukan sebagai gambar dan
 // disimpan ke Drive. Dipakai untuk cache QR Code Tower/Span (generate
 // sekali di browser, upload sekali, GET berikutnya tinggal ambil dari Drive
@@ -96,7 +96,7 @@ function isImageKey(key) {
   return IMAGE_SETTING_KEYS.has(key) || (typeof key === 'string' && key.startsWith('qr:'));
 }
 
-// QR disimpan sebagai PNG (canvas.toDataURL("image/png")), 5 key lama tetap JPEG.
+// QR disimpan sebagai PNG (canvas.toDataURL("image/png")), key tetap di atas selalu JPEG.
 function mimeForKey(key) {
   return (typeof key === 'string' && key.startsWith('qr:')) ? 'image/png' : 'image/jpeg';
 }
@@ -1411,7 +1411,7 @@ async function handleArticleDelete(req, res) {
 
 module.exports = async (req, res) => {
   try {
-    const { key: qKey, keys: qKeys, stats: qStats, action: qAction } = req.query || {};
+    const { key: qKey, keys: qKeys, stats: qStats, action: qAction, includeImages: qIncludeImages } = req.query || {};
 
     if (qAction === 'location') {
       if (req.method !== 'POST') {
@@ -1844,9 +1844,18 @@ module.exports = async (req, res) => {
         const rows = await sql`
           SELECT key, value FROM app_settings WHERE key = ANY(${keyList})
         `;
+        const includeImages = qIncludeImages !== 'false';
         const settings = {};
         for (const r of rows) {
-          settings[r.key] = await resolveValueForRead(r.key, r.value);
+          // includeImages=false (dipakai syncAll() buat cek fingerprint dulu):
+          // SKIP download+resolve dari Drive untuk key gambar, kirim referensi
+          // mentahnya saja ("drive:<fileId>", beberapa puluh karakter). Sama
+          // seperti fix includeTtd=false (tegakan) & includeFoto=false (akun)
+          // -- yang butuh gambar aslinya cuma yang benar-benar dipakai render/
+          // generate PDF, bukan setiap kali syncAll() jalan.
+          settings[r.key] = includeImages
+            ? await resolveValueForRead(r.key, r.value)
+            : (isImageKey(r.key) ? (r.value || '') : await resolveValueForRead(r.key, r.value));
         }
         return res.status(200).json({ success: true, settings });
       }

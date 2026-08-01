@@ -61,6 +61,10 @@ function _spanTegakanKey(spanId) { return "srinai_cache_tegakan_" + spanId; }
    _refreshAllTegakanGrouped() untuk detail. */
 const TEGAKAN_FP_KEY = "srinai_sync_tegakan_fp";
 const ACCOUNTS_FOTO_FP_KEY = "srinai_sync_accounts_foto_fp"; // username -> referensi foto mentah terakhir
+const SETTINGS_IMG_FP_KEY = "srinai_sync_settings_img_fp"; // key setting -> referensi gambar mentah terakhir
+// HARUS sinkron dengan IMAGE_SETTING_KEYS di api/settings.js (key yang
+// disimpan sbg referensi Drive & perlu di-resolve jadi base64).
+const SETTINGS_IMAGE_KEYS = ["baLogo", "baBackground", "baContohLayout", "ttdJargiLogo"];
 function _spanCatatanKey(spanId) { return "srinai_cache_catatan_"  + spanId; }
 function _spanCacheStale(key) {
   const obj = _cacheGet(key);
@@ -750,6 +754,51 @@ async function _refreshAccountsSelective() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   PENGATURAN (BA logo/background/contoh layout) — refresh SELEKTIF
+   Sama seperti akun/tegakan: baLogo, baBackground, baContohLayout
+   sebelumnya di-resolve penuh dari Drive tiap syncAll() jalan, padahal
+   jarang berubah (cuma kalau admin sengaja ganti lewat pengaturan-ba.html).
+   Sekarang: ambil dulu referensi mentahnya (includeImages=false, murah),
+   bandingkan dengan referensi hasil sync sebelumnya -- HANYA key yang
+   referensinya berubah yang di-resolve ulang satu-per-satu. Kalibrasi
+   posisi (baFieldLayout, dipakai pengaturan-ba.html) TETAP selalu akurat
+   ke versi terbaru karena begitu admin ganti gambarnya, referensinya pasti
+   berubah dan otomatis ke-resolve ulang sync berikutnya -- ini BUKAN cache
+   permanen yang mengunci ke versi lama selamanya.
+═══════════════════════════════════════════════════════ */
+async function _refreshSettingsSelective() {
+  const light = await getAppSettings(COMMON_SETTINGS, false); // includeImages=false
+
+  const oldFp = _cacheGetData(SETTINGS_IMG_FP_KEY) || {};
+  const oldSettings = _cacheGetData(CACHE_KEYS.settings) || {};
+
+  const newFp = {};
+  const merged = { ...light }; // key non-gambar (systemNotice, dll) sudah fresh & murah apa adanya
+
+  for (const imgKey of SETTINGS_IMAGE_KEYS) {
+    const ref = light[imgKey] || "";
+    newFp[imgKey] = ref;
+    if (oldFp[imgKey] === ref && Object.prototype.hasOwnProperty.call(oldSettings, imgKey)) {
+      // Referensi sama dengan sync sebelumnya -> pakai hasil resolve lama,
+      // TIDAK download ulang dari Drive.
+      merged[imgKey] = oldSettings[imgKey];
+    } else {
+      // Belum pernah ada / referensinya berubah -> resolve HANYA key ini.
+      try {
+        merged[imgKey] = await getAppSetting(imgKey);
+      } catch (e) {
+        merged[imgKey] = oldSettings[imgKey] || null;
+      }
+    }
+  }
+
+  const finalSettings = { ...oldSettings, ...merged };
+  _cacheSet(CACHE_KEYS.settings, finalSettings);
+  _cacheSet(SETTINGS_IMG_FP_KEY, newFp);
+  return finalSettings;
+}
+
+/* ═══════════════════════════════════════════════════════
    SYNC ALL — refresh semua cache dari server
 ═══════════════════════════════════════════════════════ */
 
@@ -765,7 +814,7 @@ async function syncAll(onProgress) {
     { key: CACHE_KEYS.tower,    fn: getTowerMasterList,   label: "Master tower"     },
     { key: CACHE_KEYS.span,     fn: getSpanMasterList,    label: "Master span"      },
     { key: CACHE_KEYS.ba,       fn: getAllBA,              label: "Berita Acara"     },
-    { key: CACHE_KEYS.settings, fn: () => getAppSettings(COMMON_SETTINGS), label: "Pengaturan" },
+    { key: CACHE_KEYS.settings, fn: _refreshSettingsSelective, selfCached: true, label: "Pengaturan" },
     // grouped: true -> data disebar ke banyak key cache per-span sendiri
     // (srinai_cache_tegakan_<spanId>) di dalam _refreshAllTegakanGrouped(),
     // bukan disimpan ke satu CACHE_KEYS key tunggal seperti step lain.
@@ -786,13 +835,10 @@ async function syncAll(onProgress) {
           // _refreshAllTegakanGrouped() sudah menyimpan tiap span ke
           // key cache-nya sendiri — tidak ada satu key tunggal untuk diisi di sini.
         } else if (s.selfCached) {
-          // _refreshAccountsSelective() sudah menyimpan cache (+ fingerprint
-          // foto) sendiri di dalam fungsinya — jangan _cacheSet lagi di sini,
-          // supaya foto yang tidak berubah tidak balik ke referensi mentah.
-        } else if (s.key === CACHE_KEYS.settings) {
-          // Settings: simpan sebagai object langsung
-          const existing = _cacheGetData(CACHE_KEYS.settings) || {};
-          _cacheSet(s.key, { ...existing, ...data });
+          // _refreshAccountsSelective() / _refreshSettingsSelective() sudah
+          // menyimpan cache (+ fingerprint) sendiri di dalam fungsinya --
+          // jangan _cacheSet lagi di sini, supaya nilai yang tidak berubah
+          // tidak balik ke referensi mentah / ke-overwrite ganda.
         } else {
           _cacheSet(s.key, data);
         }

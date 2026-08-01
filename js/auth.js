@@ -822,8 +822,16 @@ async function getAppSetting(key) {
     return result.value ?? null;
 }
 
-async function getAppSettings(keys) {
-    const result = await apiRequest("/api/settings?keys=" + encodeURIComponent(keys.join(",")));
+// includeImages=false -> minta server SKIP resolve key gambar (baLogo,
+// baBackground, baContohLayout, qr:*) dari Drive, kirim referensi mentahnya
+// saja. Dipakai syncAll() lewat _refreshSettingsSelective() supaya sinkron
+// tidak diam-diam mendownload ulang gambar yang tidak berubah tiap kali
+// tombol Sinkron ditekan. Pemanggil lain yang tidak kirim param ini tetap
+// dapat resolusi penuh seperti biasa.
+async function getAppSettings(keys, includeImages = true) {
+    const url = "/api/settings?keys=" + encodeURIComponent(keys.join(","))
+      + (includeImages ? "" : "&includeImages=false");
+    const result = await apiRequest(url);
     return result.settings || {};
 }
 

@@ -451,7 +451,7 @@ async function toggleSpanRow(spanId, evt){
 
   try{
     const [tegakan, catatan] = await Promise.all([
-      getTegakanBySpan(spanId),
+      cachedGetTegakanBySpan(spanId),
       getCatatanBySpan(spanId)
     ]);
     expandedCache[spanId] = { tegakan, catatan };
