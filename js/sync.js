@@ -538,63 +538,61 @@ async function getAllTegakan() {
 }
 
 /**
- * Hitung fingerprint satu span dari daftar tegakan metadata-nya:
+ * Hitung fingerprint satu span dari baris meta ringan:
  * "<jumlah tegakan>:<updated_at terbaru>". Kalau fingerprint span sama
  * dengan sync sebelumnya, berarti span itu TIDAK berubah (tidak ada
  * tambah/edit/hapus) sejak sync terakhir.
  */
-function _tegakanFingerprint(items) {
-  let maxUpdated = "";
-  for (let i = 0; i < items.length; i++) {
-    const u = items[i].updatedAt || "";
-    if (u > maxUpdated) maxUpdated = u;
-  }
-  return items.length + ":" + maxUpdated;
+function _tegakanFingerprintFromMeta(m) {
+  return (m.count || 0) + ":" + (m.maxUpdatedAt || "");
 }
 
+/**
+ * PENTING (fix kuota Fast Origin Transfer, Ags 2026): sebelumnya fungsi ini
+ * SELALU tarik metadata SEMUA tegakan di SEMUA span (getAllTegakan()) tiap
+ * syncAll() jalan, walau cuma 1 tegakan di 1 span yang berubah -- span lain
+ * yang sama sekali tidak berubah ikut ke-transfer ulang percuma.
+ *
+ * Sekarang: cek dulu mode ringan (getTegakanMeta(), cuma angka per span,
+ * bukan data lengkap). Span yang fingerprint-nya SAMA dengan sync
+ * sebelumnya di-skip total -- cache lamanya (baik daftar metadata gabungan
+ * maupun cache detail per-span berisi TTD) dibiarkan apa adanya. Cuma span
+ * yang fingerprint-nya BEDA yang metadatanya ditarik ulang, itu pun HANYA
+ * untuk span itu sendiri (getTegakanMetaBySpan), bukan seluruh sistem.
+ */
 async function _refreshAllTegakanGrouped() {
   try {
-    const all = await getAllTegakan();
+    const metaList = await getTegakanMeta();
 
-    // Kelompokkan per span dulu supaya bisa dihitung fingerprint per span.
-    const bySpan = {};
-    (all || []).forEach(item => {
-      const sid = item.spanId;
-      if (!bySpan[sid]) bySpan[sid] = [];
-      bySpan[sid].push(item);
-    });
-
-    // INVALIDASI TERPILIH (bukan hapus semua): bandingkan fingerprint tiap
-    // span dengan hasil sync sebelumnya. Cuma span yang datanya BENAR-BENAR
-    // berubah (ada tambah/edit/hapus tegakan) yang cache-nya (berisi TTD
-    // asli) dibuang. Span yang tidak berubah -- cache lama dibiarkan apa
-    // adanya, supaya cachedGetTegakanBySpan() tetap hit cache tanpa perlu
-    // refetch TTD dari Drive sia-sia.
     const oldFp = _cacheGetData(TEGAKAN_FP_KEY) || {};
     const newFp = {};
+    metaList.forEach(m => { newFp[m.spanId] = _tegakanFingerprintFromMeta(m); });
 
-    Object.keys(bySpan).forEach(spanId => {
-      const fp = _tegakanFingerprint(bySpan[spanId]);
-      newFp[spanId] = fp;
-      if (oldFp[spanId] !== fp) {
-        _cacheClear(_spanTegakanKey(spanId));
-      }
-    });
+    const changedSpanIds = Object.keys(newFp).filter(spanId => oldFp[spanId] !== newFp[spanId]);
+    // Span yang dulu ada fingerprint-nya tapi sekarang tidak muncul lagi di
+    // meta (semua tegakan-nya baru saja dihapus).
+    const removedSpanIds = Object.keys(oldFp).filter(spanId => !(spanId in newFp));
 
-    // Span yang dulu punya fingerprint tapi sekarang tidak muncul lagi di
-    // bySpan (semua tegakan-nya baru saja dihapus) -- cache lamanya juga
-    // harus dibuang, kalau tidak akan tetap menampilkan tegakan yang
-    // sudah tidak ada.
-    Object.keys(oldFp).forEach(spanId => {
-      if (!bySpan[spanId]) _cacheClear(_spanTegakanKey(spanId));
-    });
+    // Cache detail per-span (dipakai halaman tegakan.html, berisi TTD):
+    // hapus HANYA span yang benar-benar berubah/hilang, supaya
+    // cachedGetTegakanBySpan() tetap hit cache untuk span yang tidak
+    // berubah (tidak perlu resolve ulang TTD dari Drive sia-sia).
+    changedSpanIds.forEach(spanId => _cacheClear(_spanTegakanKey(spanId)));
+    removedSpanIds.forEach(spanId => _cacheClear(_spanTegakanKey(spanId)));
+
+    // Daftar metadata gabungan (dipakai statistik dashboard) -- mulai dari
+    // cache lama, buang entri span yang berubah/hilang, lalu isi ulang
+    // HANYA span yang berubah dengan data terbaru (metadata saja, tanpa TTD).
+    const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
+    const untouched = oldAll.filter(item => !changedSpanIds.includes(item.spanId) && !removedSpanIds.includes(item.spanId));
+
+    const refreshedParts = await Promise.all(
+      changedSpanIds.map(spanId => getTegakanMetaBySpan(spanId).catch(() => []))
+    );
+    const all = untouched.concat(...refreshedParts);
 
     _cacheSet(TEGAKAN_FP_KEY, newFp);
-
-    // Simpan daftar lengkap (metadata saja) -- dipakai statistik dashboard
-    // & grouping per span, supaya tidak perlu fetch ulang /api/tegakan
-    // tanpa parameter di tempat lain.
-    _cacheSet(CACHE_KEYS.tegakanAll, all || []);
+    _cacheSet(CACHE_KEYS.tegakanAll, all);
     return all;
   } catch(e) {
     return _cacheGetData(CACHE_KEYS.tegakanAll) || [];

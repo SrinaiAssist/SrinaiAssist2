@@ -522,70 +522,6 @@ async function deleteAccount(username) {
     return result.success === true;
 }
 
-function getTegakanData() {
-    return JSON.parse(localStorage.getItem("tegakanData")) || {};
-}
-
-function saveTegakanData(data) {
-    localStorage.setItem("tegakanData", JSON.stringify(data));
-}
-
-function getTegakanBySpan(span) {
-    const data = getTegakanData();
-    return data[span] || [];
-}
-
-function tambahTegakan(span, fields) {
-    const data = getTegakanData();
-    if (!data[span]) data[span] = [];
-
-    const item = {
-        id          : Date.now(),
-        nama        : fields.nama || "",
-        idTegakan   : fields.idTegakan || "",
-        pemilikNama : fields.pemilikNama || "",
-        pemilikAlamat: fields.pemilikAlamat || "",
-        pemilikTelp : fields.pemilikTelp || "",
-        petugas     : fields.petugas || getCurrentUser(),
-        ttdType     : fields.ttdType || "",
-        ttdData     : fields.ttdData || "",
-        dibuatOleh  : getCurrentUser(),
-        tanggal     : new Date().toLocaleString("id-ID")
-    };
-
-    data[span].unshift(item);
-    saveTegakanData(data);
-    return item;
-}
-
-function updateTegakan(span, id, fields) {
-    const data = getTegakanData();
-    if (!data[span]) return false;
-    const item = data[span].find(x => x.id === id);
-    if (!item) return false;
-
-    Object.keys(fields).forEach(key => {
-        item[key] = fields[key];
-    });
-
-    saveTegakanData(data);
-    return true;
-}
-
-function hapusTegakan(span, id) {
-    const data = getTegakanData();
-    if (!data[span]) return false;
-    data[span] = data[span].filter(x => x.id !== id);
-    saveTegakanData(data);
-    return true;
-}
-
-function isTegakanLengkap(item) {
-    return !!(item.pemilikNama && item.pemilikNama.trim() &&
-               item.pemilikAlamat && item.pemilikAlamat.trim() &&
-               item.ttdData && item.ttdData.trim());
-}
-
 async function canEditSpan(span) {
     if (isAdmin() || isKLW()) return true;
     if (isMonitor()) return false;
@@ -768,6 +704,22 @@ async function sendCoordinateToChat(username, meta) {
 ========================================================= */
 async function getTegakanBySpan(spanId) {
     const result = await apiRequest("/api/tegakan?spanId=" + encodeURIComponent(spanId));
+    if (!result.success) throw new Error(result.message || "Gagal memuat data tegakan.");
+    return result.tegakan || [];
+}
+
+/** Mode ringan: {spanId, count, maxUpdatedAt} per span, dipakai sync.js
+ *  buat deteksi span mana yang berubah tanpa tarik data lengkap. */
+async function getTegakanMeta() {
+    const result = await apiRequest("/api/tegakan?meta=1");
+    if (!result.success) throw new Error(result.message || "Gagal memuat metadata tegakan.");
+    return result.meta || [];
+}
+
+/** Metadata tegakan (TANPA foto TTD) untuk SATU span saja -- dipakai sync.js
+ *  buat refresh span yang benar-benar berubah, tanpa ikut menarik span lain. */
+async function getTegakanMetaBySpan(spanId) {
+    const result = await apiRequest("/api/tegakan?spanId=" + encodeURIComponent(spanId) + "&includeTtd=false");
     if (!result.success) throw new Error(result.message || "Gagal memuat data tegakan.");
     return result.tegakan || [];
 }

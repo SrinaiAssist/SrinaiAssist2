@@ -91,7 +91,21 @@ function mapRow(r) {
 
 module.exports = async (req, res) => {
   try {
-    const { spanId: qSpanId, id: qId, actor: qActor, includeTtd: qIncludeTtd } = req.query || {};
+    const { spanId: qSpanId, id: qId, actor: qActor, includeTtd: qIncludeTtd, meta: qMeta } = req.query || {};
+
+    // Mode ringan: dipakai sync.js (syncAll) buat cek span MANA yang
+    // datanya berubah sejak sync terakhir, TANPA tarik data lengkap semua
+    // span dulu (sebelumnya: 1 tegakan berubah = semua metadata tegakan di
+    // SEMUA span ikut ke-transfer ulang -- ini penyebab boros Fast Origin
+    // Transfer). Payload-nya cuma angka per span, jauh lebih kecil.
+    if (req.method === 'GET' && qMeta === '1') {
+      const rows = await sql`
+        SELECT span_id AS "spanId", COUNT(*)::int AS "count", MAX(updated_at) AS "maxUpdatedAt"
+        FROM tegakan
+        GROUP BY span_id
+      `;
+      return res.status(200).json({ success: true, meta: rows });
+    }
 
     if (req.method === 'GET') {
       // includeTtd=false -> skip resolve foto TTD dari Google Drive (hemat
