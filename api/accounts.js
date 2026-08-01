@@ -33,6 +33,13 @@ const { logActivity } = require('../lib/activityLog');
 
 const DRIVE_PREFIX = 'drive:';
 
+// Password default untuk akun baru & reset password diambil dari environment
+// variable (Vercel > Settings > Environment Variables), BUKAN hardcode di
+// source code -- supaya tidak kelihatan siapapun yang baca kode di GitHub.
+// Fallback di bawah cuma jaga-jaga kalau env belum sempat diset, tapi
+// SEBAIKNYA DEFAULT_PASSWORD selalu diisi manual di Vercel.
+const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'Srinai#Ganti2026!';
+
 async function resolveFotoForSave(foto, fileNamePrefix) {
   if (!foto || typeof foto !== 'string' || !foto.startsWith('data:')) {
     // Kosong, atau sudah berupa referensi Drive lama -> simpan apa adanya
@@ -121,7 +128,7 @@ module.exports = async (req, res) => {
       const { username, actor } = req.body || {};
       if (!username) return res.status(400).json({ success: false, message: 'username wajib diisi.' });
 
-      const passwordHash = await bcrypt.hash('123456', 10);
+      const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
       const result = await sql`
         UPDATE accounts SET password_hash = ${passwordHash} WHERE username = ${username}
         RETURNING username
@@ -192,7 +199,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: false, message: 'Akun sudah ada.' });
       }
 
-      const passwordHash = await bcrypt.hash(password || '123456', 10);
+      const passwordHash = await bcrypt.hash(password || DEFAULT_PASSWORD, 10);
       const finalRole = role || 'lw';
 
       await sql`
