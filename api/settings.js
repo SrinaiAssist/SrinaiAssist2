@@ -47,11 +47,15 @@
 // serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
 // dan project ini sudah pas di batas itu.)
 //
-// PENTING (perbaikan kuota transfer Neon): 5 key berikut berisi gambar yang
-// bisa cukup besar (logo/background/contoh layout BA & halaman login):
-//   baLogo, baBackground, baContohLayout, loginLogo, loginBackground
+// PENTING (perbaikan kuota transfer Neon): key berikut berisi gambar yang
+// bisa cukup besar (logo/background/contoh layout BA):
+//   baLogo, baBackground, baContohLayout
 // PLUS: key apa pun berawalan "qr:" (mis. qr:tower:<id>, qr:span:<id>) --
 // dipakai untuk cache QR Code Tower/Span (dashboard.html, tower.html).
+// (Catatan: loginLogo & loginBackground dulu ada di daftar ini juga, tapi
+// fitur upload logo/background halaman login sudah dihapus total -- lihat
+// pengaturan.html -- karena halaman login (index.html) sekarang pakai tema
+// fieldlog statis dan tidak pernah membaca kedua key itu sama sekali.)
 // Sebelumnya SEMUA disimpan sebagai base64 mentah langsung di kolom `value`
 // Postgres. Sekarang kalau value untuk salah satu key di atas berupa data
 // URL base64, file diupload dulu ke Google Drive (lib/googleDrive.js) dan
@@ -76,11 +80,11 @@ const { sendPushToAllUsers, sendPushToUsers } = require('../lib/pushHelper');
 
 const DRIVE_PREFIX = 'drive:';
 
-// Kelima key ini SELALU disimpan frontend sebagai JPEG (canvas.toDataURL
+// Key ini SELALU disimpan frontend sebagai JPEG (canvas.toDataURL
 // ("image/jpeg", ...) di pengaturan.html & pengaturan-ba.html), jadi aman
 // hardcode mimeType 'image/jpeg' saat resolve balik dari Drive.
 const IMAGE_SETTING_KEYS = new Set([
-  'baLogo', 'baBackground', 'baContohLayout', 'loginLogo', 'loginBackground',
+  'baLogo', 'baBackground', 'baContohLayout',
 ]);
 
 // Selain 5 key tetap di atas, key apa pun berawalan "qr:" (contoh:

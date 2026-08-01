@@ -310,37 +310,6 @@ details[open] .slot-summary-chevron{transform:rotate(90deg);}
       </div>
 
       <div class="card">
-        <div class="card-title gold">🖼 Logo & Tampilan Login</div>
-        <div class="card-desc">Logo dipakai di halaman login dan pojok kiri atas Dashboard. Background hanya di halaman login. Gambar otomatis dikompres.</div>
-
-        <div class="upload-row">
-          <label class="upload-label">Logo</label>
-          <div class="preview-box logo-box" id="logoPreviewBox">
-            <div class="preview-empty" id="logoEmptyText">Logo default</div>
-            <img id="logoPreviewImg" style="display:none;">
-          </div>
-          <div class="upload-actions">
-            <input type="file" id="logoInput" accept="image/*">
-            <button class="btn-small" onclick="resetLoginImage('logo')">Reset</button>
-          </div>
-        </div>
-
-        <div class="upload-row">
-          <label class="upload-label">Background Login</label>
-          <div class="preview-box bg-box" id="bgPreviewBox">
-            <div class="preview-empty" id="bgEmptyText">Background default</div>
-            <img id="bgPreviewImg" style="display:none;">
-          </div>
-          <div class="upload-actions">
-            <input type="file" id="bgInput" accept="image/*">
-            <button class="btn-small" onclick="resetLoginImage('background')">Reset</button>
-          </div>
-        </div>
-
-        <div class="compress-note">📌 Gambar tersimpan di server dan tampil di semua perangkat. Setiap gambar otomatis dikompres saat diupload.</div>
-      </div>
-
-      <div class="card">
         <div class="card-title">📄 Pengaturan BA</div>
         <div class="info-box">🏠 Pengaturan Background BA, Contoh BA, Logo BA, dan Kalibrasi Posisi Field tersedia di <b>Dashboard</b> pada panel "Pengaturan BA" — hanya terlihat untuk Admin dan KLW.</div>
         <button class="btn btn-primary" onclick="location.href='dashboard.html'">Buka Dashboard → Panel BA</button>
@@ -471,8 +440,6 @@ async function initPage(){
   }
 
   if(isAdmin()){
-    await loadLoginPreview("logo");
-    await loadLoginPreview("background");
     loadAiUsage();
   }
 }
@@ -993,71 +960,6 @@ async function clearSlot(n){
     return;
   }
   renderAllSlots();
-}
-
-const LOGIN_IMG_MAX_LOGO = 400;
-const LOGIN_IMG_MAX_BG = 1000;
-const LOGIN_IMG_Q = 0.75;
-
-function compressImage(file, maxDimension, quality){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = function(e){
-      const img = new Image();
-      img.onload = function(){
-        let w=img.width, h=img.height;
-        if(w>maxDimension||h>maxDimension){
-          if(w>h){ h=Math.round(h*(maxDimension/w)); w=maxDimension; }
-          else { w=Math.round(w*(maxDimension/h)); h=maxDimension; }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width=w; canvas.height=h;
-        canvas.getContext("2d").drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function loadLoginPreview(type){
-  const key = type==="logo" ? "loginLogo" : "loginBackground";
-  const imgEl = document.getElementById(type==="logo" ? "logoPreviewImg" : "bgPreviewImg");
-  const emptyEl = document.getElementById(type==="logo" ? "logoEmptyText" : "bgEmptyText");
-  if(!imgEl || !emptyEl) return;
-  const saved = await getAppSetting(key);
-  if(saved){ imgEl.src=saved; imgEl.style.display="block"; emptyEl.style.display="none"; }
-  else { imgEl.style.display="none"; emptyEl.style.display="block"; }
-}
-
-async function resetLoginImage(type){
-  const key = type==="logo" ? "loginLogo" : "loginBackground";
-  if(!confirm("Kembalikan ke tampilan default?")) return;
-  await deleteAppSetting(key);
-  await loadLoginPreview(type);
-  alert((type==="logo"?"Logo":"Background")+" dikembalikan ke default.");
-}
-
-const logoInputEl = document.getElementById("logoInput");
-if(logoInputEl){
-  logoInputEl.addEventListener("change", async function(e){
-    const file = e.target.files[0]; if(!file) return;
-    try{ const compressed = await compressImage(file, LOGIN_IMG_MAX_LOGO, LOGIN_IMG_Q); await setAppSetting("loginLogo", compressed); await loadLoginPreview("logo"); alert("Logo berhasil disimpan."); }
-    catch(err){ alert("Gagal memproses gambar."); }
-    logoInputEl.value = "";
-  });
-}
-const bgInputEl = document.getElementById("bgInput");
-if(bgInputEl){
-  bgInputEl.addEventListener("change", async function(e){
-    const file = e.target.files[0]; if(!file) return;
-    try{ const compressed = await compressImage(file, LOGIN_IMG_MAX_BG, LOGIN_IMG_Q); await setAppSetting("loginBackground", compressed); await loadLoginPreview("background"); alert("Background berhasil disimpan."); }
-    catch(err){ alert("Gagal memproses gambar."); }
-    bgInputEl.value = "";
-  });
 }
 
 initPage();

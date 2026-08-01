@@ -434,7 +434,7 @@ function invalidateBACache() {
  * Cached getAppSetting — semua setting disimpan dalam 1 objek.
  * Pertama kali: fetch semua key yang umum dipakai sekaligus.
  */
-const COMMON_SETTINGS = ["loginLogo","loginBackground","systemNotice","baBackground","baContohLayout","baFieldLayout","baLogo","ttdJargiLogo"];
+const COMMON_SETTINGS = ["systemNotice","baBackground","baContohLayout","baFieldLayout","baLogo","ttdJargiLogo"];
 
 async function cachedGetAppSetting(key) {
   const cached = _cacheGetData(CACHE_KEYS.settings) || {};

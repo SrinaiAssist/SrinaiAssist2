@@ -812,8 +812,10 @@ async function deleteBADocument(id) {
 
 /* =========================================================
    PENGATURAN GLOBAL — Neon Postgres lewat /api/settings
-   (loginLogo, loginBackground, systemNotice, baBackground,
-   baContohLayout, baFieldLayout, dll)
+   (systemNotice, baBackground, baContohLayout, baFieldLayout, dll.
+   Catatan: loginLogo & loginBackground sudah dihapus -- fitur upload
+   logo/background halaman login sudah tidak dipakai lagi, lihat
+   pengaturan.html.)
 ========================================================= */
 async function getAppSetting(key) {
     const result = await apiRequest("/api/settings?key=" + encodeURIComponent(key));
