@@ -157,7 +157,9 @@ body{
 (async function init() {
   // Redirect jika sudah login
   if (typeof isLoggedIn === "function" && await isLoggedIn()) {
-    location.href = "dashboard.html";
+    location.href = localStorage.getItem("srinaiMustChangePassword") === "1"
+      ? "profile.html?forcePw=1"
+      : "dashboard.html";
     return;
   }
 
@@ -185,7 +187,9 @@ async function login() {
 
   const result = await loginUser(username, password);
   if (result.success) {
-    location.href = "dashboard.html";
+    location.href = result.mustChangePassword
+      ? "profile.html?forcePw=1"
+      : "dashboard.html";
     return;
   }
   btn.style.opacity = "1";

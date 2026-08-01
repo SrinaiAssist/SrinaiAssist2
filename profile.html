@@ -464,6 +464,14 @@ async function showProfile(){
     document.getElementById("pwNew").value = "";
     document.getElementById("pwConfirm").value = "";
     document.getElementById("pwMsg").className = "pw-msg";
+
+    // Datang dari redirect wajib-ganti-password (login.js -> auth.js ->
+    // index.html) karena akun ini masih pakai password default (baru
+    // dibuat / baru direset admin). Tampilkan peringatan & scroll ke form.
+    if(new URLSearchParams(location.search).get("forcePw") === "1"){
+      showPwMsg("Akun ini masih pakai password default. Silakan ganti password terlebih dahulu sebelum melanjutkan.", false);
+      document.getElementById("pwSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   if(selectedUser === currentUser){
@@ -650,7 +658,12 @@ async function submitChangePassword(){
     document.getElementById("pwOld").value = "";
     document.getElementById("pwNew").value = "";
     document.getElementById("pwConfirm").value = "";
-    showPwMsg("Password berhasil diubah.", true);
+    localStorage.removeItem("srinaiMustChangePassword");
+    const wasForced = new URLSearchParams(location.search).get("forcePw") === "1";
+    showPwMsg("Password berhasil diubah." + (wasForced ? " Mengalihkan..." : ""), true);
+    if(wasForced){
+      setTimeout(() => { location.href = "dashboard.html"; }, 1200);
+    }
   } else {
     showPwMsg((result && result.message) || "Gagal mengubah password.", false);
   }
