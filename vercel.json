@@ -9,6 +9,19 @@
       "schedule": "0 1 * * *"
     }
   ],
+  "rewrites": [
+    {
+      "source": "/artikel-publik.html",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|WhatsApp|Twitterbot|Slackbot|LinkedInBot|TelegramBot|Discordbot|SkypeUriPreview|vkShare|redditbot|Pinterest).*"
+        }
+      ],
+      "destination": "/api/settings?action=articlePreview"
+    }
+  ],
   "headers": [
     {
       "source": "/js/(.*)",

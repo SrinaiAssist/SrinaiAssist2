@@ -1298,7 +1298,75 @@ async function handleArticleList(res) {
   return { articles: articles.map((a) => ({ ...a, media: mediaByArticle[a.id] || [] })) };
 }
 
-// Satu artikel saja by id -- dipakai halaman publik (artikel-publik.html)
+function escapeHtmlServer(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Halaman preview SERVER-SIDE untuk link artikel-publik.html?id=... --
+// dipakai KHUSUS oleh bot crawler link preview (WhatsApp/FB/Telegram/dst,
+// lihat rewrite di vercel.json). Perlu ini karena artikel-publik.html asli
+// mengisi og:title/og:image lewat JavaScript SETELAH fetch API selesai --
+// bot crawler tidak menjalankan JS, jadi mereka cuma lihat meta tag
+// default statis (judul generik, tanpa foto). Fungsi ini membaca data
+// artikel dulu di server, lalu balikin HTML kecil berisi meta tag yang
+// SUDAH terisi foto & judul artikel yang benar, plus redirect ke halaman
+// asli untuk pengguna manusia yang kebetulan membukanya juga.
+async function handleArticlePreview(req, res) {
+  const { id } = req.query || {};
+  const origin = `https://${req.headers.host}`;
+  const redirectUrl = `${origin}/artikel-publik.html${id ? `?id=${encodeURIComponent(id)}` : ''}`;
+  const defaultImage = `${origin}/assets/icon.png`;
+
+  let title = 'Artikel & Berita - SRINAI ASSIST';
+  let desc  = 'Artikel & Berita publik dari SRINAI ASSIST.';
+  let image = defaultImage;
+
+  if (id) {
+    try {
+      const { article } = await handleArticleGet(id);
+      if (article) {
+        title = `${article.title} - SRINAI ASSIST`;
+        desc  = String(article.content || '').slice(0, 150);
+        const firstImage = (article.media || []).find(m => m.type === 'image');
+        if (firstImage) image = firstImage.url;
+      }
+    } catch (e) {
+      // gagal ambil artikel -> biarkan fallback default di atas, jangan 500
+    }
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0;url=${escapeHtmlServer(redirectUrl)}">
+<title>${escapeHtmlServer(title)}</title>
+<meta name="description" content="${escapeHtmlServer(desc)}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${escapeHtmlServer(title)}">
+<meta property="og:description" content="${escapeHtmlServer(desc)}">
+<meta property="og:image" content="${escapeHtmlServer(image)}">
+<meta property="og:url" content="${escapeHtmlServer(redirectUrl)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtmlServer(title)}">
+<meta name="twitter:description" content="${escapeHtmlServer(desc)}">
+<meta name="twitter:image" content="${escapeHtmlServer(image)}">
+<link rel="canonical" href="${escapeHtmlServer(redirectUrl)}">
+<script>location.replace(${JSON.stringify(redirectUrl)});</script>
+</head>
+<body>
+<p>Membuka artikel... Kalau tidak otomatis pindah, <a href="${escapeHtmlServer(redirectUrl)}">klik di sini</a>.</p>
+</body>
+</html>`;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+  return res.status(200).send(html);
+}
+
+
 // supaya link share tidak perlu narik SELURUH daftar artikel. Publik &
 // tanpa login (sama seperti articleList), tapi cuma artikel published.
 async function handleArticleGet(id) {
@@ -1586,6 +1654,18 @@ module.exports = async (req, res) => {
 
     // Dipakai halaman publik artikel-publik.html?id=... -- tanpa login,
     // sengaja dipisah dari articleList supaya link share ringan & cepat.
+    // Dipakai KHUSUS bot crawler link preview (lihat rewrite di vercel.json)
+    // -- balikin HTML dengan og:title/og:image sudah terisi server-side,
+    // beda dari articleGet (JSON) yang dipakai halaman publik saat di-fetch
+    // lewat JS di browser manusia.
+    if (qAction === 'articlePreview') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleArticlePreview(req, res);
+    }
+
     if (qAction === 'articleGet') {
       if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
