@@ -414,6 +414,18 @@ async function getFullProfile(username) {
     };
 }
 
+/** Mode ringan {count, maxUpdatedAt} -- dipakai sync.js buat cek ada
+ *  perubahan atau tidak sejak sync terakhir, tanpa tarik data lengkap. */
+async function _getMasterMeta(endpoint) {
+    const result = await apiRequest(endpoint + "?meta=1");
+    if (!result.success) throw new Error(result.message || "Gagal memuat metadata.");
+    return result.meta || { count: 0, maxUpdatedAt: null };
+}
+async function getJalurMeta() { return await _getMasterMeta("/api/jalur"); }
+async function getTowerMeta() { return await _getMasterMeta("/api/tower"); }
+async function getSpanMeta()  { return await _getMasterMeta("/api/span");  }
+async function getBAMeta()    { return await _getMasterMeta("/api/ba");    }
+
 async function getJalurMasterList() {
     const result = await apiRequest("/api/jalur");
     if (!result.success) throw new Error(result.message || "Gagal memuat data jalur.");

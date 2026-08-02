@@ -60,6 +60,11 @@ function _spanTegakanKey(spanId) { return "srinai_cache_tegakan_" + spanId; }
    cache TTD tiap kali Sinkron ditekan. Lihat komentar di
    _refreshAllTegakanGrouped() untuk detail. */
 const TEGAKAN_FP_KEY = "srinai_sync_tegakan_fp";
+// Fingerprint GLOBAL (bukan per-item) untuk jalur/tower/span/ba -- data ini
+// beda dari tegakan (jarang perlu breakdown per-span), jadi cukup satu
+// angka "count:maxUpdatedAt" per tabel. Kalau sama dengan sync sebelumnya,
+// SELURUH fetch data lengkap tabel itu di-skip total.
+const MASTER_FP_KEY = "srinai_sync_master_fp"; // { jalur, tower, span, ba }
 const ACCOUNTS_FOTO_FP_KEY = "srinai_sync_accounts_foto_fp"; // username -> referensi foto mentah terakhir
 const SETTINGS_IMG_FP_KEY = "srinai_sync_settings_img_fp"; // key setting -> referensi gambar mentah terakhir
 // HARUS sinkron dengan IMAGE_SETTING_KEYS di api/settings.js (key yang
@@ -341,14 +346,58 @@ async function cachedGetJalurMasterList() {
   return await _refreshJalur();
 }
 
-async function _refreshJalur() {
+/**
+ * PENTING (fix kuota Fast Origin Transfer, Ags 2026): sebelumnya jalur,
+ * tower, span, dan ba SELALU ditarik penuh tiap syncAll() jalan, walau
+ * tidak ada perubahan sama sekali sejak sync terakhir. Sekarang: cek dulu
+ * mode ringan (?meta=1, cuma {count, maxUpdatedAt}) -- kalau fingerprint-nya
+ * SAMA dengan sync sebelumnya, fetch data lengkap di-skip total dan cache
+ * lama dipakai apa adanya. Kalau beda (ada tambah/edit/hapus), baru fetch
+ * data lengkapnya (masih satu tabel penuh, bukan per-item -- tapi ini sudah
+ * jauh lebih hemat karena kasus paling umum adalah TIDAK ADA perubahan
+ * antar sync).
+ */
+function _masterFp(meta) {
+  return (meta.count || 0) + ":" + (meta.maxUpdatedAt || "");
+}
+
+async function _refreshMasterSelective(name, metaFn, listFn, cacheKey) {
   try {
-    const data = await getJalurMasterList();
-    if (data) _cacheSet(CACHE_KEYS.jalur, data);
+    const meta = await metaFn();
+    const fp = _masterFp(meta);
+    const oldFpAll = _cacheGetData(MASTER_FP_KEY) || {};
+
+    if (oldFpAll[name] === fp && _cacheGetData(cacheKey) !== null) {
+      // Tidak ada perubahan -- skip fetch data lengkap, pakai cache lama.
+      return _cacheGetData(cacheKey);
+    }
+
+    const data = await listFn();
+    if (data) {
+      _cacheSet(cacheKey, data);
+      const newFpAll = { ..._cacheGetData(MASTER_FP_KEY), [name]: fp };
+      _cacheSet(MASTER_FP_KEY, newFpAll);
+    }
     return data;
   } catch(e) {
-    return _cacheGetData(CACHE_KEYS.jalur) || [];
+    return _cacheGetData(cacheKey) || [];
   }
+}
+
+async function _refreshJalur() {
+  return await _refreshMasterSelective("jalur", getJalurMeta, getJalurMasterList, CACHE_KEYS.jalur);
+}
+
+async function _refreshTower() {
+  return await _refreshMasterSelective("tower", getTowerMeta, () => getTowerMasterList(), CACHE_KEYS.tower);
+}
+
+async function _refreshSpan() {
+  return await _refreshMasterSelective("span", getSpanMeta, () => getSpanMasterList(), CACHE_KEYS.span);
+}
+
+async function _refreshBA() {
+  return await _refreshMasterSelective("ba", getBAMeta, getAllBA, CACHE_KEYS.ba);
 }
 
 async function cachedGetTowerMasterList(jalurId) {
@@ -362,16 +411,6 @@ async function cachedGetTowerMasterList(jalurId) {
   return jalurId ? (data||[]).filter(t => t.jalurId === jalurId) : (data||[]);
 }
 
-async function _refreshTower() {
-  try {
-    const data = await getTowerMasterList(); // tanpa jalurId = semua
-    if (data) _cacheSet(CACHE_KEYS.tower, data);
-    return data;
-  } catch(e) {
-    return _cacheGetData(CACHE_KEYS.tower) || [];
-  }
-}
-
 async function cachedGetSpanMasterList(jalurId) {
   const cached = _cacheGetData(CACHE_KEYS.span);
   if (cached) {
@@ -382,30 +421,10 @@ async function cachedGetSpanMasterList(jalurId) {
   return jalurId ? (data||[]).filter(s => s.jalurId === jalurId) : (data||[]);
 }
 
-async function _refreshSpan() {
-  try {
-    const data = await getSpanMasterList();
-    if (data) _cacheSet(CACHE_KEYS.span, data);
-    return data;
-  } catch(e) {
-    return _cacheGetData(CACHE_KEYS.span) || [];
-  }
-}
-
 async function cachedGetAllBA() {
   const cached = _cacheGetData(CACHE_KEYS.ba);
   if (cached) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
   return await _refreshBA();
-}
-
-async function _refreshBA() {
-  try {
-    const data = await getAllBA();
-    if (data) _cacheSet(CACHE_KEYS.ba, data);
-    return data;
-  } catch(e) {
-    return _cacheGetData(CACHE_KEYS.ba) || [];
-  }
 }
 
 /** Invalidate cache daftar akun — panggil setelah tambah/edit/hapus/toggle akun
@@ -416,14 +435,22 @@ async function _refreshBA() {
     data master di master-jalur.html, master-tower.html, master-span.html,
     supaya halaman itu (dan halaman lain yang baca cache) langsung dapat
     data segar di load berikutnya, bukan menunggu TTL 30 menit habis. */
+function _clearMasterFp(name) {
+  const fp = _cacheGetData(MASTER_FP_KEY) || {};
+  delete fp[name];
+  _cacheSet(MASTER_FP_KEY, fp);
+}
 function invalidateJalurCache() {
   _cacheClear(CACHE_KEYS.jalur);
+  _clearMasterFp("jalur");
 }
 function invalidateTowerCache() {
   _cacheClear(CACHE_KEYS.tower);
+  _clearMasterFp("tower");
 }
 function invalidateSpanCache() {
   _cacheClear(CACHE_KEYS.span);
+  _clearMasterFp("span");
 }
 function invalidateAccountsCache() {
   _cacheClear(CACHE_KEYS.accounts);
@@ -432,6 +459,7 @@ function invalidateAccountsCache() {
 /** Invalidate cache BA — panggil setelah upload/edit/hapus BA */
 function invalidateBACache() {
   _cacheClear(CACHE_KEYS.ba);
+  _clearMasterFp("ba");
 }
 
 /**
@@ -808,10 +836,10 @@ async function _refreshSettingsSelective() {
 async function syncAll(onProgress) {
   const steps = [
     { key: CACHE_KEYS.accounts, fn: _refreshAccountsSelective, selfCached: true, label: "Akun pengguna" },
-    { key: CACHE_KEYS.jalur,    fn: getJalurMasterList,   label: "Master jalur"     },
-    { key: CACHE_KEYS.tower,    fn: getTowerMasterList,   label: "Master tower"     },
-    { key: CACHE_KEYS.span,     fn: getSpanMasterList,    label: "Master span"      },
-    { key: CACHE_KEYS.ba,       fn: getAllBA,              label: "Berita Acara"     },
+    { key: CACHE_KEYS.jalur,    fn: _refreshJalur, selfCached: true, label: "Master jalur"     },
+    { key: CACHE_KEYS.tower,    fn: _refreshTower, selfCached: true, label: "Master tower"     },
+    { key: CACHE_KEYS.span,     fn: _refreshSpan,  selfCached: true, label: "Master span"      },
+    { key: CACHE_KEYS.ba,       fn: _refreshBA,    selfCached: true, label: "Berita Acara"     },
     { key: CACHE_KEYS.settings, fn: _refreshSettingsSelective, selfCached: true, label: "Pengaturan" },
     // grouped: true -> data disebar ke banyak key cache per-span sendiri
     // (srinai_cache_tegakan_<spanId>) di dalam _refreshAllTegakanGrouped(),

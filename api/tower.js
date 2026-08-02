@@ -24,7 +24,14 @@ function nextId(prefix, existingIds) {
 
 module.exports = async (req, res) => {
   try {
-    const { jalurId: qJalurId, id: qId, action } = req.query || {};
+    const { jalurId: qJalurId, id: qId, action, meta: qMeta } = req.query || {};
+
+    // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
+    // sync terakhir, tanpa tarik seluruh daftar tower tiap kali Sinkron.
+    if (req.method === 'GET' && qMeta === '1') {
+      const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM tower`;
+      return res.status(200).json({ success: true, meta: row });
+    }
 
     if (req.method === 'GET') {
       const rows = qJalurId
@@ -106,7 +113,7 @@ module.exports = async (req, res) => {
         await sql`
           UPDATE tower SET
             latitude = NULL, longitude = NULL, akurasi_meter = NULL,
-            koordinat_by = NULL, koordinat_at = NULL
+            koordinat_by = NULL, koordinat_at = NULL, updated_at = now()
           WHERE id = ${id}
         `;
         return res.status(200).json({ success: true });
@@ -124,7 +131,8 @@ module.exports = async (req, res) => {
           koordinat_by  = COALESCE(${fields.koordinatBy ?? null}, koordinat_by),
           koordinat_at  = CASE WHEN ${fields.latitude ?? null}::double precision IS NOT NULL
                                  AND ${fields.longitude ?? null}::double precision IS NOT NULL
-                               THEN now() ELSE koordinat_at END
+                               THEN now() ELSE koordinat_at END,
+          updated_at    = now()
         WHERE id = ${id}
         RETURNING jalur_id AS "jalurId", nomor
       `;

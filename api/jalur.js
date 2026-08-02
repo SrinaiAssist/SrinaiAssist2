@@ -41,10 +41,17 @@ async function validateParent(parentId, selfId) {
 
 module.exports = async (req, res) => {
   try {
-    const { id: qId } = req.query || {};
+    const { id: qId, meta: qMeta } = req.query || {};
 
     if (req.method !== 'GET' && !isBotRequestValid(req)) {
       return res.status(401).json({ success: false, message: 'Bot key tidak valid.' });
+    }
+
+    // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
+    // sync terakhir, tanpa tarik seluruh daftar jalur tiap kali Sinkron.
+    if (req.method === 'GET' && qMeta === '1') {
+      const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM jalur`;
+      return res.status(200).json({ success: true, meta: row });
     }
 
     if (req.method === 'GET') {
@@ -106,7 +113,8 @@ module.exports = async (req, res) => {
           label      = COALESCE(${fields.label ?? null}, label),
           aktif      = COALESCE(${fields.aktif ?? null}, aktif),
           penghantar = COALESCE(${fields.penghantar ?? null}, penghantar),
-          parent_jalur_id = CASE WHEN ${hasParentField} THEN ${parentValue ?? null} ELSE parent_jalur_id END
+          parent_jalur_id = CASE WHEN ${hasParentField} THEN ${parentValue ?? null} ELSE parent_jalur_id END,
+          updated_at = now()
         WHERE id = ${id}
       `;
       return res.status(200).json({ success: true });

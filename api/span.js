@@ -23,7 +23,14 @@ function nextId(prefix, existingIds) {
 
 module.exports = async (req, res) => {
   try {
-    const { jalurId: qJalurId, id: qId, action } = req.query || {};
+    const { jalurId: qJalurId, id: qId, action, meta: qMeta } = req.query || {};
+
+    // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
+    // sync terakhir, tanpa tarik seluruh daftar span tiap kali Sinkron.
+    if (req.method === 'GET' && qMeta === '1') {
+      const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM span`;
+      return res.status(200).json({ success: true, meta: row });
+    }
 
     if (req.method === 'GET') {
       const rows = qJalurId
@@ -99,7 +106,8 @@ module.exports = async (req, res) => {
         UPDATE span SET
           spacer = COALESCE(${fields.spacer ?? null}, spacer),
           joint  = COALESCE(${fields.joint ?? null}, joint),
-          status = COALESCE(${fields.status ?? null}, status)
+          status = COALESCE(${fields.status ?? null}, status),
+          updated_at = now()
         WHERE id = ${id}
         RETURNING jalur_id AS "jalurId"
       `;

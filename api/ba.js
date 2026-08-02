@@ -64,7 +64,15 @@ async function resolveFileUrl(dataUrlOrUrl, fileNamePrefix, warnings) {
 
 module.exports = async (req, res) => {
   try {
-    const { spanId: qSpanId, id: qId } = req.query || {};
+    const { spanId: qSpanId, id: qId, meta: qMeta } = req.query || {};
+
+    // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
+    // sync terakhir, tanpa tarik semua dokumen BA (termasuk pdf/foto) tiap
+    // kali Sinkron.
+    if (req.method === 'GET' && qMeta === '1') {
+      const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM ba_dokumen`;
+      return res.status(200).json({ success: true, meta: row });
+    }
 
     if (req.method === 'GET') {
       const rows = qSpanId
@@ -195,7 +203,8 @@ module.exports = async (req, res) => {
           pemilik    = ${pemilik    !== undefined ? pemilik    : old.pemilik},
           file_name  = ${fileName   !== undefined ? fileName   : old.file_name},
           pdf        = ${pdfToSave},
-          foto       = ${JSON.stringify(fotoToSave)}
+          foto       = ${JSON.stringify(fotoToSave)},
+          updated_at = now()
         WHERE id = ${id}
       `;
       return res.status(200).json({ success: true, driveWarning: driveWarnings[0] || null });
