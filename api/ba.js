@@ -5,7 +5,13 @@
 // POST   /api/ba                           -> simpan BA baru
 //        body: { spanId, judul, pemilik, jumlahTegakan, namaTegakan,
 //                pdf, foto, fileName, sumber, uploader }
-// DELETE /api/ba?id=..                     -> hapus satu BA
+// DELETE /api/ba?id=..                     -> hapus satu BA (baris DB +
+//                                              file pdf/foto terkait di
+//                                              Google Drive, best-effort)
+//
+// CATATAN: fitur Edit BA (ganti judul/pemilik/nama file/file/tanggal via
+// scan foto) sudah DIHAPUS dari halaman sos.html -- yang tersisa cuma
+// Upload dan Hapus. Endpoint PUT ikut dihapus karena sudah tidak dipakai.
 //
 // PENTING (data transfer Neon): pdf & foto TIDAK LAGI disimpan sebagai base64
 // langsung di Postgres. Kalau berupa data URL base64 (dari upload di browser),
@@ -17,7 +23,7 @@
 // seperti semula supaya fitur tetap jalan (sama seperti api/catatan-span.js).
 
 const { sql } = require('../lib/db');
-const { uploadPhotoToDrive } = require('../lib/googleDrive');
+const { uploadPhotoToDrive, extractDriveFileId, deleteFileFromDrive } = require('../lib/googleDrive');
 const { sendPushToUsers } = require('../lib/pushHelper');
 
 function mapRow(r) {
@@ -174,49 +180,35 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true, id, pdf: pdfToSave, driveWarning: driveWarnings[0] || null });
     }
 
-    // PUT /api/ba  — edit metadata BA (judul, pemilik, fileName, pdf, foto)
-    // body: { id, judul?, pemilik?, fileName?, pdf?, foto? }
-    if (req.method === 'PUT') {
-      const { id, judul, pemilik, fileName, pdf, foto } = req.body || {};
-      if (!id) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
-
-      // Ambil data lama supaya field yang tidak dikirim tidak tertimpa NULL
-      const existing = await sql`SELECT * FROM ba_dokumen WHERE id = ${id}`;
-      if (existing.length === 0) {
-        return res.status(404).json({ success: false, message: 'BA tidak ditemukan.' });
-      }
-      const old = existing[0];
-
-      const driveWarnings = [];
-      const pdfToSave = pdf !== undefined ? await resolveFileUrl(pdf, `ba-${old.span_id}`, driveWarnings) : old.pdf;
-      let fotoToSave = old.foto;
-      if (foto !== undefined) {
-        fotoToSave = [];
-        for (const f of (foto || [])) {
-          fotoToSave.push(await resolveFileUrl(f, `ba-${old.span_id}`, driveWarnings));
-        }
-      }
-
-      await sql`
-        UPDATE ba_dokumen SET
-          judul      = ${judul      !== undefined ? judul      : old.judul},
-          pemilik    = ${pemilik    !== undefined ? pemilik    : old.pemilik},
-          file_name  = ${fileName   !== undefined ? fileName   : old.file_name},
-          pdf        = ${pdfToSave},
-          foto       = ${JSON.stringify(fotoToSave)},
-          updated_at = now()
-        WHERE id = ${id}
-      `;
-      return res.status(200).json({ success: true, driveWarning: driveWarnings[0] || null });
-    }
-
     if (req.method === 'DELETE') {
       if (!qId) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+
+      // Ambil dulu referensi pdf/foto SEBELUM baris dihapus, supaya file
+      // fisiknya bisa ikut dibersihkan dari Google Drive (bukan cuma baris
+      // di Neon yang hilang, filenya numpuk terus di Drive).
+      const existing = await sql`SELECT pdf, foto FROM ba_dokumen WHERE id = ${qId}`;
+
       await sql`DELETE FROM ba_dokumen WHERE id = ${qId}`;
+
+      if (existing.length > 0) {
+        const { pdf, foto } = existing[0];
+        const fileIds = [extractDriveFileId(pdf), ...((foto || []).map(extractDriveFileId))].filter(Boolean);
+        // Best-effort, paralel: kalau salah satu gagal (mis. sudah dihapus
+        // manual sebelumnya), tidak boleh menggagalkan response ke client
+        // karena baris DB sudah terlanjur terhapus.
+        await Promise.all(
+          fileIds.map((fid) =>
+            deleteFileFromDrive(fid).catch((err) =>
+              console.error(`Gagal hapus file Drive (id=${fid}) untuk BA ${qId}:`, err.message)
+            )
+          )
+        );
+      }
+
       return res.status(200).json({ success: true });
     }
 
-    res.setHeader('Allow', 'GET, POST, PUT, DELETE');
+    res.setHeader('Allow', 'GET, POST, DELETE');
     return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
   } catch (err) {
     console.error('BA API error:', err);

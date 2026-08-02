@@ -155,6 +155,19 @@ body{
   margin-top:4px;
 }
 
+/* Info note: file tidak ditampilkan langsung di halaman ini */
+.info-note{
+  position:relative;z-index:2;
+  margin:16px 20px 0;
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:12px;color:var(--ink-2);line-height:1.6;
+}
+.info-note-icon{flex-shrink:0;font-size:15px;line-height:1.4;}
+
 /* Section header */
 .section-head{
   position:relative;z-index:2;
@@ -198,6 +211,7 @@ body{
 .ba-info{flex:1;min-width:0;}
 .ba-title{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.2px;}
 .ba-meta{font-size:11px;color:var(--ink-3);margin-top:4px;line-height:1.5;}
+.ba-file{font-size:11.5px;color:var(--ink-2);margin-top:6px;word-break:break-all;}
 .ba-source{
   display:inline-flex;align-items:center;gap:4px;
   font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:6px;
@@ -205,129 +219,18 @@ body{
 .src-ai{background:var(--green-bg);color:var(--green);}
 .src-manual{background:var(--blue-glow);color:var(--blue);}
 
-.ba-photo{width:100%;border-radius:12px;margin-top:10px;}
-
 .ba-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .ba-act-btn{
   display:inline-flex;align-items:center;gap:5px;
   padding:8px 13px;border-radius:10px;font-size:12px;font-weight:700;
   text-decoration:none;border:none;cursor:pointer;font-family:inherit;
 }
-.ba-download{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(244,197,66,0.2);}
 .ba-delete{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,107,107,0.2);}
-.ba-edit{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(74,142,245,0.2);}
-.ba-view{background:rgba(52,199,89,0.12);color:#34c759;border:1px solid rgba(52,199,89,0.2);}
-
-/* Modal View BA */
-.view-modal-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);flex-direction:column;}
-.view-modal-overlay.active{display:flex;}
-.view-modal-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0D1830;flex-shrink:0;}
-.view-modal-title{color:#fff;font-size:14px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.view-modal-close{background:rgba(242,107,107,0.15);color:#f26b6b;border:1px solid rgba(242,107,107,0.25);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;}
-.view-modal-frame{flex:1;width:100%;border:none;background:#111;}
-.view-modal-img{flex:1;width:100%;object-fit:contain;}
 
 .empty-msg{
   text-align:center;color:var(--ink-3);
   padding:50px 20px;font-size:13px;
 }
-
-/* Modal */
-.edit-modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.7);
-  display:none;align-items:flex-end;justify-content:center;z-index:50;
-  backdrop-filter:blur(4px);
-}
-.edit-modal-overlay.active{display:flex;}
-.edit-modal-box{
-  background:var(--bg-card);
-  border-radius:24px 24px 0 0;
-  border-top:1px solid rgba(255,255,255,0.1);
-  padding:22px 18px 32px;
-  width:100%;max-width:460px;max-height:90vh;overflow-y:auto;
-}
-.modal-handle{
-  width:36px;height:4px;background:rgba(255,255,255,0.15);
-  border-radius:2px;margin:0 auto 18px;
-}
-.edit-modal-title{font-size:17px;font-weight:800;color:var(--ink);margin-bottom:4px;}
-.edit-modal-sub{font-size:12.5px;color:var(--ink-3);margin-bottom:18px;}
-
-.edit-tabs{
-  display:flex;gap:6px;margin-bottom:18px;
-}
-.edit-tab{
-  flex:1;padding:9px 4px;border:1px solid var(--border);
-  background:var(--bg-card2);color:var(--ink-3);
-  font-weight:700;font-size:11px;cursor:pointer;
-  border-radius:12px;font-family:inherit;line-height:1.4;
-  text-align:center;
-}
-.edit-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
-
-.edit-field-label{
-  display:block;font-weight:700;font-size:12px;
-  color:var(--ink-2);margin-bottom:6px;
-}
-.edit-field-wrap{margin-bottom:14px;}
-.edit-field-wrap input[type="text"]{
-  width:100%;padding:11px 13px;
-  background:var(--bg-card2);border:1px solid var(--border);
-  border-radius:11px;font-size:13.5px;
-  color:var(--ink);font-family:inherit;outline:none;
-}
-.edit-field-wrap input[type="text"]:focus{border-color:rgba(74,142,245,0.4);}
-.edit-file-note{font-size:11px;color:var(--ink-3);margin-top:5px;}
-
-.edit-modal-actions{display:flex;gap:10px;margin-top:6px;}
-.edit-btn-cancel{
-  flex:1;padding:13px;border:1px solid var(--border);
-  border-radius:12px;background:var(--bg-card2);color:var(--ink-2);
-  font-weight:700;cursor:pointer;font-family:inherit;
-}
-.edit-btn-save{
-  flex:2;padding:13px;border:none;
-  border-radius:12px;background:var(--blue);color:white;
-  font-weight:700;cursor:pointer;font-family:inherit;
-}
-.edit-saving{opacity:.6;pointer-events:none;}
-
-.edit-btn-preview{
-  width:100%;padding:11px;border:1px solid var(--border);
-  border-radius:11px;background:var(--bg-card2);color:var(--ink-2);
-  font-weight:700;cursor:pointer;margin-bottom:10px;font-size:13px;
-  font-family:inherit;
-}
-.edit-preview-frame-wrap{
-  border:1px solid var(--border);border-radius:12px;
-  overflow:hidden;margin-bottom:14px;background:#000;display:none;
-}
-.edit-preview-frame{width:100%;height:320px;border:none;display:block;}
-
-.edit-tabs-3{display:flex;gap:6px;margin-bottom:18px;}
-.m3-date-row{display:flex;gap:10px;align-items:center;margin-bottom:14px;}
-.m3-date-row input[type="date"]{
-  flex:1;padding:11px 13px;border:1px solid var(--border);
-  border-radius:11px;font-size:14px;background:var(--bg-card2);
-  color:var(--ink);font-family:inherit;outline:none;
-}
-.m3-scan-btn{
-  padding:11px 16px;border:none;border-radius:11px;
-  background:var(--blue);color:white;
-  font-weight:700;font-size:13px;cursor:pointer;
-  font-family:inherit;white-space:nowrap;
-}
-.m3-status{
-  font-size:12.5px;color:var(--ink-2);margin-bottom:12px;
-  padding:10px 12px;background:var(--bg-card2);border:1px solid var(--border);
-  border-radius:11px;line-height:1.6;display:none;white-space:pre-line;
-}
-.m3-status.show{display:block;}
-.m3-status.err{background:var(--red-bg);color:var(--red);border-color:rgba(242,107,107,0.2);}
-.m3-status.ok{background:var(--green-bg);color:var(--green);border-color:rgba(45,212,160,0.2);}
-.m3-canvas-wrap{width:100%;border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:14px;display:none;background:#111;}
-.m3-canvas-wrap.show{display:block;}
-.m3-canvas-wrap canvas{width:100%;height:auto;display:block;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -355,6 +258,11 @@ body{
 
   <div class="upload-wrap" id="uploadSection"></div>
 
+  <div class="info-note">
+    <span class="info-note-icon">ℹ️</span>
+    <span>Halaman ini hanya menampilkan daftar BA yang tersimpan. Untuk melihat isi file, silahkan hubungi admin.</span>
+  </div>
+
   <div class="section-head">
     <div class="section-title">Daftar BA</div>
     <div class="section-count" id="baCount">0 BA</div>
@@ -366,278 +274,19 @@ body{
 
 </div>
 
-<!-- Modal Edit BA -->
-<div class="edit-modal-overlay" id="modalEditBA">
-  <div class="edit-modal-box">
-    <div class="modal-handle"></div>
-    <div class="edit-modal-title">✏️ Edit BA</div>
-    <div class="edit-modal-sub" id="editBASpanInfo"></div>
-
-    <div class="edit-tabs">
-      <button class="edit-tab active" onclick="switchTab(1)">📝 Metadata</button>
-      <button class="edit-tab" onclick="switchTab(2)">📄 Ganti File</button>
-      <button class="edit-tab" onclick="switchTab(3)">🗓 Edit Tanggal</button>
-    </div>
-
-    <!-- MODE 1 -->
-    <div id="tabMode1">
-      <div class="edit-field-wrap">
-        <label class="edit-field-label">Judul BA</label>
-        <input type="text" id="editJudul" placeholder="Contoh: BA Sosialisasi — LCJ-S001">
-      </div>
-      <div class="edit-field-wrap">
-        <label class="edit-field-label">Nama Pemilik</label>
-        <input type="text" id="editPemilik" placeholder="Nama pemilik tegakan">
-      </div>
-      <div class="edit-field-wrap">
-        <label class="edit-field-label">Nama File (opsional)</label>
-        <input type="text" id="editFileName" placeholder="Contoh: BA_LCJ-S001_Asep.pdf">
-        <div class="edit-file-note">Kosongkan jika tidak perlu diubah</div>
-      </div>
-      <div class="edit-modal-actions">
-        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
-        <button class="edit-btn-save" id="editSaveBtn" onclick="saveEditBA()">💾 Simpan</button>
-      </div>
-    </div>
-
-    <!-- MODE 2 -->
-    <div id="tabMode2" style="display:none;">
-      <div class="edit-field-wrap">
-        <label class="edit-field-label">Ganti File PDF / Gambar</label>
-        <input type="file" id="editFilePdf" accept="application/pdf,image/*" class="field-file">
-        <div class="edit-file-note">Biarkan kosong untuk tetap memakai file yang sudah ada.</div>
-      </div>
-      <button class="edit-btn-preview" id="editPreviewBtn" onclick="toggleEditPreview()">👁 Preview PDF Saat Ini</button>
-      <div class="edit-preview-frame-wrap" id="editPreviewWrap">
-        <iframe class="edit-preview-frame" id="editPreviewFrame"></iframe>
-      </div>
-      <div class="edit-modal-actions">
-        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
-        <button class="edit-btn-save" id="editSaveBtn2" onclick="saveEditBA()">💾 Simpan</button>
-      </div>
-    </div>
-
-    <!-- MODE 3 -->
-    <div id="tabMode3" style="display:none;">
-      <p style="font-size:12.5px;color:var(--ink-3);margin-bottom:12px;line-height:1.6;">
-        SrinAI akan membaca tanggal yang tertera di foto BA, lalu menggantinya dengan tanggal yang kamu pilih.
-      </p>
-      <div class="m3-date-row">
-        <input type="date" id="m3Date">
-        <button class="m3-scan-btn" onclick="runMode3()">🔍 Scan & Edit</button>
-      </div>
-      <div class="m3-status" id="m3Status"></div>
-      <div class="m3-canvas-wrap" id="m3CanvasWrap"><canvas id="m3Canvas"></canvas></div>
-      <div class="edit-modal-actions">
-        <button class="edit-btn-cancel" onclick="closeEditBA()">Batal</button>
-        <button class="edit-btn-save" id="m3SaveBtn" style="display:none;" onclick="saveMode3()">💾 Simpan Foto Baru</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
 <script>
 let currentUser, baList = [];
-
-function switchTab(n) {
-  [1,2,3].forEach(i => {
-    document.getElementById('tabMode'+i).style.display = i===n ? 'block' : 'none';
-  });
-  document.querySelectorAll('.edit-tab').forEach((t,i) => t.classList.toggle('active', i+1===n));
-}
-
-const HARI_ID  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
-function parseDateStr(s) {
-  const d = new Date(s + 'T00:00:00');
-  return { hari:HARI_ID[d.getDay()], tgl:d.getDate(), bulan:BULAN_ID[d.getMonth()], tahun:d.getFullYear() };
-}
-
-function m3SetStatus(msg, type) {
-  const el = document.getElementById('m3Status');
-  el.textContent = msg;
-  el.className = 'm3-status show' + (type ? ' '+type : '');
-}
-
-let _m3Result = null;
-
-async function runMode3() {
-  const dateVal = document.getElementById('m3Date').value;
-  if(!dateVal) { alert('Pilih tanggal terlebih dahulu.'); return; }
-  if(!_editingBA || !_editingBA.foto || !_editingBA.foto.length) {
-    alert('BA ini tidak memiliki foto.'); return;
-  }
-
-  m3SetStatus('⏳ Mengirim ke SrinAI untuk dibaca...');
-  document.getElementById('m3CanvasWrap').classList.remove('show');
-  document.getElementById('m3SaveBtn').style.display = 'none';
-  _m3Result = null;
-
-  const fotoUrl = _editingBA.foto[0];
-  const newDate = parseDateStr(dateVal);
-
-  try {
-    const resp = await fetch('/api/ai/edit-tanggal-ba', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fotoUrl, newDate })
-    });
-    const result = await resp.json();
-
-    if(!result.success) {
-      m3SetStatus('❌ Gagal: ' + (result.message || 'Tidak diketahui'), 'err');
-      return;
-    }
-
-    m3SetStatus('✅ Berhasil diproses. Cek pratinjau di bawah.', 'ok');
-
-    const wrap = document.getElementById('m3CanvasWrap');
-    const canvas = document.getElementById('m3Canvas');
-    wrap.classList.add('show');
-
-    const img = new Image();
-    img.onload = function() {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      _m3Result = canvas.toDataURL('image/jpeg', 0.9);
-      document.getElementById('m3SaveBtn').style.display = 'block';
-    };
-    img.src = result.editedFoto;
-  } catch(err) {
-    m3SetStatus('❌ Gagal menghubungi server: ' + err.message, 'err');
-  }
-}
-
-async function saveMode3() {
-  if(!_m3Result || !_editingBA) return;
-  const btn = document.getElementById('m3SaveBtn');
-  btn.textContent = '⏳ Menyimpan...';
-  btn.classList.add('edit-saving');
-  try {
-    const result = await fetch('/api/ba', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: _editingBA.id, foto: [_m3Result] })
-    }).then(r => r.json());
-    if(!result.success) throw new Error(result.message || 'Gagal');
-    closeEditBA();
-    invalidateBACache();
-    await loadBA();
-    renderBA(document.getElementById('searchInput').value.toLowerCase().trim());
-    alert('✅ Foto BA berhasil diperbarui.');
-  } catch(err) {
-    alert('⚠️ Gagal menyimpan: ' + err.message);
-    btn.textContent = '💾 Simpan Foto Baru';
-    btn.classList.remove('edit-saving');
-  }
-}
-
-let _editingBA = null;
-
-function openEditBA(id){
-  const item = baList.find(b => b.id === id);
-  if(!item) return;
-  _editingBA = item;
-  document.getElementById("editBASpanInfo").textContent = "SPAN " + item.span + (item.judul ? " — " + item.judul : "");
-  document.getElementById("editJudul").value   = item.judul   || "";
-  document.getElementById("editPemilik").value = item.pemilik || "";
-  document.getElementById("editFileName").value = item.fileName || "";
-  document.getElementById("editFilePdf").value  = "";
-  const wrap = document.getElementById("editPreviewWrap");
-  wrap.style.display = "none";
-  document.getElementById("editPreviewFrame").src = "";
-  document.getElementById("editPreviewBtn").textContent = "👁 Preview PDF Saat Ini";
-  document.getElementById('m3Date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('m3Status').className = 'm3-status';
-  document.getElementById('m3CanvasWrap').classList.remove('show');
-  document.getElementById('m3SaveBtn').style.display = 'none';
-  _m3Result = null;
-  document.getElementById("editSaveBtn").classList.remove("edit-saving");
-  document.getElementById("editSaveBtn").textContent = "💾 Simpan";
-  switchTab(1);
-  document.getElementById("modalEditBA").classList.add("active");
-}
-
-function closeEditBA(){
-  document.getElementById("modalEditBA").classList.remove("active");
-  _editingBA = null;
-}
-
-function toggleEditPreview(){
-  if(!_editingBA || !_editingBA.pdf) { alert("Tidak ada PDF untuk dipratinjau."); return; }
-  const wrap = document.getElementById("editPreviewWrap");
-  const btn  = document.getElementById("editPreviewBtn");
-  const frame = document.getElementById("editPreviewFrame");
-  if(wrap.style.display === "none" || !wrap.style.display){
-    frame.src = _editingBA.pdf;
-    wrap.style.display = "block";
-    btn.textContent = "▲ Tutup Preview";
-  } else {
-    wrap.style.display = "none";
-    frame.src = "";
-    btn.textContent = "👁 Preview PDF Saat Ini";
-  }
-}
-
-async function saveEditBA(){
-  if(!_editingBA) return;
-  const saveBtn = document.getElementById("editSaveBtn");
-  saveBtn.classList.add("edit-saving");
-  saveBtn.textContent = "⏳ Menyimpan...";
-  const judul    = document.getElementById("editJudul").value.trim();
-  const pemilik  = document.getElementById("editPemilik").value.trim();
-  const fileName = document.getElementById("editFileName").value.trim();
-  const fileInput = document.getElementById("editFilePdf");
-
-  const doUpdate = async (newPdf) => {
-    const body = { id: _editingBA.id, judul, pemilik };
-    if(fileName) body.fileName = fileName;
-    if(newPdf)   body.pdf = newPdf;
-    try {
-      const result = await fetch("/api/ba", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      }).then(r => r.json());
-      if(!result.success){ alert("⚠️ Gagal menyimpan: " + (result.message||"Tidak diketahui")); saveBtn.classList.remove("edit-saving"); saveBtn.textContent = "💾 Simpan"; return; }
-      closeEditBA();
-      invalidateBACache();
-      await loadBA();
-      renderBA(document.getElementById("searchInput").value.toLowerCase().trim());
-      alert("✅ BA berhasil diperbarui.");
-    } catch(err){ alert("⚠️ Gagal menghubungi server.\n" + err.message); saveBtn.classList.remove("edit-saving"); saveBtn.textContent = "💾 Simpan"; }
-  };
-
-  if(fileInput.files.length > 0){
-    const reader = new FileReader();
-    reader.onload = async (e) => { await doUpdate(e.target.result); };
-    reader.readAsDataURL(fileInput.files[0]);
-  } else {
-    await doUpdate(null);
-  }
-}
-
-async function deleteBA(id){
-  if(!isAdmin() && !isKLW()) return;
-  if(!confirm("Hapus BA ini?")) return;
-  await deleteBADocument(id);
-  invalidateBACache();
-  await loadBA();
-  renderBA();
-}
-
-function searchBA(){
-  const key = document.getElementById("searchInput").value.toLowerCase().trim();
-  renderBA(key);
-}
 
 function sourceBadge(item){
   if(item.sumber === "ai") return `<span class="ba-source src-ai">🤖 Dibuat oleh SrinAI</span>`;
   const who = item.uploader ? item.uploader : "-";
   return `<span class="ba-source src-manual">👤 Upload manual — ${who}</span>`;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  })[c]);
 }
 
 function renderBA(keyword=""){
@@ -655,39 +304,29 @@ function renderBA(keyword=""){
     if(item.jumlahTegakan) metaParts.push(item.jumlahTegakan + " tegakan");
     metaParts.push(item.tanggal);
 
+    const jumlahFoto = item.foto ? item.foto.length : 0;
+    const namaFile = item.fileName
+      ? item.fileName
+      : (item.pdf ? "1 file PDF" : (jumlahFoto ? jumlahFoto + " file foto" : "-"));
+
     let html = `
       <div class="ba-card">
         <div class="ba-card-top">
           <div class="ba-icon">📄</div>
           <div class="ba-info">
-            <div class="ba-title">SPAN ${item.span}${item.judul ? " — " + item.judul : ""}</div>
-            <div class="ba-meta">${metaParts.join(" · ")}</div>
+            <div class="ba-title">SPAN ${escapeHtml(item.span)}${item.judul ? " — " + escapeHtml(item.judul) : ""}</div>
+            <div class="ba-meta">${escapeHtml(metaParts.join(" · "))}</div>
+            <div class="ba-file">📎 ${escapeHtml(namaFile)}</div>
             ${sourceBadge(item)}
           </div>
         </div>`;
 
-    if(item.foto && item.foto.length){
-      item.foto.forEach((photo,i)=>{
-        html += `<img src="${photo}" class="ba-photo">`;
-      });
-    }
-
-    html += `<div class="ba-actions">`;
-    if(item.pdf){
-      html += `<button class="ba-act-btn ba-view" onclick="viewBA('${item.pdf}','BA ${item.span}','pdf')">👁 View</button>`;
-      html += `<a href="${item.pdf}" download="${item.fileName || ('BA-Span-'+item.span+'.pdf')}" class="ba-act-btn ba-download">📄 Download PDF</a>`;
-    }
-    if(item.foto && item.foto.length){
-      item.foto.forEach((photo,i)=>{
-        html += `<button class="ba-act-btn ba-view" onclick="viewBA('${photo}','Foto ${i+1} — Span ${item.span}','img')">👁 Lihat Foto ${i+1}</button>`;
-        html += `<a href="${photo}" download="BA-Span-${item.span}-${i+1}.jpg" class="ba-act-btn ba-download">🖼 Foto ${i+1}</a>`;
-      });
-    }
     if(isAdmin() || isKLW()){
-      html += `<button class="ba-act-btn ba-edit" onclick="openEditBA(${item.id})">✏️ Edit</button>`;
-      html += `<button class="ba-act-btn ba-delete" onclick="deleteBA(${item.id})">🗑 Hapus</button>`;
+      html += `<div class="ba-actions">
+        <button class="ba-act-btn ba-delete" onclick="deleteBA(${item.id})">🗑 Hapus</button>
+      </div>`;
     }
-    html += `</div></div>`;
+    html += `</div>`;
     container.innerHTML += html;
   });
 
@@ -700,6 +339,20 @@ function renderBA(keyword=""){
 
 async function loadBA(){
   baList = await cachedGetAllBA();
+}
+
+async function deleteBA(id){
+  if(!isAdmin() && !isKLW()) return;
+  if(!confirm("Hapus BA ini beserta file yang tersimpan di Drive? Tindakan ini tidak bisa dibatalkan.")) return;
+  await deleteBADocument(id);
+  invalidateBACache();
+  await loadBA();
+  renderBA(document.getElementById("searchInput").value.toLowerCase().trim());
+}
+
+function searchBA(){
+  const key = document.getElementById("searchInput").value.toLowerCase().trim();
+  renderBA(key);
 }
 
 async function initPage(){
@@ -798,51 +451,6 @@ async function uploadBA(){
 }
 
 initPage();
-</script>
-
-<!-- Modal View BA Full Layar -->
-<div class="view-modal-overlay" id="viewModal">
-  <div class="view-modal-bar">
-    <span class="view-modal-title" id="viewModalTitle">BA</span>
-    <button class="view-modal-close" onclick="closeViewModal()">✕ Tutup</button>
-  </div>
-  <div id="viewModalBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
-</div>
-
-<script>
-function viewBA(url, title, type){
-  document.getElementById("viewModalTitle").textContent = title;
-  const body = document.getElementById("viewModalBody");
-
-  if(type === "pdf"){
-    // Gunakan Google Docs Viewer agar PDF tampil di mobile
-    const viewer = "https://docs.google.com/viewer?embedded=true&url=" + encodeURIComponent(url);
-    body.innerHTML = `
-      <iframe src="${viewer}"
-        style="flex:1;width:100%;border:none;background:#111;"
-        allowfullscreen>
-      </iframe>
-      <div style="padding:10px;text-align:center;background:#0D1830;">
-        <a href="${url}" target="_blank"
-          style="color:#34c759;font-size:13px;font-weight:700;text-decoration:none;">
-          ↗ Buka PDF langsung jika tidak tampil
-        </a>
-      </div>`;
-  } else {
-    body.innerHTML = `
-      <div style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;background:#000;">
-        <img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;" alt="Foto BA">
-      </div>`;
-  }
-
-  document.getElementById("viewModal").classList.add("active");
-  document.body.style.overflow = "hidden";
-}
-function closeViewModal(){
-  document.getElementById("viewModal").classList.remove("active");
-  document.getElementById("viewModalBody").innerHTML = "";
-  document.body.style.overflow = "";
-}
 </script>
 
 </body>
