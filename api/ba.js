@@ -26,7 +26,7 @@ const { sql } = require('../lib/db');
 const { uploadPhotoToDrive, extractDriveFileId, deleteFileFromDrive } = require('../lib/googleDrive');
 const { sendPushToUsers } = require('../lib/pushHelper');
 
-function mapRow(r) {
+function mapRowFull(r) {
   return {
     id: Number(r.id),
     span: r.span,
@@ -36,6 +36,30 @@ function mapRow(r) {
     namaTegakan: r.namaTegakan,
     pdf: r.pdf,
     foto: r.foto || [],
+    fileName: r.fileName,
+    sumber: r.sumber,
+    uploader: r.uploader,
+    tanggal: r.tanggal,
+  };
+}
+
+// Versi ringan untuk daftar SEMUA BA (menu SOS / widget dashboard) -- TIDAK
+// ikut menarik isi pdf/foto (bisa base64 raksasa kalau upload Drive gagal
+// dulu dan fallback ke base64), cukup indikator ada/tidaknya + jumlah foto.
+// Halaman sos.html & dashboard.html memang tidak lagi menampilkan file-nya
+// langsung (lihat catatan di atas), jadi kolom pdf/foto tidak perlu ditarik
+// sama sekali di sini -- menghemat payload API & localStorage cache
+// (js/sync.js) tiap kali halaman dibuka / disinkron.
+function mapRowLite(r) {
+  return {
+    id: Number(r.id),
+    span: r.span,
+    judul: r.judul,
+    pemilik: r.pemilik,
+    jumlahTegakan: r.jumlahTegakan,
+    namaTegakan: r.namaTegakan,
+    hasPdf: !!r.hasPdf,
+    jumlahFoto: Number(r.jumlahFoto || 0),
     fileName: r.fileName,
     sumber: r.sumber,
     uploader: r.uploader,
@@ -81,27 +105,33 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'GET') {
-      const rows = qSpanId
-        ? await sql`
-            SELECT
-              id, span_id AS span, judul, pemilik,
-              jumlah_tegakan AS "jumlahTegakan", nama_tegakan AS "namaTegakan",
-              pdf, foto, file_name AS "fileName", sumber, uploader,
-              to_char(created_at, 'DD-MM-YYYY') AS tanggal
-            FROM ba_dokumen
-            WHERE span_id = ${qSpanId}
-            ORDER BY created_at DESC
-          `
-        : await sql`
-            SELECT
-              id, span_id AS span, judul, pemilik,
-              jumlah_tegakan AS "jumlahTegakan", nama_tegakan AS "namaTegakan",
-              pdf, foto, file_name AS "fileName", sumber, uploader,
-              to_char(created_at, 'DD-MM-YYYY') AS tanggal
-            FROM ba_dokumen
-            ORDER BY created_at DESC
-          `;
-      return res.status(200).json({ success: true, ba: rows.map(mapRow) });
+      if (qSpanId) {
+        const rows = await sql`
+          SELECT
+            id, span_id AS span, judul, pemilik,
+            jumlah_tegakan AS "jumlahTegakan", nama_tegakan AS "namaTegakan",
+            pdf, foto, file_name AS "fileName", sumber, uploader,
+            to_char(created_at, 'DD-MM-YYYY') AS tanggal
+          FROM ba_dokumen
+          WHERE span_id = ${qSpanId}
+          ORDER BY created_at DESC
+        `;
+        return res.status(200).json({ success: true, ba: rows.map(mapRowFull) });
+      }
+
+      // Daftar SEMUA BA (menu SOS / dashboard) -- lite, lihat mapRowLite().
+      const rows = await sql`
+        SELECT
+          id, span_id AS span, judul, pemilik,
+          jumlah_tegakan AS "jumlahTegakan", nama_tegakan AS "namaTegakan",
+          (pdf IS NOT NULL) AS "hasPdf",
+          COALESCE(jsonb_array_length(foto::jsonb), 0) AS "jumlahFoto",
+          file_name AS "fileName", sumber, uploader,
+          to_char(created_at, 'DD-MM-YYYY') AS tanggal
+        FROM ba_dokumen
+        ORDER BY created_at DESC
+      `;
+      return res.status(200).json({ success: true, ba: rows.map(mapRowLite) });
     }
 
     if (req.method === 'POST') {

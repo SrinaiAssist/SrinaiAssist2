@@ -304,10 +304,9 @@ function renderBA(keyword=""){
     if(item.jumlahTegakan) metaParts.push(item.jumlahTegakan + " tegakan");
     metaParts.push(item.tanggal);
 
-    const jumlahFoto = item.foto ? item.foto.length : 0;
     const namaFile = item.fileName
       ? item.fileName
-      : (item.pdf ? "1 file PDF" : (jumlahFoto ? jumlahFoto + " file foto" : "-"));
+      : (item.hasPdf ? "1 file PDF" : (item.jumlahFoto ? item.jumlahFoto + " file foto" : "-"));
 
     let html = `
       <div class="ba-card">
