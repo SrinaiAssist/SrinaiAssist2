@@ -135,6 +135,14 @@ body{
 .btn-primary:disabled{opacity:.5;}
 .btn-file{display:inline-flex;align-items:center;gap:6px;background:rgba(56,191,160,0.18);color:var(--teal);
   border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.poster-toggle{display:flex;align-items:flex-start;gap:10px;background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:12px;padding:11px 12px;margin-bottom:12px;cursor:pointer;}
+.poster-toggle input{margin-top:2px;flex-shrink:0;width:16px;height:16px;accent-color:var(--violet);}
+.poster-toggle .ptxt strong{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.poster-toggle .ptxt span{display:block;font-size:11px;color:var(--ink-3);line-height:1.4;}
+.article-poster-img{width:100%;display:block;background:var(--bg-card2);}
+.poster-badge{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;color:var(--gold);
+  background:var(--gold-dim);border-radius:6px;padding:2px 7px;margin:8px 15px 0;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -174,6 +182,7 @@ body{
       </div>
       <div class="sheet-close" onclick="closeDetail()">✕</div>
     </div>
+    <div class="sheet-title" id="detailTitle"></div>
     <div class="sheet-meta" id="detailMeta"></div>
     <div class="sheet-media" id="detailMedia"></div>
     <div class="sheet-content" id="detailContent"></div>
@@ -189,8 +198,15 @@ body{
       <label>Judul</label>
       <input type="text" id="formTitle" placeholder="Judul artikel">
     </div>
-    <div class="field">
-      <label>Isi</label>
+    <label class="poster-toggle">
+      <input type="checkbox" id="formIsPoster" onchange="onPosterToggle()">
+      <div class="ptxt">
+        <strong>Tampilkan sebagai poster saja</strong>
+        <span>Hanya gambar yang ditampilkan penuh di halaman artikel (judul &amp; isi disembunyikan). Cocok untuk gambar desain poster yang sudah lengkap dengan teksnya sendiri.</span>
+      </div>
+    </label>
+    <div class="field" id="formContentField">
+      <label id="formContentLabel">Isi</label>
       <textarea id="formContent" rows="6" placeholder="Tulis isi artikel di sini..."></textarea>
     </div>
     <button class="btn-file" onclick="document.getElementById('formFileInput').click()">📎 Tambah Foto/Video/File</button>
@@ -267,9 +283,30 @@ function renderArticles(articles){
   const admin = isAdmin();
   articles.forEach(a => {
     const firstImage = (a.media || []).find(m => m.type === "image");
+    const poster = !!a.isPoster && !!firstImage;
     const card = document.createElement("div");
     card.className = "article-card";
     card.onclick = () => openDetail(a.id);
+
+    if (poster) {
+      // Mode poster: cuma gambar penuh + tombol admin, tanpa judul/isi teks.
+      card.innerHTML = `
+        <img class="article-poster-img" src="${firstImage.url}" loading="lazy">
+        <div class="poster-badge">POSTER</div>
+        <div class="article-body" onclick="event.stopPropagation()">
+          <div class="article-admin-row" style="margin-top:2px;justify-content:flex-end;">
+            <div class="card-share-btn" onclick="shareArticle('${a.id}', event)" title="Bagikan artikel ini" style="flex:0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5"/></svg>
+            </div>
+            ${admin ? `
+              <button class="mini-btn edit" onclick="openForm('${a.id}')">Edit</button>
+              <button class="mini-btn del" onclick="hapusArtikel('${a.id}')">Hapus</button>` : ""}
+          </div>
+        </div>`;
+      list.appendChild(card);
+      return;
+    }
+
     card.innerHTML = `
       ${firstImage ? `<img class="article-thumb" src="${firstImage.url}" loading="lazy">` : ""}
       <div class="article-body">
@@ -353,11 +390,21 @@ function openDetail(id){
   const a = currentArticles.find(x => x.id === id);
   if (!a) return;
   currentDetailId = id;
+
+  const firstImage = (a.media || []).find(m => m.type === "image");
+  const poster = !!a.isPoster && !!firstImage;
+
+  // Mode poster: sembunyikan judul/meta/isi teks, tampilkan gambar penuh saja.
+  document.getElementById("detailTitle").style.display = poster ? "none" : "";
+  document.getElementById("detailMeta").style.display = poster ? "none" : "";
+  document.getElementById("detailContent").style.display = poster ? "none" : "";
   document.getElementById("detailTitle").textContent = a.title;
   document.getElementById("detailMeta").textContent = `${a.createdBy} · ${formatTanggal(a.createdAt)}`;
   document.getElementById("detailContent").textContent = a.content;
 
-  document.getElementById("detailMedia").innerHTML = buildMediaHtml(a.media);
+  document.getElementById("detailMedia").innerHTML = poster
+    ? `<img src="${firstImage.url}">`
+    : buildMediaHtml(a.media);
 
   document.getElementById("detailOverlay").classList.add("show");
 }
@@ -374,16 +421,31 @@ function openForm(id){
     document.getElementById("formHeading").textContent = "Edit Artikel";
     document.getElementById("formTitle").value = a.title;
     document.getElementById("formContent").value = a.content;
+    document.getElementById("formIsPoster").checked = !!a.isPoster;
     pendingMedia = (a.media || []).map(m => ({ fileId: m.fileId, type: m.type, name: m.name, mimeType: m.mimeType }));
     renderUploadChips();
   } else {
     document.getElementById("formHeading").textContent = "Artikel Baru";
     document.getElementById("formTitle").value = "";
     document.getElementById("formContent").value = "";
+    document.getElementById("formIsPoster").checked = false;
   }
+  onPosterToggle();
   document.getElementById("formOverlay").classList.add("show");
 }
 function closeForm(){ document.getElementById("formOverlay").classList.remove("show"); }
+
+// Mode poster: isi artikel jadi opsional (gambar sudah lengkap dengan
+// teksnya sendiri), tandai lewat label & placeholder supaya jelas.
+function onPosterToggle(){
+  const poster = document.getElementById("formIsPoster").checked;
+  const label = document.getElementById("formContentLabel");
+  const content = document.getElementById("formContent");
+  label.textContent = poster ? "Isi (opsional untuk poster)" : "Isi";
+  content.placeholder = poster
+    ? "Opsional -- gambar poster akan tampil penuh tanpa teks ini"
+    : "Tulis isi artikel di sini...";
+}
 
 function renderUploadChips(){
   const wrap = document.getElementById("uploadChips");
@@ -444,11 +506,16 @@ async function handleFilesSelected(event){
 async function saveArticle(){
   const title = document.getElementById("formTitle").value.trim();
   const content = document.getElementById("formContent").value.trim();
-  if (!title || !content) { alert("Judul dan isi wajib diisi."); return; }
+  const isPoster = document.getElementById("formIsPoster").checked;
+  const hasImage = pendingMedia.some(m => m.type === "image");
+
+  if (!title) { alert("Judul wajib diisi."); return; }
+  if (isPoster && !hasImage) { alert("Mode poster butuh minimal 1 gambar."); return; }
+  if (!isPoster && !content) { alert("Judul dan isi wajib diisi."); return; }
   if (uploadingCount > 0) { alert("Tunggu upload selesai dulu."); return; }
 
   const actor = getCurrentUser();
-  const body = { title, content, actor, media: pendingMedia };
+  const body = { title, content, actor, media: pendingMedia, isPoster };
 
   const url = editingId
     ? "/api/settings?action=articleUpdate"

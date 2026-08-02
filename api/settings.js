@@ -1266,7 +1266,8 @@ async function assertIsAdmin(username) {
 async function handleArticleList(res) {
   const articles = await sql`
     SELECT id, title, content, created_by AS "createdBy",
-           created_at AS "createdAt", updated_at AS "updatedAt"
+           created_at AS "createdAt", updated_at AS "updatedAt",
+           is_poster AS "isPoster"
     FROM articles
     WHERE published = true
     ORDER BY created_at DESC
@@ -1328,7 +1329,7 @@ async function handleArticlePreview(req, res) {
       const { article } = await handleArticleGet(id);
       if (article) {
         title = `${article.title} - SRINAI ASSIST`;
-        desc  = String(article.content || '').slice(0, 150);
+        desc  = String(article.content || '').trim().slice(0, 150) || 'Artikel & Berita SRINAI ASSIST.';
         const firstImage = (article.media || []).find(m => m.type === 'image');
         if (firstImage) image = firstImage.url;
       }
@@ -1372,7 +1373,8 @@ async function handleArticlePreview(req, res) {
 async function handleArticleGet(id) {
   const rows = await sql`
     SELECT id, title, content, created_by AS "createdBy",
-           created_at AS "createdAt", updated_at AS "updatedAt"
+           created_at AS "createdAt", updated_at AS "updatedAt",
+           is_poster AS "isPoster"
     FROM articles
     WHERE id = ${id} AND published = true
   `;
@@ -1409,18 +1411,29 @@ async function handleArticleUploadSession(req, res) {
 }
 
 async function handleArticleCreate(req, res) {
-  const { title, content, actor, media } = req.body || {};
+  const { title, content, actor, media, isPoster } = req.body || {};
   if (!(await assertIsAdmin(actor))) {
     return res.status(403).json({ success: false, message: 'Hanya admin yang bisa membuat artikel.' });
   }
-  if (!title || !title.trim() || !content || !content.trim()) {
+  const posterMode = !!isPoster;
+  const mediaList = Array.isArray(media) ? media : [];
+  const hasImage = mediaList.some((m) => m?.type === 'image');
+  if (!title || !title.trim()) {
+    return res.status(400).json({ success: false, message: 'title wajib diisi.' });
+  }
+  if (posterMode && !hasImage) {
+    return res.status(400).json({ success: false, message: 'Mode poster butuh minimal 1 gambar.' });
+  }
+  if (!posterMode && (!content || !content.trim())) {
     return res.status(400).json({ success: false, message: 'title dan content wajib diisi.' });
   }
 
   const id = `art-${Date.now()}`;
-  await sql`INSERT INTO articles (id, title, content, created_by) VALUES (${id}, ${title.trim()}, ${content.trim()}, ${actor})`;
+  await sql`
+    INSERT INTO articles (id, title, content, created_by, is_poster)
+    VALUES (${id}, ${title.trim()}, ${(content || '').trim()}, ${actor}, ${posterMode})
+  `;
 
-  const mediaList = Array.isArray(media) ? media : [];
   for (let i = 0; i < mediaList.length; i++) {
     const m = mediaList[i];
     if (!m?.fileId || !m?.type) continue;
@@ -1440,14 +1453,17 @@ async function handleArticleCreate(req, res) {
 }
 
 async function handleArticleUpdate(req, res) {
-  const { id, title, content, actor, media } = req.body || {};
+  const { id, title, content, actor, media, isPoster } = req.body || {};
   if (!(await assertIsAdmin(actor))) {
     return res.status(403).json({ success: false, message: 'Hanya admin yang bisa mengubah artikel.' });
   }
   if (!id) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+  const posterMode = !!isPoster;
 
   await sql`
-    UPDATE articles SET title = ${title.trim()}, content = ${content.trim()}, updated_at = now()
+    UPDATE articles
+    SET title = ${title.trim()}, content = ${(content || '').trim()},
+        is_poster = ${posterMode}, updated_at = now()
     WHERE id = ${id}
   `;
 
