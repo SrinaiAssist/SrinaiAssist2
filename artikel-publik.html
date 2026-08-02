@@ -50,6 +50,14 @@ body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:var(--bg-deep);
 .article-media img,.article-media video{width:100%;border-radius:14px;background:#000;display:block;}
 .article-media .file-link{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bg-card2);
   border:1px solid var(--border);border-radius:12px;color:var(--blue);font-size:13px;font-weight:700;text-decoration:none;}
+.media-grid{display:grid;gap:6px;border-radius:14px;overflow:hidden;}
+.media-grid.cols-2{grid-template-columns:repeat(2,1fr);}
+.media-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.media-grid.cols-2x2{grid-template-columns:repeat(2,1fr);}
+.media-grid a{display:block;position:relative;aspect-ratio:1/1;overflow:hidden;background:#000;}
+.media-grid img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0;}
+.media-grid .more-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;}
 .article-detail-content{font-size:14.5px;line-height:1.8;color:var(--ink-2);white-space:pre-wrap;}
 
 .state-msg{margin:60px 4px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.6;}
@@ -141,6 +149,34 @@ async function loadList(){
   }
 }
 
+// Kalau foto lampiran lebih dari 1, disatukan jadi 1 grid (maks 4 tampil,
+// sisanya ditandai "+N" di ubin terakhir) -- video & file tetap ditampilkan
+// terpisah di bawah grid seperti biasa.
+function buildMediaHtml(media){
+  media = media || [];
+  const images = media.filter(m => m.type === "image");
+  const others  = media.filter(m => m.type !== "image");
+  let html = "";
+
+  if (images.length === 1){
+    html += `<img src="${images[0].url}" loading="lazy">`;
+  } else if (images.length > 1){
+    const shown = images.slice(0, 4);
+    const extra = images.length - shown.length;
+    const cols = shown.length === 2 ? "cols-2" : shown.length === 3 ? "cols-3" : "cols-2x2";
+    html += `<div class="media-grid ${cols}">` + shown.map((m, i) => {
+      const overlay = (extra > 0 && i === shown.length - 1) ? `<div class="more-overlay">+${extra}</div>` : "";
+      return `<a href="${m.url}" target="_blank">${overlay}<img src="${m.url}" loading="lazy"></a>`;
+    }).join("") + `</div>`;
+  }
+
+  others.forEach(m => {
+    if (m.type === "video") html += `<video src="${m.url}" controls></video>`;
+    else html += `<a class="file-link" href="${m.downloadUrl}" target="_blank">📄 ${escapeHtml(m.name || "Unduh file")}</a>`;
+  });
+  return html;
+}
+
 async function loadDetail(id){
   const loading = document.getElementById("loadingDetail");
   const notFound = document.getElementById("notFoundDetail");
@@ -156,13 +192,7 @@ async function loadDetail(id){
     document.getElementById("articleMeta").textContent = `${a.createdBy} · ${formatTanggal(a.createdAt)}`;
     document.getElementById("articleContent").textContent = a.content;
 
-    const mediaWrap = document.getElementById("articleMedia");
-    mediaWrap.innerHTML = "";
-    (a.media || []).forEach(m => {
-      if (m.type === "image") mediaWrap.innerHTML += `<img src="${m.url}" loading="lazy">`;
-      else if (m.type === "video") mediaWrap.innerHTML += `<video src="${m.url}" controls></video>`;
-      else mediaWrap.innerHTML += `<a class="file-link" href="${m.downloadUrl}" target="_blank">📄 ${escapeHtml(m.name || "Unduh file")}</a>`;
-    });
+    document.getElementById("articleMedia").innerHTML = buildMediaHtml(a.media);
 
     wrap.style.display = "block";
     const firstImage = (a.media || []).find(m => m.type === "image");
