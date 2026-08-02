@@ -13,6 +13,7 @@
 <script src="js/back-nav.js"></script>
 <script src="js/sync.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -104,6 +105,8 @@ body{
 .btn-jadwal:active{background:rgba(56,191,160,0.32);}
 .btn-pdf{background:var(--gold);color:#1A1200;}
 .btn-pdf:active{transform:scale(0.98);}
+.btn-xlsx{background:rgba(56,191,160,0.18);color:var(--teal);}
+.btn-xlsx:active{background:rgba(56,191,160,0.32);}
 .btn-clear{background:var(--red-bg);color:var(--red);}
 .btn-clear:active{background:rgba(242,107,107,0.28);}
 
@@ -219,6 +222,10 @@ tr.row-libur td.cell-num{background:var(--red-bg);color:var(--red);pointer-event
       <button class="tbtn btn-pdf" onclick="downloadPDF()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
         Download PDF
+      </button>
+      <button class="tbtn btn-xlsx" onclick="downloadExcel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Download Excel
       </button>
       <button class="tbtn btn-clear" onclick="kosongkanTabel()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
@@ -808,6 +815,115 @@ function downloadPDF(){
   doc.text("v6 - header tower digabung jadi satu label TOWER", startX, 205);
   doc.save(namaFile);
   saveInfo.textContent = "PDF diunduh: " + namaFile;
+}
+
+/* =========================================================
+   DOWNLOAD EXCEL — file .xlsx asli mengikuti format
+   "Format_Jadwal_Inspeks.xlsx": judul merge A:N, header
+   Tanggal | HARI | TOWER & SPAN (merge C:N, fill kuning),
+   satu baris per tanggal. Dibangun pakai ExcelJS supaya
+   merge/fill/border-nya benar-benar tersimpan di file
+   (library "xlsx" gratis tidak bisa menulis styling).
+========================================================= */
+async function downloadExcel(){
+  const ExcelJS = window.ExcelJS;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Jadwal");
+
+  const bulanLabel = NAMA_BULAN[bulanSelect.value] + " " + tahunSelect.value;
+  const thin = { style: "thin", color: { argb: "FF505050" } };
+  const border = { top: thin, left: thin, bottom: thin, right: thin };
+
+  // Lebar kolom: A=Tanggal, B=Hari, C..N (12 kolom) = area TOWER & SPAN digabung
+  ws.getColumn(1).width = 11;
+  ws.getColumn(2).width = 11;
+  for(let c = 3; c <= 14; c++) ws.getColumn(c).width = 8;
+
+  // ── Baris 2: judul ──
+  ws.mergeCells("A2:N2");
+  const titleCell = ws.getCell("A2");
+  titleCell.value = "JADWAL INSPEKSI BULAN " + bulanLabel.toUpperCase();
+  titleCell.font = { name: "Aptos Narrow", size: 11, bold: true };
+  titleCell.alignment = { horizontal: "center", vertical: "center" };
+
+  // ── Baris 3: spacer kosong ──
+  ws.mergeCells("A3:N3");
+  ws.getRow(3).height = 4;
+
+  // ── Baris 4: header ──
+  ws.mergeCells("C4:N4");
+  ["A4","B4","C4"].forEach((addr, i)=>{
+    const cell = ws.getCell(addr);
+    cell.value = [ "Tanggal", "HARI", "TOWER & SPAN" ][i];
+    cell.font = { name: "Aptos Narrow", size: 11, bold: true };
+    cell.alignment = { horizontal: "center", vertical: "center" };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+    cell.border = border;
+  });
+  // border medium di sekeliling baris header (D4..N4 ikut merge C4:N4, cukup border di C4/N4)
+  ws.getCell("N4").border = border;
+
+  // ── Baris data ──
+  const tahun = parseInt(tahunSelect.value, 10);
+  const bulan = parseInt(bulanSelect.value, 10);
+  const rows = tbody.querySelectorAll("tr");
+  let rowIdx = 5;
+
+  rows.forEach(tr=>{
+    const isLibur  = tr.classList.contains("row-libur");
+    const tanggal  = tr.querySelector(".tanggal-cell").textContent.trim();
+    const hari     = tr.querySelector('[data-col="hari"]').textContent.trim();
+    const g1r1Val  = tr.querySelector('[data-col="g1r1"]').textContent.trim();
+    const isMinggu = !isLibur && hari.toLowerCase() === "minggu";
+    const towerVals = [];
+    for(let k = 1; k <= JUMLAH_KOLOM; k++){
+      const v = tr.querySelector('[data-col="c'+k+'"]').textContent.trim();
+      if(v) towerVals.push(v);
+    }
+    let towerSpanText = towerVals.join(", ");
+    if(g1r1Val) towerSpanText += (towerSpanText ? "  |  " : "") + "G1R1: " + g1r1Val;
+    if(isLibur) towerSpanText = "LIBUR";
+
+    const r = ws.getRow(rowIdx);
+    ws.mergeCells(rowIdx, 3, rowIdx, 14); // C:N
+
+    const cellTgl = ws.getCell(rowIdx, 1);
+    cellTgl.value = new Date(tahun, bulan, parseInt(tanggal, 10));
+    cellTgl.numFmt = "dd-mm-yyyy";
+    cellTgl.alignment = { horizontal: "center", vertical: "center" };
+
+    const cellHari = ws.getCell(rowIdx, 2);
+    cellHari.value = hari;
+    cellHari.alignment = { horizontal: "center", vertical: "center" };
+
+    const cellTower = ws.getCell(rowIdx, 3);
+    cellTower.value = towerSpanText;
+    cellTower.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+
+    if(isLibur || isMinggu){
+      const fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCDD2" } };
+      const font = { name: "Aptos Narrow", size: 11, color: { argb: "FFC62828" } };
+      [cellTgl, cellHari, cellTower].forEach(c=>{ c.fill = fill; c.font = font; });
+    } else {
+      [cellTgl, cellHari, cellTower].forEach(c=>{ c.font = { name: "Aptos Narrow", size: 11 }; });
+    }
+    [cellTgl, cellHari, cellTower].forEach(c=> c.border = border);
+
+    rowIdx++;
+  });
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const namaFile = "Jadwal_" + bulanLabel.replace(" ", "_") + ".xlsx";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = namaFile;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  saveInfo.textContent = "Excel diunduh: " + namaFile;
 }
 
 (async function initHalaman(){
