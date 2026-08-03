@@ -65,6 +65,27 @@ const TEGAKAN_FP_KEY = "srinai_sync_tegakan_fp";
 // angka "count:maxUpdatedAt" per tabel. Kalau sama dengan sync sebelumnya,
 // SELURUH fetch data lengkap tabel itu di-skip total.
 const MASTER_FP_KEY = "srinai_sync_master_fp"; // { jalur, tower, span, ba }
+
+/* ─── Log sinkronisasi (dipakai popup "Sinkronisasi Data" di dashboard) ──
+   _syncLogFn diset oleh syncAll() dari callback onLog yang dioper UI.
+   Fungsi-fungsi _refresh... dan syncPending di bawah cukup panggil
+   _syncLog(pesan), tanpa perlu tahu ada UI popup atau tidak
+   (no-op kalau tidak diset). */
+let _syncLogFn = null;
+let _syncBytesTotal = 0;
+function _syncLog(msg) {
+  if (typeof _syncLogFn === "function") {
+    try { _syncLogFn(msg); } catch(e) {}
+  }
+}
+function _jsonSize(obj) {
+  try { return new Blob([JSON.stringify(obj)]).size; } catch(e) { return (JSON.stringify(obj) || "").length; }
+}
+function _fmtBytes(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1024 / 1024).toFixed(1) + " MB";
+}
 const ACCOUNTS_FOTO_FP_KEY = "srinai_sync_accounts_foto_fp"; // username -> referensi foto mentah terakhir
 const SETTINGS_IMG_FP_KEY = "srinai_sync_settings_img_fp"; // key setting -> referensi gambar mentah terakhir
 // HARUS sinkron dengan IMAGE_SETTING_KEYS di api/settings.js (key yang
@@ -361,15 +382,18 @@ function _masterFp(meta) {
   return (meta.count || 0) + ":" + (meta.maxUpdatedAt || "");
 }
 
-async function _refreshMasterSelective(name, metaFn, listFn, cacheKey) {
+async function _refreshMasterSelective(name, metaFn, listFn, cacheKey, label) {
   try {
+    _syncLog(`Mulai mengunduh ${label} ...`);
     const meta = await metaFn();
     const fp = _masterFp(meta);
     const oldFpAll = _cacheGetData(MASTER_FP_KEY) || {};
 
     if (oldFpAll[name] === fp && _cacheGetData(cacheKey) !== null) {
       // Tidak ada perubahan -- skip fetch data lengkap, pakai cache lama.
-      return _cacheGetData(cacheKey);
+      const cached = _cacheGetData(cacheKey);
+      _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(cached))}`);
+      return cached;
     }
 
     const data = await listFn();
@@ -377,27 +401,33 @@ async function _refreshMasterSelective(name, metaFn, listFn, cacheKey) {
       _cacheSet(cacheKey, data);
       const newFpAll = { ..._cacheGetData(MASTER_FP_KEY), [name]: fp };
       _cacheSet(MASTER_FP_KEY, newFpAll);
+      const sz = _jsonSize(data);
+      _syncBytesTotal += sz;
+      _syncLog(`Sukses, ${label} diperbarui... ${_fmtBytes(sz)}`);
+    } else {
+      _syncLog(`Gagal mengunduh ${label}`);
     }
     return data;
   } catch(e) {
+    _syncLog(`Gagal mengunduh ${label}`);
     return _cacheGetData(cacheKey) || [];
   }
 }
 
 async function _refreshJalur() {
-  return await _refreshMasterSelective("jalur", getJalurMeta, getJalurMasterList, CACHE_KEYS.jalur);
+  return await _refreshMasterSelective("jalur", getJalurMeta, getJalurMasterList, CACHE_KEYS.jalur, "master jalur");
 }
 
 async function _refreshTower() {
-  return await _refreshMasterSelective("tower", getTowerMeta, () => getTowerMasterList(), CACHE_KEYS.tower);
+  return await _refreshMasterSelective("tower", getTowerMeta, () => getTowerMasterList(), CACHE_KEYS.tower, "master tower");
 }
 
 async function _refreshSpan() {
-  return await _refreshMasterSelective("span", getSpanMeta, () => getSpanMasterList(), CACHE_KEYS.span);
+  return await _refreshMasterSelective("span", getSpanMeta, () => getSpanMasterList(), CACHE_KEYS.span, "master span");
 }
 
 async function _refreshBA() {
-  return await _refreshMasterSelective("ba", getBAMeta, getAllBA, CACHE_KEYS.ba);
+  return await _refreshMasterSelective("ba", getBAMeta, getAllBA, CACHE_KEYS.ba, "master Berita Acara");
 }
 
 async function cachedGetTowerMasterList(jalurId) {
@@ -590,6 +620,7 @@ function _tegakanFingerprintFromMeta(m) {
  */
 async function _refreshAllTegakanGrouped() {
   try {
+    _syncLog("Mulai mengunduh data tegakan semua span ...");
     const metaList = await getTegakanMeta();
 
     const oldFp = _cacheGetData(TEGAKAN_FP_KEY) || {};
@@ -614,6 +645,11 @@ async function _refreshAllTegakanGrouped() {
     const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
     const untouched = oldAll.filter(item => !changedSpanIds.includes(item.spanId) && !removedSpanIds.includes(item.spanId));
 
+    if (changedSpanIds.length === 0 && removedSpanIds.length === 0) {
+      _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(oldAll))}`);
+      return oldAll;
+    }
+
     const refreshedParts = await Promise.all(
       changedSpanIds.map(spanId => getTegakanMetaBySpan(spanId).catch(() => []))
     );
@@ -621,8 +657,12 @@ async function _refreshAllTegakanGrouped() {
 
     _cacheSet(TEGAKAN_FP_KEY, newFp);
     _cacheSet(CACHE_KEYS.tegakanAll, all);
+    const sz = _jsonSize([].concat(...refreshedParts));
+    _syncBytesTotal += sz;
+    _syncLog(`Sukses, ${changedSpanIds.length} span diperbarui... ${_fmtBytes(sz)}`);
     return all;
   } catch(e) {
+    _syncLog("Gagal mengunduh data tegakan");
     return _cacheGetData(CACHE_KEYS.tegakanAll) || [];
   }
 }
@@ -696,6 +736,9 @@ async function syncPending() {
   const queue = _getPendingQueue();
   if (queue.length === 0) return { sent: 0, failed: 0 };
 
+  _syncLog(`Mulai mengirim ${queue.length} data tertunda... ${_fmtBytes(_jsonSize(queue))}`);
+  _syncBytesTotal += _jsonSize(queue);
+
   const remaining = [];
   let sent = 0, failed = 0;
 
@@ -717,6 +760,7 @@ async function syncPending() {
 
   localStorage.setItem(_scopedKey(CACHE_KEYS.pending), JSON.stringify(remaining));
   _updateSyncBadge();
+  _syncLog(`Sukses, ${sent} data tersimpan dari ${queue.length}${failed ? ` (${failed} gagal)` : ""}.`);
   return { sent, failed };
 }
 
@@ -734,6 +778,7 @@ async function syncPending() {
    (tidak ada lagi di daftar ringan), tanpa perlu hapus-semua dulu.
 ═══════════════════════════════════════════════════════ */
 async function _refreshAccountsSelective() {
+  _syncLog("Mulai mengunduh akun pengguna ...");
   const light = await getAllAccountsFull(false); // ringan: foto = referensi mentah saja
 
   const oldFp = _cacheGetData(ACCOUNTS_FOTO_FP_KEY) || {};
@@ -776,6 +821,13 @@ async function _refreshAccountsSelective() {
 
   _cacheSet(CACHE_KEYS.accounts, merged);
   _cacheSet(ACCOUNTS_FOTO_FP_KEY, newFp);
+  if (toResolve.length === 0) {
+    _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(merged))}`);
+  } else {
+    const sz = _jsonSize(merged);
+    _syncBytesTotal += sz;
+    _syncLog(`Sukses, ${toResolve.length} foto akun diperbarui... ${_fmtBytes(sz)}`);
+  }
   return merged;
 }
 
@@ -793,6 +845,7 @@ async function _refreshAccountsSelective() {
    permanen yang mengunci ke versi lama selamanya.
 ═══════════════════════════════════════════════════════ */
 async function _refreshSettingsSelective() {
+  _syncLog("Mulai mengunduh pengaturan ...");
   const light = await getAppSettings(COMMON_SETTINGS, false); // includeImages=false
 
   const oldFp = _cacheGetData(SETTINGS_IMG_FP_KEY) || {};
@@ -800,6 +853,7 @@ async function _refreshSettingsSelective() {
 
   const newFp = {};
   const merged = { ...light }; // key non-gambar (systemNotice, dll) sudah fresh & murah apa adanya
+  let resolvedCount = 0;
 
   for (const imgKey of SETTINGS_IMAGE_KEYS) {
     const ref = light[imgKey] || "";
@@ -812,6 +866,7 @@ async function _refreshSettingsSelective() {
       // Belum pernah ada / referensinya berubah -> resolve HANYA key ini.
       try {
         merged[imgKey] = await getAppSetting(imgKey);
+        resolvedCount++;
       } catch (e) {
         merged[imgKey] = oldSettings[imgKey] || null;
       }
@@ -821,6 +876,13 @@ async function _refreshSettingsSelective() {
   const finalSettings = { ...oldSettings, ...merged };
   _cacheSet(CACHE_KEYS.settings, finalSettings);
   _cacheSet(SETTINGS_IMG_FP_KEY, newFp);
+  if (resolvedCount === 0) {
+    _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(finalSettings))}`);
+  } else {
+    const sz = _jsonSize(finalSettings);
+    _syncBytesTotal += sz;
+    _syncLog(`Sukses, ${resolvedCount} gambar pengaturan diperbarui... ${_fmtBytes(sz)}`);
+  }
   return finalSettings;
 }
 
@@ -833,7 +895,7 @@ async function _refreshSettingsSelective() {
  * Dipanggil dari tombol Sinkron di dashboard.
  * onProgress(step, total, label) — callback opsional untuk UI.
  */
-async function syncAll(onProgress) {
+async function syncAll(onProgress, onLog) {
   const steps = [
     { key: CACHE_KEYS.accounts, fn: _refreshAccountsSelective, selfCached: true, label: "Akun pengguna" },
     { key: CACHE_KEYS.jalur,    fn: _refreshJalur, selfCached: true, label: "Master jalur"     },
@@ -846,6 +908,12 @@ async function syncAll(onProgress) {
     // bukan disimpan ke satu CACHE_KEYS key tunggal seperti step lain.
     { key: null, fn: _refreshAllTegakanGrouped, label: "Data tegakan semua span", grouped: true },
   ];
+
+  // onLog(msg) opsional -- dipakai popup "Sinkronisasi Data" di dashboard
+  // untuk menampilkan baris log real-time (mirip "Info : ..." pada log sync).
+  _syncLogFn = (typeof onLog === "function") ? onLog : null;
+  _syncBytesTotal = 0;
+  const startTs = Date.now();
 
   // Kirim pending dulu sebelum refresh
   await syncPending();
@@ -874,6 +942,7 @@ async function syncAll(onProgress) {
       }
     } catch(e) {
       console.warn("[sync] Gagal sinkron:", s.label, e);
+      _syncLog(`Gagal sinkron: ${s.label}`);
       failed++;
     }
   }
@@ -886,7 +955,15 @@ async function syncAll(onProgress) {
   }));
 
   _updateSyncBadge();
-  return { success, failed, total: steps.length };
+
+  const elapsedSec = ((Date.now() - startTs) / 1000).toFixed(1);
+  _syncLog(failed === 0 ? "Sukses. Sinkronisasi selesai." : `Selesai dengan ${failed} kegagalan.`);
+  _syncLog(`Total sinkronisasi ${_fmtBytes(_syncBytesTotal)}  (${elapsedSec} Detik)`);
+
+  const bytesTotal = _syncBytesTotal;
+  _syncLogFn = null; // lepas logger supaya tidak nyangkut ke sync berikutnya
+
+  return { success, failed, total: steps.length, bytes: bytesTotal, elapsedSec };
 }
 
 /** Hapus semua cache (berguna saat logout) */

@@ -117,6 +117,38 @@ body{
 }
 .sync-notice-later{background:var(--paper);color:var(--ink);}
 .sync-notice-now{background:var(--route);color:var(--paper);border-color:var(--route);}
+
+/* Popup log sinkronisasi -- muncul saat tombol Sinkron ditekan, menampilkan
+   baris-baris "Info : ..." real-time (mirip log sinkron aplikasi lapangan). */
+.sync-log-scrim{
+  position:fixed;inset:0;background:rgba(43,42,34,0.5);
+  opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:130;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.sync-log-scrim.open{opacity:1;pointer-events:auto;}
+.sync-log-card{
+  width:100%;max-width:380px;background:var(--paper);color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:18px;padding:20px 18px;
+  box-shadow:0 18px 40px rgba(43,42,34,0.35);
+  transform:translateY(12px);transition:transform .22s ease;
+}
+.sync-log-scrim.open .sync-log-card{transform:translateY(0);}
+.sync-log-title{font-family:'Bitter';font-weight:800;font-size:16.5px;margin-bottom:12px;}
+.sync-log-box{
+  background:#14150f;color:#d9d4c2;font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;line-height:1.55;border-radius:10px;padding:12px;
+  height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  white-space:pre-wrap;word-break:break-word;margin-bottom:14px;
+}
+.sync-log-box .sync-log-line{margin:0 0 2px;}
+.sync-log-box .sync-log-line.err{color:#e08a6b;}
+.sync-log-actions{display:flex;gap:8px;}
+.sync-log-actions button{
+  flex:1;border-radius:12px;padding:11px 10px;font-size:13px;font-weight:700;
+  border:1.5px solid var(--ink);cursor:pointer;font-family:'Inter';
+  background:var(--route);color:var(--paper);border-color:var(--route);
+}
+.sync-log-actions button:disabled{opacity:.55;cursor:default;}
 .activity-panel{
   position:absolute;top:76px;left:12px;right:12px;
   max-height:min(66vh,460px);overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -587,6 +619,16 @@ body{
       <div class="sync-notice-actions">
         <button type="button" class="sync-notice-later" onclick="dismissSyncNotice()">Nanti saja</button>
         <button type="button" class="sync-notice-now" onclick="syncNowFromNotice()">Sinkron Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sync-log-scrim" id="syncLogScrim">
+    <div class="sync-log-card">
+      <div class="sync-log-title">Sinkronisasi Data</div>
+      <div class="sync-log-box" id="syncLogBox"></div>
+      <div class="sync-log-actions">
+        <button type="button" id="syncLogCloseBtn" onclick="closeSyncLog()" disabled>Tutup</button>
       </div>
     </div>
   </div>
@@ -1265,19 +1307,46 @@ async function syncNowFromNotice(){
   await doSync();
 }
 
+function _appendSyncLogLine(msg){
+  const box = document.getElementById("syncLogBox");
+  if(!box) return;
+  const isErr = /^gagal/i.test(msg);
+  const line = document.createElement("div");
+  line.className = "sync-log-line" + (isErr ? " err" : "");
+  line.textContent = "Info : " + msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function closeSyncLog(){
+  document.getElementById("syncLogScrim").classList.remove("open");
+}
+
 async function doSync(){
-  const btn    = document.getElementById("syncBtn");
-  const status = document.getElementById("syncStatusLabel");
+  const btn      = document.getElementById("syncBtn");
+  const status   = document.getElementById("syncStatusLabel");
+  const logBox   = document.getElementById("syncLogBox");
+  const closeBtn = document.getElementById("syncLogCloseBtn");
   if(!btn || !status) return;
 
   btn.disabled = true;
   status.textContent = "Menghubungi server...";
 
-  const result = await syncAll(function(current, total, label){
-    status.textContent = `${label} (${current}/${total})`;
-  });
+  if(logBox) logBox.innerHTML = "";
+  if(closeBtn) closeBtn.disabled = true;
+  document.getElementById("syncLogScrim").classList.add("open");
+
+  const result = await syncAll(
+    function(current, total, label){
+      status.textContent = `${label} (${current}/${total})`;
+    },
+    function(msg){
+      _appendSyncLogLine(msg);
+    }
+  );
 
   btn.disabled = false;
+  if(closeBtn) closeBtn.disabled = false;
 
   if(result.failed === 0){
     status.textContent = "Sinkron berhasil";
