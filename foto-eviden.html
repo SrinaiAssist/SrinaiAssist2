@@ -419,7 +419,7 @@ body{
       <div class="lc-brand-sub">Foto Eviden Terverifikasi</div>
     </div>
     <div class="lc-card">
-      <div class="lc-title" id="lcTitle">SRINAI ASSIST</div>
+      <div class="lc-title" id="lcTitle">Judul Kegiatan</div>
       <div class="lc-activity" id="lcActivity">-</div>
       <div class="lc-divider"></div>
       <div class="lc-time-row">
@@ -798,7 +798,7 @@ function drawWatermarkOnCanvas(ctx, w, h, info){
 
   ctx.font = `800 ${titleFont}px Arial, sans-serif`;
   ctx.fillStyle = ACCENT;
-  ctx.fillText((info.title || "SRINAI ASSIST").toUpperCase(), textX, y);
+  ctx.fillText((info.title || "Judul Kegiatan").toUpperCase(), textX, y);
   y += rowTitleH;
 
   ctx.font = `700 ${activityFont}px Arial, sans-serif`;
@@ -875,7 +875,7 @@ function processPhotoWithWatermark(file, geoData){
 
           drawWatermarkOnCanvas(ctx, w, h, {
             tgl, jam, hari, address, coordText,
-            title: wm.title || "SRINAI ASSIST",
+            title: wm.title || "Judul Kegiatan",
             activity: wm.activity || "-"
           });
 
@@ -900,6 +900,12 @@ let liveStream = null;
 let liveClockTimer = null;
 
 async function openLiveCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    console.warn("[foto-eviden] getUserMedia tidak didukung di browser ini, fallback ke kamera bawaan.");
+    document.getElementById("camFileInput").click();
+    return;
+  }
+
   let stream;
   try{
     stream = await navigator.mediaDevices.getUserMedia({
@@ -907,9 +913,19 @@ async function openLiveCamera(){
       audio: false
     });
   }catch(err){
-    console.warn("[foto-eviden] Kamera langsung tidak tersedia, fallback ke kamera bawaan:", err);
-    document.getElementById("camFileInput").click();
-    return;
+    // Beberapa perangkat menolak constraint facingMode yang spesifik.
+    // Coba lagi dengan constraint video paling polos sebelum menyerah.
+    console.warn("[foto-eviden] Constraint kamera belakang gagal, coba video:true polos:", err);
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }catch(err2){
+      console.warn("[foto-eviden] Kamera langsung tidak tersedia, fallback ke kamera bawaan:", err2);
+      if(err2.name === "NotAllowedError" || err2.name === "PermissionDeniedError"){
+        alert("Izin Kamera untuk SRINAI ASSIST belum diaktifkan, jadi watermark tidak bisa tampil langsung di layar. Aktifkan izin Kamera lewat pengaturan browser lalu coba lagi.");
+      }
+      document.getElementById("camFileInput").click();
+      return;
+    }
   }
 
   liveStream = stream;
@@ -929,7 +945,7 @@ function updateLiveOverlay(){
   document.getElementById("lcTime").textContent = jam.slice(0, 5);
   document.getElementById("lcDay").textContent = hari;
   document.getElementById("lcDate").textContent = tgl;
-  document.getElementById("lcTitle").textContent = (wm.title || "SRINAI ASSIST").toUpperCase();
+  document.getElementById("lcTitle").textContent = (wm.title || "Judul Kegiatan").toUpperCase();
   document.getElementById("lcActivity").textContent = wm.activity || "-";
   document.getElementById("lcAddr").textContent = camGeoData?.address || "Mencari lokasi...";
 }
@@ -967,7 +983,7 @@ function captureLiveFrame(){
 
   drawWatermarkOnCanvas(ctx, w, h, {
     tgl, jam, hari, address, coordText,
-    title: wm.title || "SRINAI ASSIST",
+    title: wm.title || "Judul Kegiatan",
     activity: wm.activity || "-"
   });
 
@@ -1039,6 +1055,25 @@ document.getElementById("camFileInput").addEventListener("change", async functio
   }
 });
 
+// Simpan salinan foto eviden (yang sudah ada watermark) ke penyimpanan/galeri
+// HP, terpisah dari upload ke Google Drive. Dipanggil setelah eviden berhasil
+// tersimpan supaya tidak membuat file ganda tiap kali user ambil ulang foto.
+function saveWatermarkedPhotoToDevice(dataUrl, capturedAt){
+  try{
+    const pad = n => String(n).padStart(2, "0");
+    const d = capturedAt || new Date();
+    const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `SRINAI-Eviden-${stamp}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }catch(err){
+    console.error("[foto-eviden] Gagal menyimpan foto ke galeri HP:", err);
+  }
+}
+
 async function submitCamEvidence(){
   const lokasi = document.getElementById("camLokasi").value;
   const catatan = document.getElementById("camCatatan").value.trim() || "Foto eviden cepat";
@@ -1071,11 +1106,13 @@ async function submitCamEvidence(){
 
     if(result.driveWarning){
       statusEl.textContent = "Tersimpan, TAPI upload ke Drive gagal: " + result.driveWarning;
+      saveWatermarkedPhotoToDevice(camWatermarkedDataUrl, camCapturedAt);
       submitBtn.disabled = false;
       return;
     }
 
     statusEl.textContent = "Tersimpan!";
+    saveWatermarkedPhotoToDevice(camWatermarkedDataUrl, camCapturedAt);
     setTimeout(async () => {
       closeCamModal();
       document.getElementById("skeletonGrid").style.display = "grid";
