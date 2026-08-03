@@ -225,6 +225,77 @@ body{
 .cam-geo-status{font-size:11px;color:var(--ink-3);text-align:center;margin:-4px 0 16px;display:flex;align-items:center;justify-content:center;gap:5px;}
 .cam-geo-status.ok{color:#7CD68A;}
 .cam-geo-status.warn{color:#F4C542;}
+
+/* Tombol Pengaturan Watermark di topbar */
+.wm-settings-btn{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--bg-glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.wm-settings-btn:active{background:rgba(255,255,255,0.1);}
+
+/* Sheet Pengaturan Watermark (judul & baris kegiatan) */
+.wm-modal{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;z-index:410;
+  align-items:flex-end;justify-content:center;}
+.wm-modal.active{display:flex;}
+.wm-sheet{
+  width:100%;max-width:460px;overflow-y:auto;
+  background:var(--bg-card);border-radius:22px 22px 0 0;
+  padding:20px 20px 26px;position:relative;
+}
+.wm-sheet h2{font-size:16px;font-weight:800;margin-bottom:4px;}
+.wm-sheet .wm-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:18px;}
+.wm-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;
+  background:var(--bg-glass);border:1px solid var(--border);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;}
+.wm-field{margin-bottom:16px;}
+.wm-field label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:7px;}
+.wm-field input{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:12px;
+  padding:12px 13px;color:var(--ink);font-size:13.5px;font-family:inherit;
+}
+.wm-save{
+  width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;
+  background:var(--gold);color:#1A1200;font-size:14px;font-weight:800;
+}
+
+/* Kamera langsung (live preview) -- watermark sudah nempel di layar
+   SEBELUM tombol jepret ditekan, bukan dibakar belakangan setelah foto
+   sudah jadi. */
+.live-cam{position:fixed;inset:0;background:#000;display:none;z-index:500;}
+.live-cam.active{display:block;}
+.live-cam video{width:100%;height:100%;object-fit:cover;}
+.live-cam-overlay{position:absolute;inset:0;pointer-events:none;
+  display:flex;flex-direction:column;justify-content:space-between;padding:18px;}
+.lc-brand{align-self:flex-end;text-align:right;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);}
+.lc-brand-title{font-size:15px;font-weight:800;color:#F4C542;letter-spacing:.3px;}
+.lc-brand-sub{font-size:10.5px;color:rgba(255,255,255,0.75);margin-top:1px;}
+.lc-card{
+  align-self:flex-start;max-width:68%;
+  background:rgba(15,16,12,0.72);border-radius:14px;padding:14px 16px;
+  backdrop-filter:blur(2px);
+}
+.lc-title{font-size:15px;font-weight:800;color:#C6FF3D;letter-spacing:.3px;}
+.lc-activity{font-size:13px;font-weight:700;color:#fff;margin-top:2px;}
+.lc-divider{height:1.5px;background:rgba(198,255,61,0.6);margin:9px 0;}
+.lc-time-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+.lc-time{font-size:34px;font-weight:800;color:#C6FF3D;line-height:1;}
+.lc-date-col{display:flex;flex-direction:column;gap:2px;}
+.lc-day{font-size:12px;font-weight:700;color:#fff;}
+.lc-date{font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.85);}
+.lc-addr{font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.88);line-height:1.4;}
+.lc-addr::before{content:"📍 ";}
+.live-cam-controls{
+  position:absolute;left:0;right:0;bottom:26px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 30px;
+}
+.lc-close{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.15);
+  border:none;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;}
+.lc-shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,0.4);
+  cursor:pointer;}
 </style>
 <link rel="stylesheet" href="css/theme-fieldlog.css">
 </head>
@@ -240,6 +311,9 @@ body{
     <div class="topbar-title">
       <h1>Foto Eviden</h1>
       <p id="pageSub">Memuat...</p>
+    </div>
+    <div class="wm-settings-btn" onclick="openWmSettings()" title="Pengaturan Watermark Foto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     </div>
   </div>
 
@@ -289,10 +363,10 @@ body{
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
     <h2>Ambil Foto Eviden</h2>
-    <div class="cam-sub">Foto otomatis diberi cap tanggal &amp; jam, lalu tersimpan ke Google Drive.</div>
+    <div class="cam-sub">Watermark judul, kegiatan, waktu &amp; lokasi sudah tampil di layar sebelum foto diambil, lalu tersimpan ke Google Drive.</div>
 
     <input type="file" id="camFileInput" accept="image/*" capture="environment" style="display:none;">
-    <div class="cam-shoot-btn" id="camShootBtn" onclick="document.getElementById('camFileInput').click()">
+    <div class="cam-shoot-btn" id="camShootBtn" onclick="openLiveCamera()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
       <span id="camShootLabel">Tap untuk buka kamera</span>
     </div>
@@ -313,6 +387,55 @@ body{
 
     <button class="cam-submit" id="camSubmitBtn" onclick="submitCamEvidence()" disabled>Simpan ke Eviden</button>
     <div class="cam-status" id="camStatus"></div>
+  </div>
+</div>
+
+<div class="wm-modal" id="wmModal">
+  <div class="wm-sheet">
+    <div class="wm-close" onclick="closeWmSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <h2>Pengaturan Watermark Foto</h2>
+    <div class="wm-sub">Judul dan baris kegiatan ini muncul di watermark tiap foto eviden yang diambil, sampai diubah lagi di sini.</div>
+
+    <div class="wm-field">
+      <label>Judul</label>
+      <input type="text" id="wmTitleInput" placeholder="Contoh: SWEEPING LAYANGAN" maxlength="40">
+    </div>
+    <div class="wm-field">
+      <label>Baris Kegiatan</label>
+      <input type="text" id="wmActivityInput" placeholder="Contoh: Span 46" maxlength="40">
+    </div>
+
+    <button class="wm-save" onclick="saveWmSettingsFromForm()">Simpan</button>
+  </div>
+</div>
+
+<div class="live-cam" id="liveCam">
+  <video id="liveCamVideo" autoplay playsinline muted></video>
+  <div class="live-cam-overlay">
+    <div class="lc-brand">
+      <div class="lc-brand-title">SRINAI ASSIST</div>
+      <div class="lc-brand-sub">Foto Eviden Terverifikasi</div>
+    </div>
+    <div class="lc-card">
+      <div class="lc-title" id="lcTitle">SRINAI ASSIST</div>
+      <div class="lc-activity" id="lcActivity">-</div>
+      <div class="lc-divider"></div>
+      <div class="lc-time-row">
+        <div class="lc-time" id="lcTime">00:00</div>
+        <div class="lc-date-col">
+          <div class="lc-day" id="lcDay">-</div>
+          <div class="lc-date" id="lcDate">-</div>
+        </div>
+      </div>
+      <div class="lc-addr" id="lcAddr">Mencari lokasi...</div>
+    </div>
+  </div>
+  <div class="live-cam-controls">
+    <button class="lc-close" onclick="closeLiveCamera()">✕</button>
+    <button class="lc-shutter" onclick="captureLiveFrame()" aria-label="Jepret"></button>
+    <div style="width:38px;"></div>
   </div>
 </div>
 
@@ -510,6 +633,7 @@ async function reverseGeocode(lat, lon){
 
 function closeCamModal(){
   document.getElementById("camModal").classList.remove("active");
+  closeLiveCamera();
   resetCamForm();
 }
 
@@ -522,7 +646,7 @@ function resetCamForm(){
   document.getElementById("camShootBtn").innerHTML =
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
      <span id="camShootLabel">Tap untuk buka kamera</span>`;
-  document.getElementById("camShootBtn").onclick = () => document.getElementById("camFileInput").click();
+  document.getElementById("camShootBtn").onclick = () => openLiveCamera();
   document.getElementById("camCatatan").value = "";
   document.getElementById("camStatus").textContent = "";
   document.getElementById("camGeoStatus").className = "cam-geo-status";
@@ -570,12 +694,155 @@ async function populateCamLokasi(){
 }
 
 function formatWatermarkText(date){
-  const tgl = date.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" });
+  const tgl = date.toLocaleDateString("id-ID", { day:"2-digit", month:"long", year:"numeric" });
   const jam = date.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-  return { tgl, jam };
+  const hari = date.toLocaleDateString("id-ID", { weekday:"long" });
+  return { tgl, jam, hari };
 }
 
-// Baca file foto -> gambar ke canvas -> bakar watermark tanggal/jam/lokasi -> hasil dataURL JPEG
+/* ─── Pengaturan Watermark (Judul & Baris Kegiatan) ───────────────────────
+   Disimpan per-akun (pakai _scopedKey dari js/sync.js) supaya tetap
+   nyangkut sampai diubah lagi dari sheet "Pengaturan Watermark Foto",
+   dipakai baik oleh live-camera maupun jalur fallback file-input. */
+const WM_SETTINGS_KEY = "srinai_wm_settings";
+function getWmSettings(){
+  try {
+    const raw = localStorage.getItem(_scopedKey(WM_SETTINGS_KEY));
+    return raw ? JSON.parse(raw) : { title: "", activity: "" };
+  } catch(e) {
+    return { title: "", activity: "" };
+  }
+}
+function saveWmSettings(title, activity){
+  localStorage.setItem(_scopedKey(WM_SETTINGS_KEY), JSON.stringify({ title, activity }));
+}
+function openWmSettings(){
+  const wm = getWmSettings();
+  document.getElementById("wmTitleInput").value = wm.title || "";
+  document.getElementById("wmActivityInput").value = wm.activity || "";
+  document.getElementById("wmModal").classList.add("active");
+}
+function closeWmSettings(){
+  document.getElementById("wmModal").classList.remove("active");
+}
+function saveWmSettingsFromForm(){
+  const title = document.getElementById("wmTitleInput").value.trim();
+  const activity = document.getElementById("wmActivityInput").value.trim();
+  saveWmSettings(title, activity);
+  closeWmSettings();
+}
+
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* Gambar watermark ke canvas -- dipakai baik oleh capture kamera langsung
+   (captureLiveFrame) maupun jalur fallback pilih-file (processPhotoWithWatermark),
+   supaya hasil akhirnya identik dengan yang tampil live di layar.
+   info: { tgl, jam, hari, address, coordText, title, activity } */
+function drawWatermarkOnCanvas(ctx, w, h, info){
+  const ACCENT = "#C6FF3D";
+  const pad = Math.max(14, Math.round(w * 0.035));
+
+  // Pojok kanan atas: brand SRINAI ASSIST (menggantikan "Timemark")
+  const brandFont = Math.max(15, Math.round(w * 0.034));
+  const taglineFont = Math.max(10, Math.round(w * 0.022));
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  ctx.font = `800 ${brandFont}px Arial, sans-serif`;
+  ctx.fillStyle = "#F4C542";
+  ctx.fillText("SRINAI ASSIST", w - pad, pad);
+  ctx.font = `500 ${taglineFont}px Arial, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.fillText("Foto Eviden Terverifikasi", w - pad, pad + brandFont + 4);
+
+  // Kartu kiri bawah: judul, baris kegiatan, waktu, alamat
+  const cardW = Math.round(w * 0.68);
+  const cardPad = Math.round(w * 0.03);
+  const titleFont = Math.max(15, Math.round(w * 0.032));
+  const activityFont = Math.max(12, Math.round(w * 0.026));
+  const timeFont = Math.max(26, Math.round(w * 0.072));
+  const smallFont = Math.max(11, Math.round(w * 0.024));
+  const addrFont = Math.max(11, Math.round(w * 0.023));
+  const dividerGap = Math.round(w * 0.022);
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  const maxAddrW = cardW - cardPad * 2 - Math.round(w * 0.025);
+  ctx.font = `600 ${addrFont}px Arial, sans-serif`;
+  const addressLines = info.address ? wrapTextToLines(ctx, info.address, maxAddrW, 3) : [];
+
+  const rowTitleH    = titleFont * 1.3;
+  const rowActivityH = activityFont * 1.4;
+  const rowTimeH     = timeFont * 1.15;
+  const rowAddrH     = addrFont * 1.45;
+
+  let cardH = cardPad * 2 + rowTitleH + rowActivityH + dividerGap + rowTimeH;
+  cardH += addressLines.length * rowAddrH;
+
+  const cardX = pad;
+  const cardY = h - pad - cardH;
+
+  ctx.fillStyle = "rgba(15,16,12,0.72)";
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, Math.round(w * 0.018));
+  ctx.fill();
+
+  let y = cardY + cardPad;
+  const textX = cardX + cardPad;
+
+  ctx.font = `800 ${titleFont}px Arial, sans-serif`;
+  ctx.fillStyle = ACCENT;
+  ctx.fillText((info.title || "SRINAI ASSIST").toUpperCase(), textX, y);
+  y += rowTitleH;
+
+  ctx.font = `700 ${activityFont}px Arial, sans-serif`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(info.activity || "-", textX, y);
+  y += rowActivityH;
+
+  ctx.strokeStyle = ACCENT;
+  ctx.lineWidth = Math.max(1, Math.round(w * 0.0022));
+  ctx.beginPath();
+  ctx.moveTo(textX, y + dividerGap * 0.5);
+  ctx.lineTo(cardX + cardW - cardPad, y + dividerGap * 0.5);
+  ctx.stroke();
+  y += dividerGap;
+
+  ctx.font = `800 ${timeFont}px Arial, sans-serif`;
+  ctx.fillStyle = ACCENT;
+  const jamShort = info.jam.slice(0, 5);
+  ctx.fillText(jamShort, textX, y);
+  const jamW = ctx.measureText(jamShort).width;
+
+  const dateColX = textX + jamW + Math.round(w * 0.025);
+  ctx.font = `700 ${smallFont}px Arial, sans-serif`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(info.hari, dateColX, y + Math.round(timeFont * 0.08));
+  ctx.font = `600 ${smallFont}px Arial, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText(info.tgl, dateColX, y + Math.round(timeFont * 0.08) + Math.round(smallFont * 1.35));
+  y += rowTimeH;
+
+  addressLines.forEach(line => {
+    ctx.fillStyle = ACCENT;
+    ctx.fillRect(textX, y + addrFont * 0.3, Math.round(w * 0.007), addrFont * 0.65);
+    ctx.font = `600 ${addrFont}px Arial, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillText(line, textX + Math.round(w * 0.022), y);
+    y += rowAddrH;
+  });
+}
+
+// Baca file foto -> gambar ke canvas -> bakar watermark -> hasil dataURL JPEG.
+// Ini jalur FALLBACK: dipakai hanya kalau kamera langsung (getUserMedia) tidak
+// tersedia/ditolak. Pakai drawWatermarkOnCanvas yang sama supaya hasilnya
+// identik dengan yang tampil live di layar saat capture langsung.
 function processPhotoWithWatermark(file, geoData){
   return new Promise((resolve, reject) => {
     const capturedAt = new Date();
@@ -599,61 +866,18 @@ function processPhotoWithWatermark(file, geoData){
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, w, h);
 
-          const { tgl, jam } = formatWatermarkText(capturedAt);
-          const username = getCurrentUser() || "-";
+          const { tgl, jam, hari } = formatWatermarkText(capturedAt);
           const address = geoData?.address || null;
           const coordText = geoData
             ? `${geoData.lat.toFixed(6)}, ${geoData.lon.toFixed(6)}` + (geoData.accuracy ? ` (±${Math.round(geoData.accuracy)}m)` : "")
             : null;
+          const wm = getWmSettings();
 
-          const pad = Math.max(14, Math.round(w * 0.035));
-          const fontBig   = Math.max(20, Math.round(w * 0.052));
-          const fontSmall = Math.max(13, Math.round(w * 0.028));
-          const maxTextW  = w - pad * 2;
-          const fontAddr  = `600 ${fontSmall}px Arial, sans-serif`;
-
-          ctx.font = fontAddr; // dipakai buat ngukur wrap alamat
-          const addressLines = address ? wrapTextToLines(ctx, address, maxTextW, 3) : [];
-
-          // Susun baris watermark urut dari ATAS ke BAWAH:
-          // logo+nama web -> nama petugas -> tanggal & waktu -> alamat (1-3 baris) -> koordinat
-          const rows = [
-            { text: "⚡ SRINAI ASSIST - FOTO EVIDEN", font: `700 ${fontSmall}px Arial, sans-serif`, color: "#F4C542", lineH: fontSmall * 1.55 },
-            { text: "Petugas: " + username, font: `600 ${fontSmall}px Arial, sans-serif`, color: "rgba(255,255,255,0.85)", lineH: fontSmall * 1.5 },
-            { text: tgl + "   " + jam + " WIB", font: `800 ${fontBig}px Arial, sans-serif`, color: "#FFFFFF", lineH: fontBig * 1.3 },
-          ];
-          addressLines.forEach((line, i) => {
-            rows.push({ text: (i === 0 ? "📍 " : "    ") + line, font: fontAddr, color: "rgba(255,255,255,0.85)", lineH: fontSmall * 1.4 });
+          drawWatermarkOnCanvas(ctx, w, h, {
+            tgl, jam, hari, address, coordText,
+            title: wm.title || "SRINAI ASSIST",
+            activity: wm.activity || "-"
           });
-          if(coordText){
-            rows.push({ text: "🧭 " + coordText, font: `600 ${fontSmall}px Arial, sans-serif`, color: "rgba(255,255,255,0.65)", lineH: fontSmall * 1.4 });
-          }
-
-          const blockH = rows.reduce((sum, r) => sum + r.lineH, 0);
-          const gradH = Math.min(Math.round(h * 0.62), Math.round(blockH + pad * 1.8));
-
-          // Gradasi gelap di bawah foto supaya teks selalu kebaca,
-          // apapun warna/kecerahan fotonya. Tinggi menyesuaikan jumlah baris.
-          const grad = ctx.createLinearGradient(0, h - gradH, 0, h);
-          grad.addColorStop(0, "rgba(0,0,0,0)");
-          grad.addColorStop(1, "rgba(0,0,0,0.75)");
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, h - gradH, w, gradH);
-
-          ctx.textBaseline = "alphabetic";
-          ctx.textAlign = "left";
-
-          // Gambar dari baris PALING BAWAH (koordinat) naik ke atas (logo/nama
-          // web), supaya urutan visualnya tetap: logo, nama web, petugas,
-          // tanggal & waktu, alamat, koordinat dari atas ke bawah.
-          let y = h - pad;
-          for(let i = rows.length - 1; i >= 0; i--){
-            const r = rows[i];
-            ctx.fillStyle = r.color;
-            ctx.font = r.font;
-            ctx.fillText(r.text, pad, y);
-            y -= r.lineH;
-          }
 
           resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), capturedAt });
         }catch(err){
@@ -664,6 +888,101 @@ function processPhotoWithWatermark(file, geoData){
     };
     reader.readAsDataURL(file);
   });
+}
+
+/* =========================================================
+   KAMERA LANGSUNG (getUserMedia) -- watermark tampil di layar
+   SEBELUM tombol jepret ditekan, bukan dibakar belakangan.
+   Kalau getUserMedia gagal/ditolak, fallback ke input file kamera
+   bawaan OS (watermark tetap dibakar setelah foto dipilih).
+========================================================= */
+let liveStream = null;
+let liveClockTimer = null;
+
+async function openLiveCamera(){
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+  }catch(err){
+    console.warn("[foto-eviden] Kamera langsung tidak tersedia, fallback ke kamera bawaan:", err);
+    document.getElementById("camFileInput").click();
+    return;
+  }
+
+  liveStream = stream;
+  const video = document.getElementById("liveCamVideo");
+  video.srcObject = stream;
+  document.getElementById("liveCam").classList.add("active");
+
+  updateLiveOverlay();
+  liveClockTimer = setInterval(updateLiveOverlay, 1000);
+}
+
+function updateLiveOverlay(){
+  const now = new Date();
+  const { tgl, jam, hari } = formatWatermarkText(now);
+  const wm = getWmSettings();
+
+  document.getElementById("lcTime").textContent = jam.slice(0, 5);
+  document.getElementById("lcDay").textContent = hari;
+  document.getElementById("lcDate").textContent = tgl;
+  document.getElementById("lcTitle").textContent = (wm.title || "SRINAI ASSIST").toUpperCase();
+  document.getElementById("lcActivity").textContent = wm.activity || "-";
+  document.getElementById("lcAddr").textContent = camGeoData?.address || "Mencari lokasi...";
+}
+
+function closeLiveCamera(){
+  if(liveClockTimer){ clearInterval(liveClockTimer); liveClockTimer = null; }
+  if(liveStream){ liveStream.getTracks().forEach(t => t.stop()); liveStream = null; }
+  document.getElementById("liveCam").classList.remove("active");
+}
+
+function captureLiveFrame(){
+  const video = document.getElementById("liveCamVideo");
+  const capturedAt = new Date();
+
+  const MAX_DIM = 1600;
+  let w = video.videoWidth, h = video.videoHeight;
+  if(!w || !h) return;
+  if(Math.max(w, h) > MAX_DIM){
+    const scale = MAX_DIM / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, w, h);
+
+  const { tgl, jam, hari } = formatWatermarkText(capturedAt);
+  const address = camGeoData?.address || null;
+  const coordText = camGeoData
+    ? `${camGeoData.lat.toFixed(6)}, ${camGeoData.lon.toFixed(6)}` + (camGeoData.accuracy ? ` (±${Math.round(camGeoData.accuracy)}m)` : "")
+    : null;
+  const wm = getWmSettings();
+
+  drawWatermarkOnCanvas(ctx, w, h, {
+    tgl, jam, hari, address, coordText,
+    title: wm.title || "SRINAI ASSIST",
+    activity: wm.activity || "-"
+  });
+
+  camWatermarkedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  camCapturedAt = capturedAt;
+
+  closeLiveCamera();
+
+  const shootBtn = document.getElementById("camShootBtn");
+  shootBtn.classList.add("has-photo");
+  shootBtn.innerHTML = `<img src="${camWatermarkedDataUrl}" class="cam-preview" alt="Preview foto">
+    <div class="cam-retake">Ganti Foto</div>`;
+  shootBtn.onclick = () => openLiveCamera();
+
+  document.getElementById("camSubmitBtn").disabled = false;
 }
 
 // Pecah teks alamat jadi maksimal `maxLines` baris supaya muat di lebar foto.
