@@ -1263,7 +1263,20 @@ async function assertIsAdmin(username) {
   return rows[0]?.role === 'admin';
 }
 
+// Jaga-jaga kalau migration-artikel-poster.sql belum sempat dijalankan
+// manual di Neon: pastikan kolom is_poster ada sebelum query lain jalan,
+// supaya fitur artikel TIDAK ikut rusak gara-gara kolom belum ada.
+// IF NOT EXISTS = aman dipanggil berkali-kali, dan di-cache per cold start
+// (articlesSchemaReady) supaya tidak nge-query tiap request.
+let articlesSchemaReady = false;
+async function ensureArticlesSchema() {
+  if (articlesSchemaReady) return;
+  await sql`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_poster BOOLEAN NOT NULL DEFAULT false`;
+  articlesSchemaReady = true;
+}
+
 async function handleArticleList(res) {
+  await ensureArticlesSchema();
   const articles = await sql`
     SELECT id, title, content, created_by AS "createdBy",
            created_at AS "createdAt", updated_at AS "updatedAt",
@@ -1371,6 +1384,7 @@ async function handleArticlePreview(req, res) {
 // supaya link share tidak perlu narik SELURUH daftar artikel. Publik &
 // tanpa login (sama seperti articleList), tapi cuma artikel published.
 async function handleArticleGet(id) {
+  await ensureArticlesSchema();
   const rows = await sql`
     SELECT id, title, content, created_by AS "createdBy",
            created_at AS "createdAt", updated_at AS "updatedAt",
@@ -1411,6 +1425,7 @@ async function handleArticleUploadSession(req, res) {
 }
 
 async function handleArticleCreate(req, res) {
+  await ensureArticlesSchema();
   const { title, content, actor, media, isPoster } = req.body || {};
   if (!(await assertIsAdmin(actor))) {
     return res.status(403).json({ success: false, message: 'Hanya admin yang bisa membuat artikel.' });
@@ -1453,11 +1468,15 @@ async function handleArticleCreate(req, res) {
 }
 
 async function handleArticleUpdate(req, res) {
+  await ensureArticlesSchema();
   const { id, title, content, actor, media, isPoster } = req.body || {};
   if (!(await assertIsAdmin(actor))) {
     return res.status(403).json({ success: false, message: 'Hanya admin yang bisa mengubah artikel.' });
   }
   if (!id) return res.status(400).json({ success: false, message: 'id wajib diisi.' });
+  if (!title || !title.trim()) {
+    return res.status(400).json({ success: false, message: 'title wajib diisi.' });
+  }
   const posterMode = !!isPoster;
 
   await sql`
