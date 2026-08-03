@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<script src="js/offline-map.js" defer></script>
 <style>
 :root{
   --bg-deep:   #080F1E;
@@ -371,9 +372,16 @@ function initLeafletMap(lat, lon){
   if(leafletMap){ leafletMap.remove(); leafletMap = null; }
 
   leafletMap = L.map(el, { zoomControl:false, attributionControl:false }).setView([lat, lon], 16);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19
-  }).addTo(leafletMap);
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const tileOpts = { subdomains: ["a","b","c"], maxZoom: 19 };
+  // Pakai OfflineTileLayer (js/offline-map.js) supaya tile yang sudah pernah
+  // dibuka tersimpan di IndexedDB dan tidak perlu diunduh ulang tiap buka
+  // peta mini ini -- sama seperti peta.html. Kalau scriptnya belum sempat
+  // termuat (mis. koneksi lambat), fallback ke L.tileLayer biasa.
+  const layer = (typeof createOfflineTileLayer === "function")
+    ? createOfflineTileLayer(tileUrl, tileOpts)
+    : L.tileLayer(tileUrl, tileOpts);
+  layer.addTo(leafletMap);
   leafletMarker = L.marker([lat, lon]).addTo(leafletMap);
 }
 
