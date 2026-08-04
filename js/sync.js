@@ -404,7 +404,18 @@ async function _refreshMasterSelective(name, metaFn, listFn, cacheKey, label) {
     const meta = await metaFn();
     const fp = _masterFp(meta);
     const oldFpAll = _cacheGetData(MASTER_FP_KEY) || {};
-    const oldMeta = oldFpAll[name]; // { fp, maxUpdatedAt } dari sync sebelumnya
+    // { fp, maxUpdatedAt } dari sync sebelumnya. KOMPATIBILITAS: sebelum
+    // rilis sinkron-bertahap ini, nilainya cuma string "count:maxUpdatedAt"
+    // (bukan objek) -- kalau ketemu bentuk lama itu, parse dulu supaya
+    // anchor waktunya tetap kepakai dan sync PERTAMA setelah update ini
+    // TIDAK perlu tarik ulang tabel penuh dari nol.
+    let oldMeta = oldFpAll[name];
+    if (typeof oldMeta === "string") {
+      const idx = oldMeta.indexOf(":");
+      oldMeta = idx >= 0
+        ? { fp: oldMeta, maxUpdatedAt: oldMeta.slice(idx + 1) || null }
+        : null;
+    }
     const cachedData = _cacheGetData(cacheKey);
 
     if (oldMeta && oldMeta.fp === fp && cachedData !== null) {

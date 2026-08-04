@@ -21,7 +21,7 @@
 //   berikutnya -- ini aksi rilis yang disengaja, bukan silent background
 //   refresh per-request.
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const PAGES_CACHE = "srinai-pages-" + CACHE_VERSION;
 const STATIC_CACHE = "srinai-static-" + CACHE_VERSION;
 const CURRENT_CACHES = [PAGES_CACHE, STATIC_CACHE];
