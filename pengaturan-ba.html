@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <title>Pengaturan BA - SRINAI ASSIST</title>
 <script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/back-nav.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -451,8 +452,7 @@ function compressImage(file, maxDimension, quality){
 /* =========================================================
    BACKGROUND BA
 ========================================================= */
-async function loadBaBgPreview(){
-  const saved = await getAppSetting("baBackground");
+function renderBaBgPreview(saved){
   const imgEl = document.getElementById("baBgPreviewImg");
   const emptyEl = document.getElementById("baBgEmpty");
   const previewBox = document.getElementById("baBgPreviewBox");
@@ -470,6 +470,10 @@ async function loadBaBgPreview(){
     previewBox.classList.remove("has-img");
     if(kalWrap) kalWrap.style.display = "none";
   }
+}
+
+async function loadBaBgPreview(){
+  renderBaBgPreview(await cachedGetAppSetting("baBackground"));
   await updateKalibrasiStatus();
 }
 
@@ -478,7 +482,10 @@ async function resetBaBg(){
   if(!confirm("Hapus background BA? BA berikutnya akan menggunakan layout teks default. Kalibrasi posisi field yang sudah diatur juga akan terhapus.")) return;
   await deleteAppSetting("baBackground");
   await deleteAppSetting("baFieldLayout");
-  await loadBaBgPreview();
+  // Render langsung dari hasil aksi ini, TANPA menyentuh cache lokal --
+  // cache tetap apa adanya sampai tombol Sinkron ditekan manual.
+  renderBaBgPreview(null);
+  renderKalibrasiStatus(0);
   alert("Background BA dihapus.");
 }
 
@@ -494,7 +501,10 @@ if(baBgInputEl){
       const compressed = await compressImage(file, BA_BG_MAX, BA_BG_Q);
       await setAppSetting("baBackground", compressed);
       await deleteAppSetting("baFieldLayout");
-      await loadBaBgPreview();
+      // Tampilkan hasil upload ini langsung dari data yang baru diproses --
+      // TANPA menulis ke cache lokal (cache baru berubah lewat Sinkron).
+      renderBaBgPreview(compressed);
+      renderKalibrasiStatus(0);
       statusEl.textContent = "";
       alert("Background BA berhasil disimpan! Lakukan Kalibrasi Posisi Field supaya tata letak isian pas dengan formulir ini.");
     } catch(err){
@@ -509,8 +519,7 @@ if(baBgInputEl){
 ========================================================= */
 const BA_LOGO_MAX = 500, BA_LOGO_Q = 0.85;
 
-async function loadBaLogoPreview(){
-  const saved = await getAppSetting("baLogo");
+function renderBaLogoPreview(saved){
   const imgEl = document.getElementById("baLogoPreviewImg");
   const emptyEl = document.getElementById("baLogoEmpty");
   const previewBox = document.getElementById("baLogoPreviewBox");
@@ -527,11 +536,15 @@ async function loadBaLogoPreview(){
   }
 }
 
+async function loadBaLogoPreview(){
+  renderBaLogoPreview(await cachedGetAppSetting("baLogo"));
+}
+
 async function resetBaLogo(){
   if(!canManageBA) return;
   if(!confirm("Hapus logo cap surat?")) return;
   await deleteAppSetting("baLogo");
-  await loadBaLogoPreview();
+  renderBaLogoPreview(null);
   alert("Logo dihapus.");
 }
 
@@ -546,7 +559,7 @@ if(baLogoInputEl){
     try{
       const compressed = await compressImage(file, BA_LOGO_MAX, BA_LOGO_Q);
       await setAppSetting("baLogo", compressed);
-      await loadBaLogoPreview();
+      renderBaLogoPreview(compressed);
       statusEl.textContent = "";
       alert("Logo berhasil disimpan.");
     } catch(err){
@@ -562,8 +575,7 @@ if(baLogoInputEl){
 ========================================================= */
 const BA_TTD_JARGI_MAX = 600, BA_TTD_JARGI_Q = 0.85;
 
-async function loadTtdJargiPreview(){
-  const saved = await getAppSetting("ttdJargiLogo");
+function renderTtdJargiPreview(saved){
   const imgEl = document.getElementById("ttdJargiPreviewImg");
   const emptyEl = document.getElementById("ttdJargiEmpty");
   const previewBox = document.getElementById("ttdJargiPreviewBox");
@@ -580,11 +592,15 @@ async function loadTtdJargiPreview(){
   }
 }
 
+async function loadTtdJargiPreview(){
+  renderTtdJargiPreview(await cachedGetAppSetting("ttdJargiLogo"));
+}
+
 async function resetTtdJargi(){
   if(!canManageBA) return;
   if(!confirm("Hapus tanda tangan TL JARGI/JARGITET? Kolom \"Mengetahui\" pada BA berikutnya akan kosong.")) return;
   await deleteAppSetting("ttdJargiLogo");
-  await loadTtdJargiPreview();
+  renderTtdJargiPreview(null);
   alert("Tanda tangan dihapus.");
 }
 
@@ -599,7 +615,7 @@ if(ttdJargiInputEl){
     try{
       const compressed = await compressImage(file, BA_TTD_JARGI_MAX, BA_TTD_JARGI_Q);
       await setAppSetting("ttdJargiLogo", compressed);
-      await loadTtdJargiPreview();
+      renderTtdJargiPreview(compressed);
       statusEl.textContent = "";
       alert("Tanda tangan TL JARGI/JARGITET berhasil disimpan.");
     } catch(err){
@@ -612,8 +628,7 @@ if(ttdJargiInputEl){
 /* =========================================================
    CONTOH BA
 ========================================================= */
-async function loadBaContohPreview(){
-  const saved = await getAppSetting("baContohLayout");
+function renderBaContohPreview(saved){
   const imgEl = document.getElementById("baContohPreviewImg");
   const emptyEl = document.getElementById("baContohEmpty");
   const previewBox = document.getElementById("baContohPreviewBox");
@@ -633,11 +648,15 @@ async function loadBaContohPreview(){
   }
 }
 
+async function loadBaContohPreview(){
+  renderBaContohPreview(await cachedGetAppSetting("baContohLayout"));
+}
+
 async function resetBaContoh(){
   if(!canManageBA) return;
   if(!confirm("Hapus contoh BA referensi ini?")) return;
   await deleteAppSetting("baContohLayout");
-  await loadBaContohPreview();
+  renderBaContohPreview(null);
   alert("Contoh BA dihapus.");
 }
 
@@ -652,7 +671,7 @@ if(baContohInputEl){
     try{
       const compressed = await compressImage(file, BA_CONTOH_MAX, BA_CONTOH_Q);
       await setAppSetting("baContohLayout", compressed);
-      await loadBaContohPreview();
+      renderBaContohPreview(compressed);
       statusEl.textContent = "";
       alert("Contoh BA berhasil disimpan sebagai referensi tata letak.");
     } catch(err){
@@ -671,8 +690,8 @@ const ANALISIS_TIMEOUT_MS = 45000;
 async function analisisTataLetak(){
   if(!canManageBA) return;
 
-  const contoh = await getAppSetting("baContohLayout");
-  const blank = await getAppSetting("baBackground");
+  const contoh = await cachedGetAppSetting("baContohLayout");
+  const blank = await cachedGetAppSetting("baBackground");
   if(!contoh){
     alert("Upload Contoh BA terlebih dahulu.");
     return;
@@ -706,7 +725,7 @@ async function analisisTataLetak(){
 
     const fieldCount = Object.keys(data.layout).length;
     await setAppSetting("baFieldLayout", JSON.stringify(data.layout));
-    await updateKalibrasiStatus();
+    renderKalibrasiStatus(fieldCount);
     statusEl.textContent = "✅ Analisis selesai — " + fieldCount + " field berhasil dikenali.";
     alert("Analisis selesai! SrinAI mengenali " + fieldCount + " field. Buka 🎯 Kalibrasi Posisi Field untuk meninjau hasilnya.");
   } catch(err){
@@ -750,19 +769,22 @@ let kalZoomLevel = 1;
 
 async function getKalLayout(){
   try{
-    const raw = await getAppSetting("baFieldLayout");
+    const raw = await cachedGetAppSetting("baFieldLayout");
     return raw ? JSON.parse(raw) : {};
   }catch(e){ return {}; }
 }
 
-async function updateKalibrasiStatus(){
+function renderKalibrasiStatus(count){
   const el = document.getElementById("kalibrasiStatus");
   if(!el) return;
-  const layout = await getKalLayout();
-  const count = Object.keys(layout).length;
   el.textContent = count===0
     ? "⚠ Belum dikalibrasi — BA mode background memakai posisi default."
     : "✅ " + count + " field sudah dikalibrasi.";
+}
+
+async function updateKalibrasiStatus(){
+  const layout = await getKalLayout();
+  renderKalibrasiStatus(Object.keys(layout).length);
 }
 
 function populateKalFieldSelect(){
@@ -785,7 +807,7 @@ function populateKalFieldSelect(){
 
 async function openKalibrasi(){
   if(!canManageBA) return;
-  const bg = await getAppSetting("baBackground");
+  const bg = await cachedGetAppSetting("baBackground");
   if(!bg){ alert("Upload background BA terlebih dahulu."); return; }
   kalLayout = await getKalLayout();
   kalSelectedKey = null;
@@ -940,7 +962,7 @@ function renderKalList(){
 async function saveKalibrasi(){
   if(!canManageBA) return;
   await setAppSetting("baFieldLayout", JSON.stringify(kalLayout));
-  await updateKalibrasiStatus();
+  renderKalibrasiStatus(Object.keys(kalLayout).length);
   closeKalibrasi();
   alert("Kalibrasi posisi field berhasil disimpan.");
 }
