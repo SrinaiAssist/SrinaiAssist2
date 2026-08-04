@@ -13,6 +13,12 @@
 <script src="js/back-nav.js"></script>
 <script src="js/sync.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<!-- exceljs.min.js (bundel non-"bare") butuh babel-polyfill dimuat duluan --
+     tanpa ini, ExcelJS gagal dijalankan diam-diam (tanpa pesan error apapun
+     ke user) di WebView/browser yang belum punya semua API modern yang
+     diasumsikan bundel ini sudah ter-polyfill, sehingga tombol "Download
+     Excel" terlihat seperti tidak berfungsi sama sekali. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/6.26.0/polyfill.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -826,6 +832,11 @@ function downloadPDF(){
    (library "xlsx" gratis tidak bisa menulis styling).
 ========================================================= */
 async function downloadExcel(){
+  if(!window.ExcelJS){
+    alert("Komponen Excel belum siap dimuat (biasanya karena koneksi lambat/terputus saat halaman dibuka). Muat ulang halaman ini lalu coba lagi.");
+    return;
+  }
+  try{
   const ExcelJS = window.ExcelJS;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Jadwal");
@@ -924,6 +935,10 @@ async function downloadExcel(){
   a.remove();
   URL.revokeObjectURL(url);
   saveInfo.textContent = "Excel diunduh: " + namaFile;
+  } catch(err){
+    console.error("[jadwal] Gagal membuat file Excel:", err);
+    alert("Gagal membuat file Excel: " + (err && err.message ? err.message : "kesalahan tidak diketahui") + ". Coba muat ulang halaman lalu ulangi.");
+  }
 }
 
 (async function initHalaman(){
