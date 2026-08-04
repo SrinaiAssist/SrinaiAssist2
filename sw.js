@@ -5,37 +5,122 @@
 //   di-cache oleh service worker ini. Itu murni tanggung jawab js/sync.js
 //   lewat localStorage + tombol "Sinkron" (syncAll()). SW tidak ikut campur
 //   supaya tidak dobel/bentrok dengan mekanisme sync yang sudah ada.
-// - Halaman HTML (navigasi) dan aset statis (JS/CSS/ikon): CACHE-FIRST,
-//   TANPA revalidate/update diam-diam di background. Begitu suatu halaman
-//   pernah berhasil dimuat, versi itu yang dipakai terus -- persis, walau
-//   sudah lama -- sampai cache-nya sengaja dibuang (lihat CACHE_VERSION di
-//   bawah). Ini supaya perilakunya predictable: tidak ada permintaan network
-//   tersembunyi tiap kali user buka halaman, dan tidak ada versi halaman
-//   yang tiba-tiba berubah sendiri di tengah pemakaian tanpa user tahu.
-// - Satu-satunya pengecualian: kalau halaman/aset itu BELUM PERNAH ada di
-//   cache sama sekali, tetap fetch ke network (supaya tidak kosong total di
-//   kunjungan pertama / setelah install APK baru).
-// - Cara "mensinkronkan" versi app shell (HTML/JS/CSS) yang baru: naikkan
-//   CACHE_VERSION di bawah tiap kali rilis. SW akan buang cache lama saat
-//   attivate dan fetch ulang versi baru secara alami saat halaman dibuka
-//   berikutnya -- ini aksi rilis yang disengaja, bukan silent background
-//   refresh per-request.
+// - Halaman HTML (navigasi) dan aset statis (JS/CSS/ikon/gambar): SEMUA
+//   di-PRECACHE saat SW pertama kali install (lihat PRECACHE_URLS di bawah),
+//   bukan cuma menunggu user buka satu-satu secara lazy. Jadi begitu APK
+//   sempat online sebentar (biasanya langsung saat install/buka pertama),
+//   seluruh halaman sudah tersedia offline -- termasuk halaman yang belum
+//   pernah dikunjungi user secara manual.
+// - Setelah precache, strateginya tetap CACHE-FIRST, TANPA revalidate diam-
+//   diam di background. Begitu suatu halaman/aset ada di cache, versi itu
+//   yang dipakai terus -- persis, walau sudah lama -- sampai cache-nya
+//   sengaja dibuang (lihat CACHE_VERSION). Ini supaya perilakunya
+//   predictable: tidak ada permintaan network tersembunyi tiap kali user
+//   buka halaman, dan tidak ada versi halaman yang tiba-tiba berubah
+//   sendiri di tengah pemakaian tanpa user tahu.
+// - Kalau ada aset yang GAGAL di-precache (mis. gagal fetch sekali saat
+//   install), itu tidak menggagalkan seluruh install SW -- fallback lama
+//   (fetch on-demand + simpan ke cache) tetap jalan untuk aset itu di
+//   kunjungan online berikutnya.
+// - Cara "mensinkronkan" versi app shell (HTML/JS/CSS/aset) yang baru:
+//   naikkan CACHE_VERSION di bawah tiap kali rilis. SW akan precache ulang
+//   semuanya dan buang cache lama saat activate -- ini aksi rilis yang
+//   disengaja, bukan silent background refresh per-request.
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const PAGES_CACHE = "srinai-pages-" + CACHE_VERSION;
 const STATIC_CACHE = "srinai-static-" + CACHE_VERSION;
 const CURRENT_CACHES = [PAGES_CACHE, STATIC_CACHE];
 
-const PRECACHE_ICONS = [
+// Semua halaman HTML yang harus tersedia offline sejak awal.
+const PRECACHE_PAGES = [
+  "/admin-storage-db.html",
+  "/admin-storage-drive.html",
+  "/admin-storage-vercel.html",
+  "/ai.html",
+  "/artikel-publik.html",
+  "/artikel.html",
+  "/catatan-span.html",
+  "/catatan-tower.html",
+  "/catatan.html",
+  "/chat.html",
+  "/command-bot.html",
+  "/dashboard.html",
+  "/foto-eviden.html",
+  "/generate-barcode.html",
+  "/index.html",
+  "/informasi-span.html",
+  "/jadwal.html",
+  "/kelola-akun.html",
+  "/log-aktivitas.html",
+  "/log-login.html",
+  "/master-jalur.html",
+  "/master-span.html",
+  "/master-tower.html",
+  "/pengaturan-ba.html",
+  "/pengaturan.html",
+  "/peta.html",
+  "/profile.html",
+  "/scan-barcode.html",
+  "/sos.html",
+  "/span.html",
+  "/telegram.html",
+  "/tower.html",
+  "/workspace-command.html",
+];
+
+// Semua JS/CSS/gambar/ikon (aset statis, bukan data) yang harus tersedia
+// offline sejak awal.
+const PRECACHE_STATIC = [
+  "/js/auth.js",
+  "/js/back-nav.js",
+  "/js/choco-font.js",
+  "/js/offline-map.js",
+  "/js/sync.js",
+  "/js/theme-loader.js",
+  "/css/theme-fieldlog.css",
+  "/assets/icon.png",
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png",
   "/assets/icons/icon-maskable-192.png",
   "/assets/icons/icon-maskable-512.png",
+  "/assets/icons/favicon-32.png",
+  "/assets/img/aurora-gold.png",
+  "/assets/img/brand-logo-animasi.webp",
+  "/assets/img/bg-aurora-frame.jpg",
+  "/assets/img/srinai-robot.png",
+  "/assets/audio/Notifikasi-female-telegram.mp3",
+  "/assets/audio/chat-reply.wav",
+  "/manifest.json",
 ];
+
+// cache.addAll() gagal TOTAL kalau satu saja URL gagal di-fetch. Supaya satu
+// aset yang hilang/berubah nama tidak menggagalkan precache aset lainnya,
+// tambahkan satu-satu dan biarkan yang gagal cuma di-skip (dengan warning).
+function precacheAll(cacheName, urls) {
+  return caches.open(cacheName).then((cache) =>
+    Promise.all(
+      urls.map((url) =>
+        fetch(url, { cache: "reload" })
+          .then((response) => {
+            if (response && response.ok) {
+              return cache.put(url, response);
+            }
+          })
+          .catch((err) => {
+            console.warn("Gagal precache:", url, err);
+          })
+      )
+    )
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_ICONS))
+    Promise.all([
+      precacheAll(PAGES_CACHE, PRECACHE_PAGES),
+      precacheAll(STATIC_CACHE, PRECACHE_STATIC),
+    ])
   );
   self.skipWaiting();
 });
