@@ -426,10 +426,8 @@ async function getTowerMeta() { return await _getMasterMeta("/api/tower"); }
 async function getSpanMeta()  { return await _getMasterMeta("/api/span");  }
 async function getBAMeta()    { return await _getMasterMeta("/api/ba");    }
 
-async function getJalurMasterList() {
-    const result = await apiRequest("/api/jalur");
-    if (!result.success) throw new Error(result.message || "Gagal memuat data jalur.");
-    return result.jalur.map(j => ({
+function _mapJalurRow(j) {
+    return {
         id: j.id,
         code: j.code,
         label: j.label,
@@ -440,14 +438,10 @@ async function getJalurMasterList() {
         parentCode: j.parent_code || null,
         towerCount: Number(j.tower_count) || 0,
         spanCount: Number(j.span_count) || 0
-    }));
+    };
 }
-
-async function getTowerMasterList(jalurId) {
-    const url = jalurId ? "/api/tower?jalurId=" + encodeURIComponent(jalurId) : "/api/tower";
-    const result = await apiRequest(url);
-    if (!result.success) throw new Error(result.message || "Gagal memuat data tower.");
-    return result.tower.map(t => ({
+function _mapTowerRow(t) {
+    return {
         id: t.id,
         jalurId: t.jalur_id,
         nomor: t.nomor,
@@ -460,21 +454,55 @@ async function getTowerMasterList(jalurId) {
         akurasiMeter: t.akurasi_meter !== null && t.akurasi_meter !== undefined ? Number(t.akurasi_meter) : null,
         koordinatBy: t.koordinat_by || null,
         koordinatAt: t.koordinat_at || null
-    }));
+    };
 }
-
-async function getSpanMasterList(jalurId) {
-    const url = jalurId ? "/api/span?jalurId=" + encodeURIComponent(jalurId) : "/api/span";
-    const result = await apiRequest(url);
-    if (!result.success) throw new Error(result.message || "Gagal memuat data span.");
-    return result.span.map(s => ({
+function _mapSpanRow(s) {
+    return {
         id: s.id,
         jalurId: s.jalur_id,
         nomor: s.nomor,
         spacer: s.spacer || "",
         joint: s.joint || "",
         status: s.status || ""
-    }));
+    };
+}
+
+/**
+ * getJalurMasterList/getTowerMasterList/getSpanMasterList:
+ * - TANPA `since` -> perilaku lama persis, return array lengkap (dipakai
+ *   semua halaman selain sync.js: master-jalur.html, informasi-span.html, dst).
+ * - DENGAN `since` (ISO timestamp dari sync terakhir) -> mode delta, return
+ *   { rows, activeIds } supaya sync.js bisa upsert+deteksi-hapus tanpa
+ *   tarik ulang seluruh tabel. Dipakai HANYA oleh js/sync.js.
+ */
+async function getJalurMasterList(since) {
+    const url = "/api/jalur" + (since ? "?since=" + encodeURIComponent(since) : "");
+    const result = await apiRequest(url);
+    if (!result.success) throw new Error(result.message || "Gagal memuat data jalur.");
+    if (since) return { rows: result.jalur.map(_mapJalurRow), activeIds: result.activeIds || [] };
+    return result.jalur.map(_mapJalurRow);
+}
+
+async function getTowerMasterList(jalurId, since) {
+    const params = [];
+    if (jalurId) params.push("jalurId=" + encodeURIComponent(jalurId));
+    if (since) params.push("since=" + encodeURIComponent(since));
+    const url = "/api/tower" + (params.length ? "?" + params.join("&") : "");
+    const result = await apiRequest(url);
+    if (!result.success) throw new Error(result.message || "Gagal memuat data tower.");
+    if (since) return { rows: result.tower.map(_mapTowerRow), activeIds: result.activeIds || [] };
+    return result.tower.map(_mapTowerRow);
+}
+
+async function getSpanMasterList(jalurId, since) {
+    const params = [];
+    if (jalurId) params.push("jalurId=" + encodeURIComponent(jalurId));
+    if (since) params.push("since=" + encodeURIComponent(since));
+    const url = "/api/span" + (params.length ? "?" + params.join("&") : "");
+    const result = await apiRequest(url);
+    if (!result.success) throw new Error(result.message || "Gagal memuat data span.");
+    if (since) return { rows: result.span.map(_mapSpanRow), activeIds: result.activeIds || [] };
+    return result.span.map(_mapSpanRow);
 }
 
 async function addAccount(username, password, role, profileFields) {
@@ -764,9 +792,15 @@ async function getBABySpan(spanId) {
     return result.ba || [];
 }
 
-async function getAllBA() {
-    const result = await apiRequest("/api/ba");
+/**
+ * TANPA `since` -> perilaku lama, array lengkap.
+ * DENGAN `since` -> mode delta { rows, activeIds }, dipakai HANYA js/sync.js.
+ */
+async function getAllBA(since) {
+    const url = "/api/ba" + (since ? "?since=" + encodeURIComponent(since) : "");
+    const result = await apiRequest(url);
     if (!result.success) throw new Error(result.message || "Gagal memuat data BA.");
+    if (since) return { rows: result.ba || [], activeIds: result.activeIds || [] };
     return result.ba || [];
 }
 

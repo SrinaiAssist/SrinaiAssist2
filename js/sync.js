@@ -368,18 +368,34 @@ async function cachedGetJalurMasterList() {
 }
 
 /**
- * PENTING (fix kuota Fast Origin Transfer, Ags 2026): sebelumnya jalur,
- * tower, span, dan ba SELALU ditarik penuh tiap syncAll() jalan, walau
- * tidak ada perubahan sama sekali sejak sync terakhir. Sekarang: cek dulu
- * mode ringan (?meta=1, cuma {count, maxUpdatedAt}) -- kalau fingerprint-nya
- * SAMA dengan sync sebelumnya, fetch data lengkap di-skip total dan cache
- * lama dipakai apa adanya. Kalau beda (ada tambah/edit/hapus), baru fetch
- * data lengkapnya (masih satu tabel penuh, bukan per-item -- tapi ini sudah
- * jauh lebih hemat karena kasus paling umum adalah TIDAK ADA perubahan
- * antar sync).
+ * PENTING (fix kuota Fast Origin Transfer, Ags 2026, disempurnakan lagi
+ * belakangan): jalur, tower, span, dan ba dulu SELALU ditarik PENUH tiap
+ * syncAll() jalan begitu ada SATU SAJA perubahan sejak sync terakhir --
+ * fingerprint {count, maxUpdatedAt} cuma dipakai untuk skip-total kalau
+ * TIDAK ADA perubahan sama sekali. Sekarang beneran inkremental:
+ *
+ *  1. Cek dulu mode ringan (?meta=1) -- kalau fingerprint SAMA dengan sync
+ *     sebelumnya, skip total, cache lama dipakai apa adanya (kasus paling
+ *     umum: tidak ada perubahan antar sync).
+ *  2. Kalau BEDA dan sudah pernah sync sebelumnya (punya anchor waktu) ->
+ *     fetch HANYA baris yang updated_at-nya lebih baru dari sync terakhir
+ *     lewat ?since=, plus activeIds (seluruh id yang masih ada di server).
+ *     Hasil delta di-upsert ke cache lama per id, lalu baris yang id-nya
+ *     TIDAK ADA lagi di activeIds dibuang dari cache (mendeteksi hapus).
+ *  3. Kalau belum pernah sync sama sekali (cache kosong) -> fetch penuh
+ *     seperti biasa, sekali saja, sebagai titik awal.
  */
 function _masterFp(meta) {
   return (meta.count || 0) + ":" + (meta.maxUpdatedAt || "");
+}
+
+/** Upsert delta rows ke array cache lama (by id), lalu buang id yang sudah
+ *  tidak ada di activeIds (dihapus di server sejak sync terakhir). */
+function _mergeDelta(oldArray, delta, activeIds) {
+  const map = new Map((oldArray || []).map(item => [String(item.id), item]));
+  (delta || []).forEach(item => map.set(String(item.id), item));
+  const activeSet = new Set((activeIds || []).map(String));
+  return Array.from(map.values()).filter(item => activeSet.has(String(item.id)));
 }
 
 async function _refreshMasterSelective(name, metaFn, listFn, cacheKey, label) {
@@ -388,46 +404,61 @@ async function _refreshMasterSelective(name, metaFn, listFn, cacheKey, label) {
     const meta = await metaFn();
     const fp = _masterFp(meta);
     const oldFpAll = _cacheGetData(MASTER_FP_KEY) || {};
+    const oldMeta = oldFpAll[name]; // { fp, maxUpdatedAt } dari sync sebelumnya
+    const cachedData = _cacheGetData(cacheKey);
 
-    if (oldFpAll[name] === fp && _cacheGetData(cacheKey) !== null) {
-      // Tidak ada perubahan -- skip fetch data lengkap, pakai cache lama.
-      const cached = _cacheGetData(cacheKey);
-      _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(cached))}`);
-      return cached;
+    if (oldMeta && oldMeta.fp === fp && cachedData !== null) {
+      // Tidak ada perubahan -- skip fetch total, pakai cache lama.
+      _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(cachedData))}`);
+      return cachedData;
     }
 
-    const data = await listFn();
+    let data;
+    let mode;
+    if (oldMeta && oldMeta.maxUpdatedAt && cachedData !== null) {
+      // Ada perubahan, TAPI sudah punya anchor waktu dari sync sebelumnya
+      // -> tarik cuma yang berubah (delta), bukan tabel penuh.
+      const result = await listFn(oldMeta.maxUpdatedAt);
+      data = _mergeDelta(cachedData, result.rows, result.activeIds);
+      mode = `delta (${(result.rows || []).length} baris berubah)`;
+    } else {
+      // Belum pernah sync / cache kosong -> tarik penuh sekali sebagai titik awal.
+      data = await listFn();
+      mode = "penuh (sinkron pertama)";
+    }
+
     if (data) {
       _cacheSet(cacheKey, data);
-      const newFpAll = { ..._cacheGetData(MASTER_FP_KEY), [name]: fp };
+      const newFpAll = { ..._cacheGetData(MASTER_FP_KEY), [name]: { fp, maxUpdatedAt: meta.maxUpdatedAt || null } };
       _cacheSet(MASTER_FP_KEY, newFpAll);
       const sz = _jsonSize(data);
       _syncBytesTotal += sz;
-      _syncLog(`Sukses, ${label} diperbarui... ${_fmtBytes(sz)}`);
+      _syncLog(`Sukses, ${label} diperbarui (${mode})... ${_fmtBytes(sz)}`);
     } else {
       _syncLog(`Gagal mengunduh ${label}`);
     }
     return data;
   } catch(e) {
-    _syncLog(`Gagal mengunduh ${label}`);
+    console.warn(`[sync] Gagal refresh inkremental ${label}, fallback:`, e);
+    _syncLog(`Gagal sinkron bertahap ${label}, memakai data sebelumnya`);
     return _cacheGetData(cacheKey) || [];
   }
 }
 
 async function _refreshJalur() {
-  return await _refreshMasterSelective("jalur", getJalurMeta, getJalurMasterList, CACHE_KEYS.jalur, "master jalur");
+  return await _refreshMasterSelective("jalur", getJalurMeta, (since) => getJalurMasterList(since), CACHE_KEYS.jalur, "master jalur");
 }
 
 async function _refreshTower() {
-  return await _refreshMasterSelective("tower", getTowerMeta, () => getTowerMasterList(), CACHE_KEYS.tower, "master tower");
+  return await _refreshMasterSelective("tower", getTowerMeta, (since) => getTowerMasterList(undefined, since), CACHE_KEYS.tower, "master tower");
 }
 
 async function _refreshSpan() {
-  return await _refreshMasterSelective("span", getSpanMeta, () => getSpanMasterList(), CACHE_KEYS.span, "master span");
+  return await _refreshMasterSelective("span", getSpanMeta, (since) => getSpanMasterList(undefined, since), CACHE_KEYS.span, "master span");
 }
 
 async function _refreshBA() {
-  return await _refreshMasterSelective("ba", getBAMeta, getAllBA, CACHE_KEYS.ba, "master Berita Acara");
+  return await _refreshMasterSelective("ba", getBAMeta, (since) => getAllBA(since), CACHE_KEYS.ba, "master Berita Acara");
 }
 
 async function cachedGetTowerMasterList(jalurId) {

@@ -94,7 +94,7 @@ async function resolveFileUrl(dataUrlOrUrl, fileNamePrefix, warnings) {
 
 module.exports = async (req, res) => {
   try {
-    const { spanId: qSpanId, id: qId, meta: qMeta } = req.query || {};
+    const { spanId: qSpanId, id: qId, meta: qMeta, since: qSince } = req.query || {};
 
     // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
     // sync terakhir, tanpa tarik semua dokumen BA (termasuk pdf/foto) tiap
@@ -102,6 +102,37 @@ module.exports = async (req, res) => {
     if (req.method === 'GET' && qMeta === '1') {
       const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM ba_dokumen`;
       return res.status(200).json({ success: true, meta: row });
+    }
+
+    // Mode bertahap (?since=<ISO timestamp>): hanya untuk daftar SEMUA BA
+    // (tanpa spanId, dipakai syncAll()). Kirim baris lite yang berubah SEJAK
+    // timestamp itu + activeIds supaya client bisa deteksi BA yang sudah
+    // dihapus di server.
+    if (req.method === 'GET' && qSince && !qSpanId) {
+      const sinceDate = new Date(qSince);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Parameter since tidak valid.' });
+      }
+      const [changed, activeIdRows] = await Promise.all([
+        sql`
+          SELECT
+            id, span_id AS span, judul, pemilik,
+            jumlah_tegakan AS "jumlahTegakan", nama_tegakan AS "namaTegakan",
+            (pdf IS NOT NULL) AS "hasPdf",
+            COALESCE(jsonb_array_length(foto::jsonb), 0) AS "jumlahFoto",
+            file_name AS "fileName", sumber, uploader,
+            to_char(created_at, 'DD-MM-YYYY') AS tanggal
+          FROM ba_dokumen
+          WHERE updated_at > ${sinceDate}
+          ORDER BY created_at DESC
+        `,
+        sql`SELECT id FROM ba_dokumen`,
+      ]);
+      return res.status(200).json({
+        success: true,
+        ba: changed.map(mapRowLite),
+        activeIds: activeIdRows.map((r) => Number(r.id)),
+      });
     }
 
     if (req.method === 'GET') {

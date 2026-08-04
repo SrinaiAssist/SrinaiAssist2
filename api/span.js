@@ -23,13 +23,37 @@ function nextId(prefix, existingIds) {
 
 module.exports = async (req, res) => {
   try {
-    const { jalurId: qJalurId, id: qId, action, meta: qMeta } = req.query || {};
+    const { jalurId: qJalurId, id: qId, action, meta: qMeta, since: qSince } = req.query || {};
 
     // Mode ringan: dipakai sync.js buat cek ada perubahan atau tidak sejak
     // sync terakhir, tanpa tarik seluruh daftar span tiap kali Sinkron.
     if (req.method === 'GET' && qMeta === '1') {
       const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM span`;
       return res.status(200).json({ success: true, meta: row });
+    }
+
+    // Mode bertahap (?since=<ISO timestamp>): kirim baris yang berubah SEJAK
+    // timestamp itu + activeIds (seluruh id yang masih ada) supaya client
+    // bisa deteksi baris yang sudah dihapus di server.
+    if (req.method === 'GET' && qSince) {
+      const sinceDate = new Date(qSince);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Parameter since tidak valid.' });
+      }
+      const [changed, activeIdRows] = qJalurId
+        ? await Promise.all([
+            sql`SELECT * FROM span WHERE jalur_id = ${qJalurId} AND updated_at > ${sinceDate} ORDER BY nomor`,
+            sql`SELECT id FROM span WHERE jalur_id = ${qJalurId}`,
+          ])
+        : await Promise.all([
+            sql`SELECT * FROM span WHERE updated_at > ${sinceDate} ORDER BY jalur_id, nomor`,
+            sql`SELECT id FROM span`,
+          ]);
+      return res.status(200).json({
+        success: true,
+        span: changed,
+        activeIds: activeIdRows.map((r) => r.id),
+      });
     }
 
     if (req.method === 'GET') {

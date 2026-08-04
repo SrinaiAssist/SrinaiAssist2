@@ -41,7 +41,7 @@ async function validateParent(parentId, selfId) {
 
 module.exports = async (req, res) => {
   try {
-    const { id: qId, meta: qMeta } = req.query || {};
+    const { id: qId, meta: qMeta, since: qSince } = req.query || {};
 
     if (req.method !== 'GET' && !isBotRequestValid(req)) {
       return res.status(401).json({ success: false, message: 'Bot key tidak valid.' });
@@ -52,6 +52,37 @@ module.exports = async (req, res) => {
     if (req.method === 'GET' && qMeta === '1') {
       const [row] = await sql`SELECT COUNT(*)::int AS count, MAX(updated_at) AS "maxUpdatedAt" FROM jalur`;
       return res.status(200).json({ success: true, meta: row });
+    }
+
+    // Mode bertahap (?since=<ISO timestamp>): dipakai sync.js untuk sinkron
+    // inkremental -- hanya kirim baris yang berubah SEJAK timestamp itu,
+    // plus daftar seluruh id yang masih aktif (activeIds) supaya client bisa
+    // mendeteksi baris yang sudah dihapus di server (baris terhapus tidak
+    // punya updated_at baru untuk dideteksi lewat delta saja).
+    if (req.method === 'GET' && qSince) {
+      const sinceDate = new Date(qSince);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Parameter since tidak valid.' });
+      }
+      const [changed, activeIdRows] = await Promise.all([
+        sql`
+          SELECT
+            j.id, j.code, j.label, j.aktif, j.penghantar, j.parent_jalur_id,
+            p.label AS parent_label, p.code AS parent_code,
+            (SELECT COUNT(*) FROM tower t WHERE t.jalur_id = j.id) AS tower_count,
+            (SELECT COUNT(*) FROM span  s WHERE s.jalur_id = j.id) AS span_count
+          FROM jalur j
+          LEFT JOIN jalur p ON p.id = j.parent_jalur_id
+          WHERE j.updated_at > ${sinceDate}
+          ORDER BY j.code
+        `,
+        sql`SELECT id FROM jalur`,
+      ]);
+      return res.status(200).json({
+        success: true,
+        jalur: changed,
+        activeIds: activeIdRows.map((r) => r.id),
+      });
     }
 
     if (req.method === 'GET') {
