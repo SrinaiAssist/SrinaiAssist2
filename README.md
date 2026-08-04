@@ -75,6 +75,28 @@ tanpa perlu Sinkron ulang. `clearAllCache()` cuma boleh terpanggil dari aksi
 manual eksplisit user (mis. tombol "reset cache" di pengaturan), tidak
 pernah otomatis lewat alur logout/switch akun.
 
+### 6. Service worker: cache-first murni, DILARANG stale-while-revalidate
+`sw.js` meng-cache app shell (halaman HTML + JS/CSS/aset statis, lihat
+`PRECACHE_PAGES`/`PRECACHE_STATIC`) dengan strategi cache-first tanpa
+revalidate diam-diam di background. Begitu suatu request ada di cache,
+versi itu yang dipakai apa adanya sampai `CACHE_VERSION` dinaikkan — TIDAK
+boleh diubah jadi stale-while-revalidate atau pola lain yang tetap fetch ke
+network "buat jaga-jaga ada versi baru" walau hasilnya nanti dibuang. Alasan
+sama persis dengan aturan #1: tiap request jaringan yang terjadi tanpa aksi
+eksplisit user (termasuk yang cuma dipakai buat cek "apakah sudah beda")
+tetap menghabiskan Fast Origin Transfer, walau responsnya tidak dipakai.
+
+Konsekuensi yang harus dipahami dan diterima: perubahan kode (HTML/JS/CSS)
+TIDAK otomatis sampai ke user yang sudah pernah buka app-nya, sampai
+`CACHE_VERSION` di `sw.js` dinaikkan saat rilis. Ini trade-off yang
+disengaja demi offline-first + hemat kuota, bukan bug.
+
+Efek sampingnya: karena semua 33 halaman + aset statis di-precache saat SW
+pertama kali install, aplikasi sudah bisa dipakai penuh secara offline
+(navigasi antar halaman, buka semua menu) begitu APK sempat online sekali.
+Yang tetap butuh koneksi hanya data lapangan lewat `/api/*` (sengaja tidak
+diintersep SW — itu urusan `js/sync.js` + tombol Sinkron, lihat aturan #1).
+
 ## Struktur singkat
 
 - `api/*.js` — 12 serverless functions (Vercel Hobby: limit 12, sudah pas;
