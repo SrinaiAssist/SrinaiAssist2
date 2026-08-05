@@ -494,9 +494,9 @@ async function initBaAuto(){
   try{
     [getResult, accounts, jalurList, spanList] = await Promise.all([
       apiRequest("/api/settings?action=baAutoGet&username=" + encodeURIComponent(currentUser)),
-      getAllAccountsFull(),
-      getJalurMasterList(),
-      getSpanMasterList(),
+      cachedGetAllAccountsFull(),
+      cachedGetJalurMasterList(),
+      cachedGetSpanMasterList(),
     ]);
   } catch(err){
     document.getElementById("baAutoSlots").innerHTML = `<div class="tegakan-check-empty">Gagal memuat data: ${err.message}</div>`;

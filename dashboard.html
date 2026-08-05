@@ -1367,7 +1367,7 @@ async function loadStats(){
     const allBA = await cachedGetAllBA();
     const [allTegakan, allSpanMaster] = await Promise.all([
       getAllTegakan(),
-      getSpanMasterList(),
+      cachedGetSpanMasterList(),
     ]);
     const validSpanIds = new Set((allSpanMaster || []).map(s => String(s.id)));
 
