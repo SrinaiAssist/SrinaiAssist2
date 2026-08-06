@@ -251,7 +251,7 @@ details[open] .slot-summary-chevron{transform:rotate(90deg);}
     <!-- BA Otomatis via Telegram (semua role kecuali Monitor) -->
     <div id="baAutoSection" class="card hidden">
       <div class="card-title teal">📲 BA Otomatis</div>
-      <div class="card-desc">Jadwalkan sampai 4 slot pengiriman BA mingguan. Tiap slot yang aktif akan otomatis dibuatkan BA-nya lalu dikirim sebagai JPEG ke Telegram kamu, di tanggal yang dipilih.</div>
+      <div class="card-desc">Jadwalkan sampai 10 slot pengiriman BA mingguan. Tiap slot yang aktif akan otomatis dibuatkan BA-nya lalu dikirim sebagai JPEG ke Telegram kamu, di tanggal yang dipilih.</div>
 
       <div class="baauto-toggle-row">
         <span class="baauto-toggle-label">Aktifkan BA Otomatis</span>
@@ -477,7 +477,7 @@ async function sendBroadcast(){
 
 /* ═══════════════════════════════════════════════════════════
    BA OTOMATIS VIA TELEGRAM
-   Tabel: ba_auto_settings (toggle), ba_auto_slot (4 slot/username).
+   Tabel: ba_auto_settings (toggle), ba_auto_slot (10 slot/username).
    Backend: api/settings.js action=baAutoGet/baAutoToggle/baAutoSlotSave
             (SrinaiAssist2) + action=telegramLinkToken/telegramLinkStatus
             (proxy ke Botlab, lihat api/commands.js Botlab).
@@ -485,7 +485,7 @@ async function sendBroadcast(){
    itu format ID asli tabel span (lihat nextId() di api/span.js), BUKAN
    angka. Jangan di-Number()-kan di mana pun di file ini.
    ═══════════════════════════════════════════════════════════ */
-let baAuto = null; // { isFullAccess, accounts, petugasOptions, jalurList, spanList, ownSpanIds, slots:[{...}x4] }
+let baAuto = null; // { isFullAccess, accounts, petugasOptions, jalurList, spanList, ownSpanIds, slots:[{...}x10] }
 
 async function initBaAuto(){
   const isFullAccess = isAdmin() || isKLW();

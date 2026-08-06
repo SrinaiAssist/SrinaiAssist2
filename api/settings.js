@@ -969,9 +969,11 @@ async function isBaAutoMasterEnabled() {
 
 // ─────────────────────────────────────────────────────────
 // SLOT BA OTOMATIS (halaman Pengaturan -- kartu "BA Otomatis via Telegram")
-// Tabel: ba_auto_settings (toggle on/off), ba_auto_slot (4 slot/username).
-// Lihat scripts/schema.sql / migration-ba-otomatis-srinaiassist2.sql.
-//
+// Tabel: ba_auto_settings (toggle on/off), ba_auto_slot (MAX_BA_AUTO_SLOTS
+// slot/username -- dulu 4, sekarang 10). Lihat scripts/schema.sql /
+// migration-ba-otomatis-srinaiassist2.sql.
+const MAX_BA_AUTO_SLOTS = 10;
+
 // GET /api/settings?action=baAutoGet&username=..
 async function handleBaAutoGet(req, res) {
   const { username } = req.query || {};
@@ -990,12 +992,12 @@ async function handleBaAutoGet(req, res) {
     `,
   ]);
 
-  // Selalu kembalikan 4 slot (1-4) -- slot yang belum pernah disimpan
+  // Selalu kembalikan 10 slot (1-10) -- slot yang belum pernah disimpan
   // ditampilkan kosong, supaya frontend tidak perlu cek "slot ke berapa
   // saja yang ada barisnya di DB".
   const byIndex = {};
   slotRows.forEach((r) => { byIndex[r.slotIndex] = r; });
-  const slots = [1, 2, 3, 4].map((i) => byIndex[i] || {
+  const slots = Array.from({ length: MAX_BA_AUTO_SLOTS }, (_, k) => k + 1).map((i) => byIndex[i] || {
     slotIndex: i, tanggal: null, spanId: null, petugasUsername: null, tegakanIds: [],
   });
 
@@ -1043,8 +1045,8 @@ async function handleBaAutoSlotSave(req, res) {
     return res.status(400).json({ success: false, message: 'username wajib diisi.' });
   }
   const idx = Number(slotIndex);
-  if (!Number.isInteger(idx) || idx < 1 || idx > 4) {
-    return res.status(400).json({ success: false, message: 'slotIndex harus angka 1-4.' });
+  if (!Number.isInteger(idx) || idx < 1 || idx > MAX_BA_AUTO_SLOTS) {
+    return res.status(400).json({ success: false, message: `slotIndex harus angka 1-${MAX_BA_AUTO_SLOTS}.` });
   }
   if (tanggal !== null && tanggal !== undefined) {
     const t = Number(tanggal);
