@@ -34,10 +34,13 @@
 //        workspace-command.html. Tidak mengirim BOTLAB_ADMIN_KEY.
 //
 // GET    /api/settings?action=baAutoGet&username=..
-//        -> { enabled, slots:[{slotIndex,tanggal,spanId,petugasUsername,tegakanIds}, ...4] }
+//        -> { enabled, appEnabled, slots:[{slotIndex,tanggal,spanId,petugasUsername,tegakanIds}, ...10] }
 //        dipanggil halaman Pengaturan (kartu "BA Otomatis via Telegram").
 // POST   /api/settings?action=baAutoToggle  body:{ username, enabled }
-//        -> upsert ba_auto_settings.enabled
+//        -> upsert ba_auto_settings.enabled (channel Telegram)
+// POST   /api/settings?action=baAutoAppToggle  body:{ username, enabled }
+//        -> upsert ba_auto_settings.app_enabled (channel app "Berita Acara",
+//        TERPISAH dari channel Telegram di atas -- lihat handleBaAutoAppToggle)
 // POST   /api/settings?action=baAutoSlotSave  body:{ username, slotIndex,
 //        tanggal, spanId, petugasUsername?, tegakanIds }
 //        -> upsert SATU baris ba_auto_slot (slotIndex 1-4). tanggal null
@@ -969,9 +972,9 @@ async function isBaAutoMasterEnabled() {
 
 // ─────────────────────────────────────────────────────────
 // SLOT BA OTOMATIS (halaman Pengaturan -- kartu "BA Otomatis via Telegram")
-// Tabel: ba_auto_settings (toggle on/off), ba_auto_slot (MAX_BA_AUTO_SLOTS
-// slot/username -- dulu 4, sekarang 10). Lihat scripts/schema.sql /
-// migration-ba-otomatis-srinaiassist2.sql.
+// Tabel: ba_auto_settings (toggle on/off + app_enabled), ba_auto_slot
+// (MAX_BA_AUTO_SLOTS slot/username -- dulu 4, sekarang 10). Lihat
+// scripts/schema.sql / migration-ba-otomatis-srinaiassist2.sql.
 const MAX_BA_AUTO_SLOTS = 10;
 
 // GET /api/settings?action=baAutoGet&username=..
@@ -982,7 +985,7 @@ async function handleBaAutoGet(req, res) {
   }
 
   const [settingsRows, slotRows] = await Promise.all([
-    sql`SELECT enabled FROM ba_auto_settings WHERE username = ${username}`,
+    sql`SELECT enabled, app_enabled AS "appEnabled" FROM ba_auto_settings WHERE username = ${username}`,
     sql`
       SELECT slot_index AS "slotIndex", tanggal, span_id AS "spanId",
              petugas_username AS "petugasUsername", tegakan_ids AS "tegakanIds"
@@ -1004,11 +1007,15 @@ async function handleBaAutoGet(req, res) {
   return res.status(200).json({
     success: true,
     enabled: settingsRows.length > 0 ? settingsRows[0].enabled : false,
+    // appEnabled = toggle channel app "Berita Acara" (project terpisah),
+    // TERPISAH dari enabled/Telegram di atas -- lihat handleBaAutoAppToggle.
+    appEnabled: settingsRows.length > 0 ? !!settingsRows[0].appEnabled : false,
     slots,
   });
 }
 
 // POST /api/settings?action=baAutoToggle  body:{ username, enabled }
+// Toggle channel TELEGRAM.
 async function handleBaAutoToggle(req, res) {
   const { username, enabled } = req.body || {};
   if (!username || !String(username).trim()) {
@@ -1032,6 +1039,37 @@ async function handleBaAutoToggle(req, res) {
     INSERT INTO ba_auto_settings (username, enabled)
     VALUES (${username}, ${!!enabled})
     ON CONFLICT (username) DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now()
+  `;
+  return res.status(200).json({ success: true });
+}
+
+// POST /api/settings?action=baAutoAppToggle  body:{ username, enabled }
+// Toggle channel APP "Berita Acara" (project terpisah, lihat sendBaViaApp
+// di bawah) -- TERPISAH dari toggle Telegram di atas (handleBaAutoToggle).
+// User boleh nyalakan salah satu, keduanya, atau tidak sama sekali; slot
+// (tanggal/span/tegakan) yang dipakai TETAP SAMA untuk kedua channel.
+async function handleBaAutoAppToggle(req, res) {
+  const { username, enabled } = req.body || {};
+  if (!username || !String(username).trim()) {
+    return res.status(400).json({ success: false, message: 'username wajib diisi.' });
+  }
+
+  // Sama seperti handleBaAutoToggle: master switch cuma dicek saat MENYALAKAN.
+  if (enabled) {
+    const masterOn = await isBaAutoMasterEnabled();
+    if (!masterOn) {
+      return res.status(200).json({
+        success: false,
+        blocked: true,
+        message: 'Fitur BA Otomatis sedang dinonaktifkan oleh admin pusat. Hubungi admin untuk mengaktifkannya di panel kontrol.',
+      });
+    }
+  }
+
+  await sql`
+    INSERT INTO ba_auto_settings (username, app_enabled)
+    VALUES (${username}, ${!!enabled})
+    ON CONFLICT (username) DO UPDATE SET app_enabled = EXCLUDED.app_enabled, updated_at = now()
   `;
   return res.status(200).json({ success: true });
 }
@@ -1077,13 +1115,15 @@ async function handleBaAutoSlotSave(req, res) {
 // GET /api/settings?action=baAutoCron  (dipanggil Vercel Cron, lihat vercel.json)
 //     -> cari semua slot yang tanggal-nya cocok HARI INI (waktu Jakarta,
 //        BUKAN UTC -- cron sendiri jadwalnya UTC, tapi "tanggal 1-31" yang
-//        user pilih itu maksudnya tanggal lokal Indonesia) dan belum
-//        dijalankan hari ini, generate + kirim BA-nya satu-satu lewat
-//        Botlab (action=sendBaAuto di api/commands.js Botlab), lalu catat
-//        last_run_date supaya tidak dobel kirim kalau cron ke-invoke lagi
-//        di hari yang sama.
+//        user pilih itu maksudnya tanggal lokal Indonesia) dan MINIMAL SATU
+//        channel-nya (Telegram / App) belum dijalankan hari ini, generate +
+//        kirim BA-nya satu-satu lewat Botlab (action=sendBaAuto untuk
+//        Telegram, action=sendBaToApp untuk App -- lihat api/commands.js
+//        Botlab), lalu catat last_run_date / last_run_date_app PER CHANNEL
+//        supaya channel yang sudah sukses tidak dikirim dobel meskipun
+//        channel lain masih gagal.
 // Diproses SEKUENSIAL (bukan Promise.all) sengaja -- tiap slot generate PDF
-// + upload Drive + kirim Telegram, kalau paralel semua bisa numpuk beban ke
+// + upload Drive + kirim ke channel, kalau paralel semua bisa numpuk beban ke
 // Botlab/Drive sekaligus; throughput bukan prioritas buat fitur mingguan
 // begini, keandalan (satu gagal tidak ganggu yang lain) lebih penting.
 function getJakartaDateParts(now = new Date()) {
@@ -1115,6 +1155,28 @@ async function sendBaViaBotlab({ recipientUsername, spanId, tegakanIds, ownerUse
   return data;
 }
 
+// Kembaran sendBaViaBotlab di atas, tapi manggil action=sendBaToApp
+// (Botlab) yang meneruskan BA ke app "Berita Acara" (project terpisah,
+// lihat BA_APP_URL/BA_APP_INGEST_KEY di env Botlab) -- BUKAN ke Telegram.
+async function sendBaViaApp({ recipientUsername, spanId, tegakanIds, ownerUsername }) {
+  const botlabUrl = process.env.BOTLAB_API_URL;
+  const botlabKey = process.env.BOTLAB_ADMIN_KEY;
+  if (!botlabUrl || !botlabKey) {
+    throw new Error('BOTLAB_API_URL dan/atau BOTLAB_ADMIN_KEY belum diset di environment variables SrinaiAssist2.');
+  }
+
+  const upstream = await fetch(`${botlabUrl.replace(/\/+$/, '')}/api/commands?action=sendBaToApp`, {
+    method: 'POST',
+    headers: { 'x-botlab-key': botlabKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientUsername, spanId, tegakanIds, ownerUsername }),
+  });
+  const data = await upstream.json().catch(() => null);
+  if (!upstream.ok || !data || !data.success) {
+    throw new Error((data && data.message) || `Botlab merespons status ${upstream.status}.`);
+  }
+  return data;
+}
+
 async function handleBaAutoCron(req, res) {
   if (!isCronRequestValid(req)) {
     return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
@@ -1133,44 +1195,81 @@ async function handleBaAutoCron(req, res) {
 
   const { dateStr: todayStr, day: todayDay } = getJakartaDateParts();
 
+  // Slot dianggap "due" kalau tanggal-nya cocok HARI INI dan MINIMAL SATU
+  // dari dua channel (Telegram / App) enabled DAN belum jalan hari ini di
+  // channel itu -- last_run_date (Telegram) dan last_run_date_app (App)
+  // DIPISAH supaya satu channel yang sudah sukses tidak ikut dikirim ulang
+  // cuma gara-gara channel lain masih gagal/belum dicoba.
   const dueSlots = await sql`
     SELECT s.username, s.slot_index AS "slotIndex", s.span_id AS "spanId",
-           s.petugas_username AS "petugasUsername", s.tegakan_ids AS "tegakanIds"
+           s.petugas_username AS "petugasUsername", s.tegakan_ids AS "tegakanIds",
+           s.last_run_date AS "lastRunDate", s.last_run_date_app AS "lastRunDateApp",
+           st.enabled AS "telegramEnabled", st.app_enabled AS "appEnabled"
     FROM ba_auto_slot s
-    JOIN ba_auto_settings st ON st.username = s.username AND st.enabled = true
+    JOIN ba_auto_settings st ON st.username = s.username
     WHERE s.tanggal = ${todayDay}
-      AND (s.last_run_date IS NULL OR s.last_run_date <> ${todayStr})
       AND s.span_id IS NOT NULL
       AND jsonb_array_length(s.tegakan_ids) > 0
+      AND (
+        (st.enabled = true AND (s.last_run_date IS NULL OR s.last_run_date <> ${todayStr}))
+        OR
+        (st.app_enabled = true AND (s.last_run_date_app IS NULL OR s.last_run_date_app <> ${todayStr}))
+      )
     ORDER BY s.username, s.slot_index
   `;
 
   const results = [];
   for (const slot of dueSlots) {
     const ownerUsername = slot.petugasUsername || slot.username;
-    try {
-      await sendBaViaBotlab({
-        recipientUsername: slot.username,
-        spanId: slot.spanId,
-        tegakanIds: slot.tegakanIds,
-        ownerUsername,
-      });
-      await sql`
-        UPDATE ba_auto_slot SET last_run_date = ${todayStr}
-        WHERE username = ${slot.username} AND slot_index = ${slot.slotIndex}
-      `;
-      results.push({ username: slot.username, slotIndex: slot.slotIndex, success: true });
-    } catch (err) {
-      // SENGAJA tidak update last_run_date kalau gagal -- supaya slot ini
-      // masih dianggap "belum jalan hari ini" dan bisa dicoba lagi kalau
-      // cron di-trigger ulang manual (lihat isCronRequestValid, fallback
-      // ?cronKey=...) sebelum hari berganti.
-      console.error(`baAutoCron: gagal kirim BA untuk ${slot.username} slot ${slot.slotIndex}:`, err);
-      results.push({ username: slot.username, slotIndex: slot.slotIndex, success: false, message: err.message });
+    const telegramDue = slot.telegramEnabled && (slot.lastRunDate == null || slot.lastRunDate !== todayStr);
+    const appDue = slot.appEnabled && (slot.lastRunDateApp == null || slot.lastRunDateApp !== todayStr);
+
+    const channels = {};
+
+    if (telegramDue) {
+      try {
+        await sendBaViaBotlab({
+          recipientUsername: slot.username, spanId: slot.spanId,
+          tegakanIds: slot.tegakanIds, ownerUsername,
+        });
+        await sql`
+          UPDATE ba_auto_slot SET last_run_date = ${todayStr}
+          WHERE username = ${slot.username} AND slot_index = ${slot.slotIndex}
+        `;
+        channels.telegram = { success: true };
+      } catch (err) {
+        // SENGAJA tidak update last_run_date kalau gagal -- supaya slot ini
+        // masih dianggap "belum jalan hari ini" di channel ini dan bisa
+        // dicoba lagi kalau cron di-trigger ulang manual (lihat
+        // isCronRequestValid, fallback ?cronKey=...) sebelum hari berganti.
+        console.error(`baAutoCron: gagal kirim BA (Telegram) untuk ${slot.username} slot ${slot.slotIndex}:`, err);
+        channels.telegram = { success: false, message: err.message };
+      }
     }
+
+    if (appDue) {
+      try {
+        await sendBaViaApp({
+          recipientUsername: slot.username, spanId: slot.spanId,
+          tegakanIds: slot.tegakanIds, ownerUsername,
+        });
+        await sql`
+          UPDATE ba_auto_slot SET last_run_date_app = ${todayStr}
+          WHERE username = ${slot.username} AND slot_index = ${slot.slotIndex}
+        `;
+        channels.app = { success: true };
+      } catch (err) {
+        console.error(`baAutoCron: gagal kirim BA (App) untuk ${slot.username} slot ${slot.slotIndex}:`, err);
+        channels.app = { success: false, message: err.message };
+      }
+    }
+
+    results.push({ username: slot.username, slotIndex: slot.slotIndex, ...channels });
   }
 
-  const sent = results.filter((r) => r.success).length;
+  const sent = results.filter((r) =>
+    (r.telegram && r.telegram.success) || (r.app && r.app.success)
+  ).length;
   return res.status(200).json({
     success: true,
     date: todayStr,
@@ -1670,6 +1769,14 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBaAutoToggle(req, res);
+    }
+
+    if (qAction === 'baAutoAppToggle') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAutoAppToggle(req, res);
     }
 
     if (qAction === 'baAutoSlotSave') {
