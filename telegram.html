@@ -248,15 +248,23 @@ details[open] .slot-summary-chevron{transform:rotate(90deg);}
       <button id="teleConnectBtn" class="btn tele-connect-btn" onclick="connectTelegram()">✈️ Hubungkan Telegram</button>
     </div>
 
-    <!-- BA Otomatis via Telegram (semua role kecuali Monitor) -->
+    <!-- BA Otomatis via Telegram / App Berita Acara (semua role kecuali Monitor) -->
     <div id="baAutoSection" class="card hidden">
       <div class="card-title teal">📲 BA Otomatis</div>
-      <div class="card-desc">Jadwalkan sampai 10 slot pengiriman BA mingguan. Tiap slot yang aktif akan otomatis dibuatkan BA-nya lalu dikirim sebagai JPEG ke Telegram kamu, di tanggal yang dipilih.</div>
+      <div class="card-desc">Jadwalkan sampai 10 slot pengiriman BA mingguan. Tiap slot yang aktif akan otomatis dibuatkan BA-nya lalu dikirim di tanggal yang dipilih -- ke Telegram, ke app Berita Acara, atau ke keduanya sekaligus. Slot (tanggal/span/tegakan) yang dipakai sama untuk kedua channel, tinggal pilih channel mana yang mau dinyalakan.</div>
 
       <div class="baauto-toggle-row">
-        <span class="baauto-toggle-label">Aktifkan BA Otomatis</span>
+        <span class="baauto-toggle-label">✈️ Kirim ke Telegram</span>
         <label class="switch">
           <input type="checkbox" id="baAutoEnabledToggle" onchange="toggleBaAuto(this.checked)">
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="baauto-toggle-row">
+        <span class="baauto-toggle-label">📄 Kirim ke App Berita Acara</span>
+        <label class="switch">
+          <input type="checkbox" id="baAutoAppEnabledToggle" onchange="toggleBaAutoApp(this.checked)">
           <span class="switch-slider"></span>
         </label>
       </div>
@@ -530,6 +538,7 @@ async function initBaAuto(){
   };
 
   document.getElementById("baAutoEnabledToggle").checked = !!getResult.enabled;
+  document.getElementById("baAutoAppEnabledToggle").checked = !!getResult.appEnabled;
 
   for(const slot of baAuto.slots){
     if(slot.spanId){
@@ -557,8 +566,19 @@ async function toggleBaAuto(enabled){
     body: JSON.stringify({ username: currentUser, enabled }),
   });
   if(!result.success){
-    alert(result.message || "Gagal menyimpan toggle BA Otomatis.");
+    alert(result.message || "Gagal menyimpan toggle BA Otomatis (Telegram).");
     document.getElementById("baAutoEnabledToggle").checked = !enabled; // rollback tampilan
+  }
+}
+
+async function toggleBaAutoApp(enabled){
+  const result = await apiRequest("/api/settings?action=baAutoAppToggle", {
+    method: "POST",
+    body: JSON.stringify({ username: currentUser, enabled }),
+  });
+  if(!result.success){
+    alert(result.message || "Gagal menyimpan toggle BA Otomatis (App Berita Acara).");
+    document.getElementById("baAutoAppEnabledToggle").checked = !enabled; // rollback tampilan
   }
 }
 
