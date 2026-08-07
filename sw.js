@@ -27,7 +27,7 @@
 //   semuanya dan buang cache lama saat activate -- ini aksi rilis yang
 //   disengaja, bukan silent background refresh per-request.
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const PAGES_CACHE = "srinai-pages-" + CACHE_VERSION;
 const STATIC_CACHE = "srinai-static-" + CACHE_VERSION;
 const CURRENT_CACHES = [PAGES_CACHE, STATIC_CACHE];
