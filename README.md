@@ -3,7 +3,10 @@
 Aplikasi web (Vercel + Neon Postgres) untuk operasional lapangan PLN SUTT
 150kV — data jalur, tower, span, tegakan, dan dokumentasi Berita Acara (BA).
 Dibungkus jadi APK Android lewat Capacitor/TWA (WebView shell yang selalu
-memuat konten live dari Vercel, lihat `capacitor.config.json`).
+memuat konten live dari Vercel via `server.url`, lihat
+`capacitor.config.json` — keputusan disengaja demi auto-update tanpa
+rebuild, lihat bagian "Model 3D tower" untuk trade-off & fallback
+daruratnya).
 
 ## Aturan mengikat: sinkronisasi & cache
 
@@ -96,6 +99,35 @@ pertama kali install, aplikasi sudah bisa dipakai penuh secara offline
 (navigasi antar halaman, buka semua menu) begitu APK sempat online sekali.
 Yang tetap butuh koneksi hanya data lapangan lewat `/api/*` (sengaja tidak
 diintersep SW — itu urusan `js/sync.js` + tombol Sinkron, lihat aturan #1).
+
+## Model 3D tower (carousel `tower.html`)
+
+Carousel `tower.html` menampilkan 1 model 3D generik
+(`resources/Tower_3d_final.glb`, ~250KB setelah resize tekstur + kompresi
+Draco) yang dipakai ulang untuk render kartu tower (bukan model unik per
+tower — total 200 tower semua pakai file yang sama).
+
+**Keputusan hosting (Agu 2026): Opsi B dipilih.** File tetap disajikan
+lewat Vercel (bukan Google Drive), dan `server` di `capacitor.config.json`
+TETAP dipertahankan mengarah ke domain live (lihat bagian atas README).
+Konsekuensinya: model 3D di-fetch dari server baik lewat web maupun APK,
+karena `server.url` Capacitor bersifat all-or-nothing — tidak ada cara
+memisahkan "file ini dari lokal, file itu dari server" lewat config.
+Ini diterima sebagai trade-off karena filenya kecil (~250KB) dan sudah
+efektif di-cache browser setelah fetch pertama per sesi (URL sama di
+semua kartu → 1 request jaringan, 199 sisanya dari cache).
+
+### Fallback darurat: Opsi A
+Kalau FOT Vercel atau beban server menyentuh **90% dari kuota bulanan**,
+aktifkan Opsi A sebagai langkah darurat sampai persentasenya turun lagi:
+
+- Hapus blok `server` dari `capacitor.config.json` (nonaktifkan
+  live-reload) supaya APK jalan dari bundle lokal (`webDir: "www"`) —
+  model 3D dan seluruh app shell APK jadi nol network call
+- Konsekuensi: user APK TIDAK lagi otomatis dapat update konten; setiap
+  rilis harus rebuild APK lewat GitHub Actions dan user install ulang
+- Ini murni langkah darurat sementara, bukan default — begitu FOT/beban
+  server kembali normal, boleh dikembalikan ke Opsi B (`server.url` live)
 
 ## Struktur singkat
 
