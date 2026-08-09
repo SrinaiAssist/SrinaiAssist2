@@ -105,7 +105,7 @@ diintersep SW — itu urusan `js/sync.js` + tombol Sinkron, lihat aturan #1).
 Carousel `tower.html` menampilkan 1 model 3D generik
 (`resources/Tower_3d_final.glb`, ~250KB setelah resize tekstur + kompresi
 Draco) yang dipakai ulang untuk render kartu tower (bukan model unik per
-tower — total 200 tower semua pakai file yang sama).
+tower — semua tower, berapa pun jumlahnya, pakai file yang sama).
 
 **Keputusan hosting (Agu 2026): Opsi B dipilih.** File tetap disajikan
 lewat Vercel (bukan Google Drive), dan `server` di `capacitor.config.json`
@@ -115,7 +115,7 @@ karena `server.url` Capacitor bersifat all-or-nothing — tidak ada cara
 memisahkan "file ini dari lokal, file itu dari server" lewat config.
 Ini diterima sebagai trade-off karena filenya kecil (~250KB) dan sudah
 efektif di-cache browser setelah fetch pertama per sesi (URL sama di
-semua kartu → 1 request jaringan, 199 sisanya dari cache).
+semua kartu → 1 request jaringan, sisanya dari cache).
 
 ### Fallback darurat: Opsi A
 Kalau FOT Vercel atau beban server menyentuh **90% dari kuota bulanan**,
