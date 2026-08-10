@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js" defer></script>
 <style>
 :root{
   --bg-deep:   #080F1E;
@@ -222,6 +223,61 @@ body{
 .act-edit{background:rgba(244,197,66,0.15);border:1px solid rgba(244,197,66,0.25);}
 .act-qr{background:rgba(56,191,160,0.15);border:1px solid rgba(56,191,160,0.25);}
 
+/* View Toggle (List / Carousel) */
+.view-toggle{
+  display:flex;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:12px;padding:3px;gap:2px;
+}
+.view-toggle-btn{
+  border:none;background:none;cursor:pointer;
+  width:32px;height:26px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-3);transition:background .15s,color .15s;
+}
+.view-toggle-btn svg{width:15px;height:15px;}
+.view-toggle-btn.active{background:var(--blue-glow);color:var(--blue);}
+
+/* Tower Carousel (Opsi A: model 3D generik yang sama untuk semua tower) */
+.carousel-wrap{display:none;position:relative;z-index:2;}
+.carousel-wrap.active{display:block;}
+.carousel-track{
+  display:flex;gap:16px;overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  padding:18px calc(50% - 132px);
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.carousel-track::-webkit-scrollbar{display:none;}
+.tower-slide{
+  flex:0 0 264px;scroll-snap-align:center;border-radius:22px;
+  background:linear-gradient(180deg, var(--bg-card2) 0%, var(--bg-card) 100%);
+  border:1px solid var(--border);padding:16px 15px 14px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  cursor:pointer;transform:scale(.86);opacity:.45;
+  transition:transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease, box-shadow .28s ease;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);
+}
+.tower-slide.active{
+  transform:scale(1);opacity:1;border-color:rgba(74,142,245,.35);
+  box-shadow:0 18px 40px rgba(74,142,245,.22);
+}
+.tower-3d-wrap{
+  width:100%;height:160px;border-radius:16px;
+  background:radial-gradient(ellipse 70% 55% at 50% 100%, rgba(74,142,245,.18) 0%, transparent 70%),var(--bg-glass);
+  border:1px solid var(--border);overflow:hidden;margin-bottom:12px;position:relative;
+}
+.tower-3d-wrap model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent;}
+.tower-3d-placeholder{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--ink-3);
+}
+.generic-3d-tag{
+  position:absolute;top:7px;right:7px;font-size:8px;font-weight:700;color:var(--ink-3);
+  background:rgba(0,0,0,.4);border:1px solid var(--border);padding:2px 6px;border-radius:20px;
+}
+.carousel-dots{display:flex;justify-content:center;gap:6px;padding:2px 0 4px;}
+.carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .25s;}
+.carousel-dot.active{width:16px;background:var(--blue);}
+
 /* QR modal */
 .qr-box{
   background:#fff;border-radius:16px;padding:18px;
@@ -381,7 +437,17 @@ body{
   <!-- List Header -->
   <div class="section-head">
     <div class="section-title">Daftar Tower</div>
-    <div class="section-count" id="rangeCount">0 tower</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="section-count" id="rangeCount">0 tower</div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="viewBtnList" onclick="setTowerView('list')" title="Tampilan List">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+        <button class="view-toggle-btn" id="viewBtnCarousel" onclick="setTowerView('carousel')" title="Tampilan Carousel 3D">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="8" height="10" rx="1"/><rect x="14" y="4" width="8" height="16" rx="1"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Tower List -->
@@ -389,6 +455,12 @@ body{
     <div class="skeleton"></div>
     <div class="skeleton" style="opacity:.7"></div>
     <div class="skeleton" style="opacity:.4"></div>
+  </div>
+
+  <!-- Tower Carousel (alternatif tampilan, model 3D generik) -->
+  <div class="carousel-wrap" id="towerCarousel">
+    <div class="carousel-track" id="carouselTrack"></div>
+    <div class="carousel-dots" id="carouselDots"></div>
   </div>
 
 </div>
@@ -622,6 +694,7 @@ async function initPage(){
   document.getElementById("jalurName").innerHTML  = jalurNameLabel();
 
   await loadTable();
+  setTowerView(towerView); // terapkan preferensi tampilan (List/Carousel) yang tersimpan
 }
 
 function jalurNameLabel(){
@@ -659,6 +732,7 @@ async function switchJalur(jalurId){
   document.getElementById("userInfo").innerHTML   = currentUser + " · " + myJalur.code;
 
   await loadTable();
+  setTowerView(towerView);
 }
 
 async function loadTable(){
@@ -746,6 +820,7 @@ function applyFilters(){
 
   document.getElementById("rangeCount").innerHTML = filtered.length + " tower";
   renderTowerList(filtered);
+  renderTowerCarousel(filtered);
 }
 
 function renderTowerList(towers){
@@ -807,6 +882,115 @@ function renderTowerList(towers){
       </div>
     `;
   }).join("");
+}
+
+/* ===================== TOWER CAROUSEL (VIEW ALTERNATIF) ===================== */
+let towerView = localStorage.getItem("srinai_tower_view") || "list";
+let carouselObserver = null;
+const TOWER_3D_SRC = "assets/3d/tower-generic.glb"; // Opsi A: 1 model 3D generik dipakai semua tower
+
+function setTowerView(view){
+  towerView = view;
+  localStorage.setItem("srinai_tower_view", view);
+
+  document.getElementById("viewBtnList").classList.toggle("active", view === "list");
+  document.getElementById("viewBtnCarousel").classList.toggle("active", view === "carousel");
+  document.getElementById("towerList").style.display = view === "list" ? "block" : "none";
+  document.getElementById("towerCarousel").classList.toggle("active", view === "carousel");
+
+  if(view === "carousel") renderTowerCarousel(towerListCache._filtered || towerListCache);
+}
+
+function renderTowerCarousel(towers){
+  towerListCache._filtered = towers;
+  if(towerView !== "carousel") return;
+
+  const track = document.getElementById("carouselTrack");
+  const dotsWrap = document.getElementById("carouselDots");
+
+  if(carouselObserver){ carouselObserver.disconnect(); carouselObserver = null; }
+
+  if(!towers.length){
+    track.innerHTML = `<div class="empty-state" style="padding:30px 20px;"><div class="empty-title">Tidak ada hasil</div></div>`;
+    dotsWrap.innerHTML = "";
+    return;
+  }
+
+  track.innerHTML = towers.map((t, i) => {
+    const code = assetCodeTower(jalurCodeFor(t.jalurId), t.nomor);
+    const statusText = t.status || "Belum diisi";
+    const detailParts = [];
+    if(t.jenis)    detailParts.push(t.jenis);
+    if(t.isolator) detailParts.push(t.isolator + " isolator");
+    if(t.renceng)  detailParts.push(t.renceng + " renceng");
+    const detailText = detailParts.length ? detailParts.join(" · ") : "Belum ada data jenis/isolator/renceng";
+
+    return `
+      <div class="tower-slide" data-index="${i}" data-tower-id="${t.id}" onclick="tapCarouselSlide(${i}, '${t.id}')">
+        <div class="tower-3d-wrap" id="towerSlide3d-${i}">
+          <span class="generic-3d-tag">Model 3D generik</span>
+          <div class="tower-3d-placeholder">Memuat model...</div>
+        </div>
+        <div class="tower-code" style="margin-bottom:8px;">${code}</div>
+        <div class="tower-name">Tower ${String(t.nomor).padStart(3,"0")}</div>
+        <div class="status-chip ${statusChipClass(t.status)}" style="margin-top:6px;">${statusText}</div>
+        <div class="tower-detail" style="margin-top:6px;">${detailText}</div>
+      </div>`;
+  }).join("");
+
+  dotsWrap.innerHTML = towers.map((_, i) => `<div class="carousel-dot" data-index="${i}"></div>`).join("");
+
+  const slides = [...track.querySelectorAll(".tower-slide")];
+  const dots = [...dotsWrap.querySelectorAll(".carousel-dot")];
+
+  function activateSlide(index){
+    slides.forEach((s, i) => s.classList.toggle("active", i === index));
+    dots.forEach((d, i) => d.classList.toggle("active", i === index));
+    loadModel3d(index);
+  }
+
+  // Model 3D hanya dimuat untuk kartu aktif ± 1 tetangga, biar hemat
+  // bandwidth/memori di HP (browser tetap cache asset .glb-nya sekali fetch).
+  function loadModel3d(index){
+    [index - 1, index, index + 1].forEach(i => {
+      if(i < 0 || i >= towers.length) return;
+      const holder = document.getElementById(`towerSlide3d-${i}`);
+      if(!holder || holder.querySelector("model-viewer")) return;
+      const placeholder = holder.querySelector(".tower-3d-placeholder");
+      if(placeholder) placeholder.remove();
+      const mv = document.createElement("model-viewer");
+      mv.setAttribute("src", TOWER_3D_SRC);
+      mv.setAttribute("camera-controls", "");
+      mv.setAttribute("auto-rotate", "");
+      mv.setAttribute("rotation-per-second", "12deg");
+      mv.setAttribute("interaction-prompt", "none");
+      mv.setAttribute("disable-zoom", "");
+      mv.setAttribute("exposure", "1.1");
+      mv.setAttribute("shadow-intensity", "0.6");
+      mv.setAttribute("camera-orbit", "25deg 75deg 105%");
+      holder.appendChild(mv);
+    });
+  }
+
+  carouselObserver = new IntersectionObserver((entries) => {
+    let best = null;
+    entries.forEach(entry => {
+      if(entry.isIntersecting && (!best || entry.intersectionRatio > best.intersectionRatio)) best = entry;
+    });
+    if(best) activateSlide(Number(best.target.dataset.index));
+  }, { root: track, threshold: [0.6, 0.7, 0.8, 0.9, 1.0] });
+
+  slides.forEach(s => carouselObserver.observe(s));
+  activateSlide(0);
+}
+
+function tapCarouselSlide(index, towerId){
+  const active = document.querySelector(`#carouselTrack .tower-slide[data-index="${index}"]`);
+  if(active && !active.classList.contains("active")){
+    active.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
+    return;
+  }
+  bukaCatatan(towerId);
 }
 
 let editTowerId = null;
