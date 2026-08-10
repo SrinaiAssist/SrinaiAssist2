@@ -449,6 +449,93 @@ function isPanelKeyValid(req) {
   return !!headerKey && headerKey === key;
 }
 
+// Validasi request MASUK dari app "Berita Acara" (project terpisah) buat
+// fitur kalender jadwal BA. Sama polanya kayak isPanelKeyValid di atas,
+// tapi kunci beda (SA2_APP_SHARED_KEY, header x-app-key) supaya tidak
+// campur sama PANEL_SHARED_KEY yang dipakai ba-control-panel.
+function isAppKeyValid(req) {
+  const key = process.env.SA2_APP_SHARED_KEY;
+  if (!key) {
+    console.warn('SA2_APP_SHARED_KEY belum diset -- request dari app Berita Acara akan selalu ditolak.');
+    return false;
+  }
+  const headerKey = req.headers['x-app-key'];
+  return !!headerKey && headerKey === key;
+}
+
+// GET /api/settings?action=baAppScheduleList[&username=..]  (dipanggil app
+// "Berita Acara" -- lihat api/jadwal.js di repo itu -- buat fitur kalender
+// jadwal BA). Beda dari handleBaAutoAdminList di bawah: (1) auth pakai
+// isAppKeyValid bukan isPanelKeyValid, (2) HANYA slot yang channel App-nya
+// aktif (app_enabled) dan datanya lengkap (tanggal + span + minimal 1
+// tegakan) -- ini persis kondisi yang bikin baAutoCron beneran generate BA
+// ke app, jadi kalender tidak nampilin slot yang belum lengkap/tidak akan
+// pernah jalan, (3) opsional filter satu username saja (dipakai app buat
+// petugas biasa yang cuma boleh lihat jadwalnya sendiri -- filter per-role
+// itu tanggung jawab app, di sini cuma nurut parameter yang dikirim).
+async function handleBaAppScheduleList(req, res) {
+  if (!isAppKeyValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const { username } = req.query || {};
+
+  const rows = username
+    ? await sql`
+        SELECT
+          s.username, s.slot_index AS "slotIndex", s.tanggal,
+          s.span_id AS "spanId", s.petugas_username AS "petugasUsername",
+          jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
+          s.last_run_date_app AS "lastRunDateApp",
+          CASE WHEN sp.id IS NOT NULL
+            THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+            ELSE NULL
+          END AS "spanLabel"
+        FROM ba_auto_slot s
+        JOIN ba_auto_settings st ON st.username = s.username
+        LEFT JOIN span sp ON sp.id = s.span_id
+        WHERE st.app_enabled = true
+          AND s.tanggal IS NOT NULL AND s.span_id IS NOT NULL
+          AND jsonb_array_length(s.tegakan_ids) > 0
+          AND s.username = ${username}
+        ORDER BY s.username, s.slot_index
+      `
+    : await sql`
+        SELECT
+          s.username, s.slot_index AS "slotIndex", s.tanggal,
+          s.span_id AS "spanId", s.petugas_username AS "petugasUsername",
+          jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
+          s.last_run_date_app AS "lastRunDateApp",
+          CASE WHEN sp.id IS NOT NULL
+            THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+            ELSE NULL
+          END AS "spanLabel"
+        FROM ba_auto_slot s
+        JOIN ba_auto_settings st ON st.username = s.username
+        LEFT JOIN span sp ON sp.id = s.span_id
+        WHERE st.app_enabled = true
+          AND s.tanggal IS NOT NULL AND s.span_id IS NOT NULL
+          AND jsonb_array_length(s.tegakan_ids) > 0
+        ORDER BY s.username, s.slot_index
+      `;
+
+  const byUser = {};
+  for (const r of rows) {
+    if (!byUser[r.username]) byUser[r.username] = { username: r.username, slots: [] };
+    byUser[r.username].slots.push({
+      slotIndex: r.slotIndex,
+      tanggal: r.tanggal,
+      spanId: r.spanId,
+      spanLabel: r.spanLabel,
+      petugasUsername: r.petugasUsername,
+      tegakanCount: r.tegakanCount || 0,
+      lastRunDateApp: r.lastRunDateApp,
+    });
+  }
+
+  return res.status(200).json({ success: true, users: Object.values(byUser) });
+}
+
 // GET /api/settings?action=baAutoAdminList  (dipanggil ba-control-panel,
 // lihat api/monitor.js di repo panel -- bukan dipanggil dari frontend
 // SrinaiAssist2 sendiri). Rekap status BA Otomatis SEMUA user sekaligus,
@@ -1753,6 +1840,14 @@ module.exports = async (req, res) => {
 
     if (qAction === 'baAutoAdminList') {
       return handleBaAutoAdminList(req, res);
+    }
+
+    if (qAction === 'baAppScheduleList') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAppScheduleList(req, res);
     }
 
     if (qAction === 'baAutoGet') {
