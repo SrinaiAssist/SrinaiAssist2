@@ -240,25 +240,12 @@ function isKLW()     { return getCurrentRole() === "klw";     }
 function isLW()      { return getCurrentRole() === "lw";      }
 function isMonitor() { return getCurrentRole() === "monitor"; }
 
-// includeFoto=false -> minta server SKIP resolve foto profil dari Drive
-// (kirim referensi mentahnya saja, bukan base64). Dipakai syncAll() lewat
-// cachedGetAllAccountsFull() supaya sinkronisasi akun tidak diam-diam
-// mendownload+mengirim ulang foto SEMUA akun tiap kali tombol Sinkron
-// ditekan. Pemanggil lain (kelola-akun.html, profile.html, dst) yang tidak
-// mengirim parameter ini tetap dapat foto resolusi penuh seperti biasa.
-async function getAllAccountsFull(includeFoto = true) {
-    const url = includeFoto ? "/api/accounts" : "/api/accounts?includeFoto=false";
-    const result = await apiRequest(url);
+// Catatan: dulu ada parameter includeFoto untuk skip resolve foto Drive.
+// Fitur foto profil sudah dihapus (Ags 2026), jadi parameter itu dibuang.
+async function getAllAccountsFull() {
+    const result = await apiRequest("/api/accounts");
     if (!result.success) throw new Error(result.message || "Gagal memuat akun.");
     return result.accounts || [];
-}
-
-/** Ambil foto (resolusi penuh) SATU akun saja -- dipakai saat sync mendeteksi
- *  referensi foto akun tsb berubah, tanpa perlu resolve foto semua akun. */
-async function getAccountFotoResolved(username) {
-    const result = await apiRequest("/api/accounts?username=" + encodeURIComponent(username));
-    if (!result.success || !result.accounts || !result.accounts[0]) return "";
-    return result.accounts[0].foto || "";
 }
 
 async function getActiveUsernames() {

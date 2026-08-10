@@ -1040,19 +1040,10 @@ async function initPage(){
   document.getElementById("tower").textContent = profile.towerLabel;
   document.getElementById("span").textContent  = profile.jumlahSpan + " span";
 
-  if(profile.foto){
-    const quickIconEl = document.getElementById("quickProfilIcon");
-    quickIconEl.innerHTML = `<img src="${profile.foto}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-  }
-
   /* --- Sidebar profile strip --- */
   const sideInitials = profile.nama.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
   const sideAvatarEl = document.getElementById("sideProfileAvatar");
-  if(profile.foto){
-    sideAvatarEl.innerHTML = `<img src="${profile.foto}" alt="Foto">`;
-  } else {
-    sideAvatarEl.textContent = sideInitials;
-  }
+  sideAvatarEl.textContent = sideInitials;
   document.getElementById("sideProfileName").textContent = profile.nama;
   document.getElementById("sideProfileRole").textContent = (profile.role || "-").toUpperCase();
 

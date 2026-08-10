@@ -384,16 +384,6 @@ function renderList(){
     `;
     wrap.appendChild(card);
   }
-
-  // Isi foto avatar dari cache (tanpa fetch ulang dari Neon/Drive)
-  logAccounts.forEach(async acc => {
-    if(typeof cachedGetFotoProfil !== "function") return;
-    const foto = await cachedGetFotoProfil(acc.username);
-    if(foto){
-      const el = document.getElementById("logav-" + cssId(acc.username));
-      if(el) el.innerHTML = `<img src="${foto}" alt="${acc.username}">`;
-    }
-  });
 }
 
 async function openHistModal(username){

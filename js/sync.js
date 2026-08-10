@@ -86,7 +86,6 @@ function _fmtBytes(n) {
   if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
   return (n / 1024 / 1024).toFixed(1) + " MB";
 }
-const ACCOUNTS_FOTO_FP_KEY = "srinai_sync_accounts_foto_fp"; // username -> referensi foto mentah terakhir
 const SETTINGS_IMG_FP_KEY = "srinai_sync_settings_img_fp"; // key setting -> referensi gambar mentah terakhir
 // HARUS sinkron dengan IMAGE_SETTING_KEYS di api/settings.js (key yang
 // disimpan sbg referensi Drive & perlu di-resolve jadi base64).
@@ -97,21 +96,6 @@ function _spanCacheStale(key) {
   if (!obj) return true;
   return (Date.now() - obj.ts) > SPAN_CACHE_TTL_MS;
 }
-
-/* Key dinamis per user untuk foto profil — TTL panjang (24 jam) karena
-   foto jarang berubah, tidak seperti data akun lain (tower/span/jalur).
-   Dipisah dari CACHE_KEYS.accounts supaya tidak ikut kadaluarsa tiap 30 mnt
-   dan tidak perlu download ulang dari Google Drive tiap buka dashboard. */
-const FOTO_CACHE_PREFIX = "srinai_cache_foto_";
-const FOTO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-// TTL jauh lebih pendek khusus untuk hasil KOSONG. Kalau foto kosong karena
-// benar-benar belum pernah upload, ini cuma bikin sedikit lebih sering
-// dicek ulang (murah, cuma 1 akun). Tapi kalau kosong itu SEBENARNYA gara-gara
-// server gagal download dari Google Drive sesaat (lihat resolveFotoForRead di
-// api/accounts.js), foto akan otomatis "pulih" dalam hitungan menit alih-alih
-// nyangkut kosong selama 24 jam penuh.
-const FOTO_EMPTY_CACHE_TTL_MS = 5 * 60 * 1000;
-function _fotoProfilKey(username) { return FOTO_CACHE_PREFIX + username; }
 
 /* ═══════════════════════════════════════════════════════
    NAMESPACE CACHE PER AKUN
@@ -126,12 +110,7 @@ function _fotoProfilKey(username) { return FOTO_CACHE_PREFIX + username; }
       secara tidak sengaja (tower/span/jalur bisa beda hak akses per
       akun). Tiap akun otomatis punya "kotak" cache sendiri.
    3) Balik ke akun semula: cache akun itu masih ada di kotaknya
-      sendiri, langsung terpakai lagi tanpa download ulang.
-   Pengecualian: cache foto profil user LAIN (_fotoProfilKey, prefix
-   FOTO_CACHE_PREFIX) sengaja TIDAK di-namespace -- itu bukan data yang
-   beda per hak akses (foto akun X sama saja dilihat dari akun mana
-   pun), jadi lebih baik dipakai bersama supaya tidak download ulang
-   sia-sia tiap ganti akun. */
+      sendiri, langsung terpakai lagi tanpa download ulang. */
 function _currentCacheUser() {
   try {
     return (typeof getCurrentUser === "function" && getCurrentUser()) || "_guest";
@@ -140,7 +119,6 @@ function _currentCacheUser() {
   }
 }
 function _scopedKey(key) {
-  if (key.indexOf(FOTO_CACHE_PREFIX) === 0) return key; // lihat catatan di atas
   return key + "::u:" + _currentCacheUser();
 }
 
@@ -211,85 +189,12 @@ async function _refreshAccounts() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   FOTO PROFIL — cache khusus, terpisah dari cache akun.
-   TTL 24 jam supaya foto tidak fetch ulang dari Neon/Drive
-   tiap buka dashboard, walau cache akun (30 mnt) sudah stale.
-═══════════════════════════════════════════════════════ */
-
-/**
- * Ambil foto profil satu user, cache-first (localStorage, base64).
- * - Kalau cache foto masih segar (<24 jam) -> langsung pakai, TANPA request.
- * - Kalau tidak ada / stale -> coba ambil dari cache akun yang masih segar
- *   dulu (hindari request baru), baru kalau tidak ada, fetch 1 akun saja
- *   lewat /api/accounts?username=... (bukan seluruh daftar akun).
- */
-async function cachedGetFotoProfil(username) {
-  const key = _fotoProfilKey(username);
-  const cached = _cacheGet(key);
-  if (cached) {
-    const ttl = cached.data ? FOTO_CACHE_TTL_MS : FOTO_EMPTY_CACHE_TTL_MS;
-    if ((Date.now() - cached.ts) <= ttl) {
-      return cached.data || "";
-    }
-  }
-
-  // Coba pakai cache akun yang masih segar dulu supaya tidak dobel request
-  const freshAccounts = !_cacheStale(CACHE_KEYS.accounts) ? _cacheGetData(CACHE_KEYS.accounts) : null;
-  if (freshAccounts) {
-    const acc = freshAccounts.find(a => a.username === username);
-    if (acc) {
-      _cacheSet(key, acc.foto || "");
-      return acc.foto || "";
-    }
-  }
-
-  // Fallback: fetch ringan, 1 akun saja (bukan seluruh daftar)
-  try {
-    const result = await apiRequest("/api/accounts?username=" + encodeURIComponent(username));
-    const acc = result && result.success && result.accounts ? result.accounts[0] : null;
-    const foto = acc ? (acc.foto || "") : "";
-    _cacheSet(key, foto);
-    return foto;
-  } catch(e) {
-    // Kalau gagal & ada cache lama (walau stale), lebih baik daripada kosong
-    return cached ? (cached.data || "") : "";
-  }
-}
-
-/** Simpan foto ke cache langsung — panggil setelah upload/simpan foto berhasil */
-function _setFotoProfilCache(username, foto) {
-  _cacheSet(_fotoProfilKey(username), foto || "");
-  _patchAccountFotoInCache(username, foto || "");
-}
-
-/** Hapus cache foto satu user — panggil kalau foto perlu dipaksa fetch ulang */
-function invalidateFotoProfilCache(username) {
-  _cacheClear(_fotoProfilKey(username));
-}
-
-/** Selaraskan foto di cache daftar akun (CACHE_KEYS.accounts) tanpa invalidate semua */
-function _patchAccountFotoInCache(username, foto) {
-  const accounts = _cacheGetData(CACHE_KEYS.accounts);
-  if (!accounts) return;
-  const idx = accounts.findIndex(a => a.username === username);
-  if (idx !== -1) {
-    accounts[idx] = { ...accounts[idx], foto: foto || "" };
-    _cacheSet(CACHE_KEYS.accounts, accounts);
-  }
-}
-
 /** Profile lengkap satu user, pakai cache akun */
 async function cachedGetFullProfile(username) {
   // getFullProfile di auth.js butuh jalur & tower — pakai versi cached
   const accounts = await cachedGetAllAccountsFull();
   const account  = accounts.find(a => a.username === username);
   if (!account) return null;
-
-  // Foto diambil dari cache khusus foto (TTL 24 jam), bukan langsung dari
-  // account.foto — supaya foto tidak ikut fetch ulang tiap cache akun
-  // (TTL 30 mnt) refresh, kecuali memang belum pernah di-cache.
-  const foto = await cachedGetFotoProfil(username);
 
   // Tiru logika getFullProfile dari auth.js
   const towerAwal   = account.tower_awal  != null ? account.tower_awal  : 1;
@@ -356,8 +261,7 @@ async function cachedGetFullProfile(username) {
     towerIds, spanIds,
     jumlahTower, jumlahSpan,
     hasNewAssignment: hasNew,
-    wilayah     : account.wilayah || "",
-    foto        : foto || ""
+    wilayah     : account.wilayah || ""
   };
 }
 
@@ -807,70 +711,19 @@ async function syncPending() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   AKUN — refresh SELEKTIF (fix kuota Fast Origin Transfer)
-   Sama seperti tegakan/TTD: sebelumnya tiap Sinkron menekan
-   syncAll(), server resolve foto SEMUA akun dari Drive jadi
-   base64 dan mengirim semuanya lagi -- padahal mayoritas foto
-   tidak berubah. Sekarang: ambil dulu daftar ringan (referensi
-   foto mentah saja, tanpa download Drive), bandingkan dengan
-   referensi hasil sync sebelumnya. HANYA akun yang referensi
-   fotonya berubah (atau akun baru) yang di-resolve ulang;
-   sisanya pakai foto hasil resolve yang sudah ada di cache lama.
-   Akun yang sudah dihapus di server otomatis hilang dari cache
-   (tidak ada lagi di daftar ringan), tanpa perlu hapus-semua dulu.
+   AKUN — refresh
+   Catatan: dulu ada logic resolve foto profil per-akun dari Google
+   Drive di sini (fitur foto profil sudah dihapus, Ags 2026), jadi
+   sekarang cukup ambil daftar akun apa adanya dan cache.
 ═══════════════════════════════════════════════════════ */
 async function _refreshAccountsSelective() {
   _syncLog("Mulai mengunduh akun pengguna ...");
-  const light = await getAllAccountsFull(false); // ringan: foto = referensi mentah saja
-
-  const oldFp = _cacheGetData(ACCOUNTS_FOTO_FP_KEY) || {};
-  const oldAccounts = _cacheGetData(CACHE_KEYS.accounts) || [];
-  const oldByUsername = {};
-  oldAccounts.forEach(a => { oldByUsername[a.username] = a; });
-
-  const newFp = {};
-  const toResolve = []; // username yang perlu foto baru
-
-  light.forEach(acc => {
-    const ref = acc.foto || "";
-    newFp[acc.username] = ref;
-    if (oldFp[acc.username] !== ref) {
-      toResolve.push(acc.username);
-    }
-  });
-
-  // Resolve foto HANYA untuk akun yang berubah/baru, satu per satu
-  // (bukan endpoint massal), supaya bandwidth sebanding dengan jumlah
-  // yang benar-benar berubah, bukan jumlah total akun.
-  const resolvedFoto = {};
-  for (const username of toResolve) {
-    try {
-      resolvedFoto[username] = await getAccountFotoResolved(username);
-    } catch (e) {
-      // Gagal resolve satu akun -> pakai foto lama (kalau ada) sbg fallback
-      resolvedFoto[username] = oldByUsername[username] ? oldByUsername[username].foto : "";
-    }
-  }
-
-  const merged = light.map(acc => {
-    if (Object.prototype.hasOwnProperty.call(resolvedFoto, acc.username)) {
-      return { ...acc, foto: resolvedFoto[acc.username] };
-    }
-    // Referensi tidak berubah -> pakai foto hasil resolve dari cache lama
-    const old = oldByUsername[acc.username];
-    return { ...acc, foto: old ? old.foto : acc.foto };
-  });
-
-  _cacheSet(CACHE_KEYS.accounts, merged);
-  _cacheSet(ACCOUNTS_FOTO_FP_KEY, newFp);
-  if (toResolve.length === 0) {
-    _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(merged))}`);
-  } else {
-    const sz = _jsonSize(merged);
-    _syncBytesTotal += sz;
-    _syncLog(`Sukses, ${toResolve.length} foto akun diperbarui... ${_fmtBytes(sz)}`);
-  }
-  return merged;
+  const accounts = await getAllAccountsFull();
+  _cacheSet(CACHE_KEYS.accounts, accounts);
+  const sz = _jsonSize(accounts);
+  _syncBytesTotal += sz;
+  _syncLog(`Sukses, akun pengguna diperbarui... ${_fmtBytes(sz)}`);
+  return accounts;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1012,10 +865,6 @@ async function syncAll(onProgress, onLog) {
 function clearAllCache() {
   Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(_scopedKey(k)));
   localStorage.removeItem(_scopedKey(SYNC_KEY_META));
-  // Hapus juga semua cache foto profil per-user (key dinamis, prefix FOTO_CACHE_PREFIX)
-  Object.keys(localStorage)
-    .filter(k => k.startsWith(FOTO_CACHE_PREFIX))
-    .forEach(k => localStorage.removeItem(k));
 }
 
 /** Waktu sinkronisasi terakhir */

@@ -282,10 +282,6 @@ body{
         <div class="avatar-wrap">
           <div id="avatarEl" class="avatar-initials">??</div>
           <div class="avatar-ring"></div>
-          <label for="photoInput" class="avatar-edit-overlay" id="avatarEditLabel">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          </label>
-          <input type="file" id="photoInput" accept="image/*" class="file-input-hidden">
         </div>
         <div class="avatar-name" id="namaDisplay">—</div>
         <div class="avatar-role" id="roleDisplay">—</div>
@@ -294,8 +290,7 @@ body{
       <div class="card" style="margin-top:18px;">
         <div class="card-title">📋 Data Akun</div>
         <div id="infoRows"></div>
-        <div class="info-note">📌 Jabatan, jalur, range tower, wilayah, role &amp; status akun hanya dapat diubah Admin melalui Kelola Akun. Anda hanya dapat memperbarui foto profil.</div>
-        <button id="saveBtn" class="btn btn-primary" onclick="saveProfile()">💾 Simpan Foto Profil</button>
+        <div class="info-note">📌 Jabatan, jalur, range tower, wilayah, role &amp; status akun hanya dapat diubah Admin melalui Kelola Akun.</div>
         <a id="editAkunBtn" href="kelola-akun.html" class="btn btn-gold hidden" style="display:none;text-align:center;text-decoration:none;margin-top:8px;">✏️ Edit Data Akun di Kelola Akun</a>
       </div>
 
@@ -423,17 +418,8 @@ async function showProfile(){
 
   const initials = data.nama.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
   const avatarEl = document.getElementById("avatarEl");
-  if(data.foto){
-    avatarEl.innerHTML = `<img src="${data.foto}" alt="Foto">`;
-    avatarEl.className = "";
-    avatarEl.style.borderRadius = "50%";
-    avatarEl.style.overflow = "hidden";
-    avatarEl.style.width = "100%";
-    avatarEl.style.height = "100%";
-  } else {
-    avatarEl.className = "avatar-initials";
-    avatarEl.textContent = initials;
-  }
+  avatarEl.className = "avatar-initials";
+  avatarEl.textContent = initials;
 
   const rows = [
     ["Nama", data.nama],
@@ -547,85 +533,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function applyPermissions(){
-  const photoInput = document.getElementById("photoInput");
-  const saveBtn = document.getElementById("saveBtn");
-  const editLabel = document.getElementById("avatarEditLabel");
-  if(isMonitor()){
-    photoInput.disabled = true;
-    saveBtn.style.display = "none";
-    editLabel.style.display = "none";
-    return;
-  }
-  photoInput.disabled = false;
-  saveBtn.style.display = "block";
-}
-
-/**
- * Resize + kompres foto sebelum disimpan sebagai base64.
- * Sisi terpanjang dibatasi maxDim (default 200px), lalu dikonversi ke
- * JPEG dengan quality tertentu — supaya ukuran row di Neon jauh lebih
- * kecil (foto kamera bisa beberapa MB, hasil resize biasanya <30KB).
- */
-function compressImageFile(file, maxDim = 200, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > height) {
-          if (width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
-        } else {
-          if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => reject(new Error("Gagal membaca gambar."));
-      img.src = evt.target.result;
-    };
-    reader.onerror = () => reject(new Error("Gagal membaca file."));
-    reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById("photoInput").addEventListener("change", async function(e){
-  const file = e.target.files[0]; if(!file) return;
-  const avatarEl = document.getElementById("avatarEl");
-  try {
-    const compressed = await compressImageFile(file, 200, 0.85);
-    avatarEl.innerHTML = `<img src="${compressed}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-    avatarEl.className = "";
-  } catch(err) {
-    alert("Gagal memproses foto. Coba foto lain.");
-  }
-});
-
-async function saveProfile(){
-  const avatarEl = document.getElementById("avatarEl");
-  const img = avatarEl.querySelector("img");
-  if(!img){ alert("Pilih foto terlebih dahulu."); return; }
-  const foto = img.src;
-
-  const saveBtn = document.getElementById("saveBtn");
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Menyimpan...";
-
-  const result = await updateAccountProfile(selectedUser, { foto });
-  saveBtn.disabled = false;
-  saveBtn.textContent = "💾 Simpan Foto Profil";
-
-  if(result && result.success){
-    // Update cache foto lokal langsung supaya dashboard & halaman lain
-    // menampilkan foto baru tanpa harus fetch ulang dari Neon/Drive.
-    if(typeof _setFotoProfilCache === "function") _setFotoProfilCache(selectedUser, foto);
-    alert("Foto profil berhasil disimpan.");
-  } else {
-    alert("Gagal menyimpan foto profil. Periksa koneksi internet.");
-  }
+  // Fitur foto profil sudah dihapus -- fungsi ini dipertahankan sebagai
+  // no-op supaya pemanggilnya (loadProfile, dst) tidak error.
 }
 
 /* ===== Ganti Password ===== */

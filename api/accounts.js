@@ -16,22 +16,16 @@
 // Log Aktivitas (lihat lib/activityLog.js). changePassword sengaja TIDAK
 // dicatat (self-service ganti password sendiri, di luar cakupan fitur ini).
 //
-// PENTING (kuota transfer Neon): kolom foto profil (profiles.foto) sekarang
-// TIDAK lagi menyimpan base64 mentah langsung ke Postgres. Kalau foto yang
-// dikirim berupa base64 data URL, file diupload dulu ke Google Drive
-// (lib/googleDrive.js) dan yang disimpan di kolom foto cuma referensi kecil
-// "drive:<fileId>". Saat dibaca (GET), referensi itu otomatis di-download
-// dari Drive lalu dikonversi balik jadi base64 SEBELUM dikirim ke browser --
-// supaya frontend yang masih pakai <img src="..."> dengan base64 langsung
-// TIDAK PERLU diubah. Kalau kredensial Drive belum diset / upload gagal,
-// fallback: simpan base64 apa adanya seperti semula supaya fitur tetap jalan.
+// CATATAN: fitur foto profil akun DIHAPUS (Ags 2026) -- sebelumnya boros
+// kuota transfer Neon & Vercel FOT karena tiap Sinkron menekan resolve foto
+// dari Google Drive. Kolom profiles.foto TETAP ADA di database (tidak
+// dihapus/migrasi, supaya aman & reversible), tapi API ini sudah tidak lagi
+// membaca maupun menulis ke kolom itu -- selalu dikirim sebagai string
+// kosong ke frontend, dan field foto yang dikirim client diabaikan.
 
 const { sql } = require('../lib/db');
 const bcrypt = require('bcryptjs');
-const { uploadPhotoToDrive, downloadFileAsDataUrl } = require('../lib/googleDrive');
 const { logActivity } = require('../lib/activityLog');
-
-const DRIVE_PREFIX = 'drive:';
 
 // Password default untuk akun baru & reset password diambil dari environment
 // variable (Vercel > Settings > Environment Variables), BUKAN hardcode di
@@ -51,56 +45,15 @@ async function assertIsAdmin(username) {
   return rows[0]?.role === 'admin' && rows[0]?.status === 'Aktif';
 }
 
-async function resolveFotoForSave(foto, fileNamePrefix) {
-  if (!foto || typeof foto !== 'string' || !foto.startsWith('data:')) {
-    // Kosong, atau sudah berupa referensi Drive lama -> simpan apa adanya
-    return { toSave: foto ?? '', warning: null };
-  }
-  try {
-    const uploaded = await uploadPhotoToDrive(foto, `${fileNamePrefix}-${Date.now()}.jpg`);
-    return { toSave: `${DRIVE_PREFIX}${uploaded.fileId}`, warning: null };
-  } catch (driveErr) {
-    console.error('Upload foto profil ke Drive gagal, fallback simpan base64:', driveErr.message);
-    return { toSave: foto, warning: driveErr.message };
-  }
-}
-
-async function resolveFotoForRead(fotoRaw) {
-  if (!fotoRaw || typeof fotoRaw !== 'string' || !fotoRaw.startsWith(DRIVE_PREFIX)) {
-    return fotoRaw || '';
-  }
-  const fileId = fotoRaw.slice(DRIVE_PREFIX.length);
-  try {
-    return await downloadFileAsDataUrl(fileId, 'image/jpeg');
-  } catch (err) {
-    // Coba sekali lagi -- kegagalan pertama seringkali cuma hiccup jaringan
-    // sesaat ke Google Drive, bukan file yang benar-benar hilang/rusak.
-    try {
-      return await downloadFileAsDataUrl(fileId, 'image/jpeg');
-    } catch (err2) {
-      console.error('Download foto profil dari Drive gagal (2x percobaan):', err2.message);
-      return '';
-    }
-  }
-}
-
-// includeFoto=false (dipakai syncAll() lewat ?includeFoto=false): SKIP
-// download+resolve foto dari Drive sama sekali, kirim referensi mentahnya
-// apa adanya (mis. "drive:<fileId>", beberapa puluh karakter). Ini ekivalen
-// dengan fix includeTtd=false di api/tegakan.js -- sebelumnya endpoint ini
-// selalu resolve foto SEMUA akun jadi base64 tiap dipanggil (termasuk tiap
-// kali tombol Sinkron ditekan lewat syncAll()), padahal yang butuh gambar
-// aslinya cuma halaman yang benar-benar menampilkan avatar. Referensi
-// mentah itu juga dipakai client sebagai fingerprint: kalau referensinya
-// sama dengan sync sebelumnya, fotonya dianggap tidak berubah dan tidak
-// perlu diresolve ulang.
-async function listAccounts(filterUsername, includeFoto = true) {
+// includeFoto dipertahankan sebagai parameter (dipanggil dari beberapa
+// tempat) tapi sudah tidak berpengaruh -- foto selalu dikirim kosong.
+async function listAccounts(filterUsername) {
   const rows = filterUsername
     ? await sql`
         SELECT
           a.username, a.role, a.status,
           p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
-          p.tower_awal, p.tower_akhir, p.wilayah, p.foto
+          p.tower_awal, p.tower_akhir, p.wilayah
         FROM accounts a
         LEFT JOIN profiles p ON p.username = a.username
         WHERE a.username = ${filterUsername}
@@ -109,29 +62,21 @@ async function listAccounts(filterUsername, includeFoto = true) {
         SELECT
           a.username, a.role, a.status,
           p.jabatan, p.jalur, p.jalur_id, p.tower_ids, p.span_ids,
-          p.tower_awal, p.tower_akhir, p.wilayah, p.foto
+          p.tower_awal, p.tower_akhir, p.wilayah
         FROM accounts a
         LEFT JOIN profiles p ON p.username = a.username
         ORDER BY a.username
       `;
 
-  if (!includeFoto) {
-    return rows.map((r) => ({ ...r, foto: r.foto || '' }));
-  }
-
-  // Resolve semua referensi Drive jadi base64 sebelum dikirim ke browser.
-  return Promise.all(
-    rows.map(async (r) => ({ ...r, foto: await resolveFotoForRead(r.foto) }))
-  );
+  return rows.map((r) => ({ ...r, foto: '' }));
 }
 
 module.exports = async (req, res) => {
   try {
-    const { action, username: qUsername, actor: qActor, includeFoto: qIncludeFoto } = req.query || {};
+    const { action, username: qUsername, actor: qActor } = req.query || {};
 
     if (req.method === 'GET') {
-      const includeFoto = qIncludeFoto !== 'false';
-      const accounts = await listAccounts(qUsername, includeFoto);
+      const accounts = await listAccounts(qUsername);
       return res.status(200).json({ success: true, accounts });
     }
 
@@ -231,9 +176,6 @@ module.exports = async (req, res) => {
       `;
 
       const pf = profileFields || {};
-      const { toSave: fotoToSave, warning: fotoWarning } = await resolveFotoForSave(
-        pf.foto, `profil-${trimmed}`
-      );
 
       await sql`
         INSERT INTO profiles (
@@ -249,7 +191,7 @@ module.exports = async (req, res) => {
           ${pf.towerAwal != null ? pf.towerAwal : 1},
           ${pf.towerAkhir != null ? pf.towerAkhir : 1},
           ${pf.wilayah || ''},
-          ${fotoToSave}
+          ${''}
         )
       `;
 
@@ -257,7 +199,7 @@ module.exports = async (req, res) => {
         username: actor, action: 'create', entityType: 'akun', entityId: trimmed,
         detail: `Menambahkan akun baru "${trimmed}" (role: ${finalRole})`,
       });
-      return res.status(200).json({ success: true, driveWarning: fotoWarning });
+      return res.status(200).json({ success: true });
     }
 
     if (req.method === 'PUT') {
@@ -292,7 +234,6 @@ module.exports = async (req, res) => {
       if (fields.towerIds !== undefined) changedFieldLabels.push('penugasan tower');
       if (fields.spanIds !== undefined) changedFieldLabels.push('penugasan span');
       if (fields.wilayah !== undefined) changedFieldLabels.push('wilayah');
-      if (fields.foto !== undefined) changedFieldLabels.push('foto profil');
 
       // --- Rename akun (ganti username/nama login) ---
       // username adalah PRIMARY KEY dan direferensikan oleh tabel profiles
@@ -359,18 +300,10 @@ module.exports = async (req, res) => {
       }
 
       const hasProfileFields = [
-        'jabatan', 'jalur', 'jalurId', 'towerIds', 'spanIds', 'towerAwal', 'towerAkhir', 'wilayah', 'foto',
+        'jabatan', 'jalur', 'jalurId', 'towerIds', 'spanIds', 'towerAwal', 'towerAkhir', 'wilayah',
       ].some((k) => fields[k] !== undefined);
 
       if (hasProfileFields) {
-        let fotoToSave = null;
-        let fotoWarning = null;
-        if (fields.foto !== undefined) {
-          const resolved = await resolveFotoForSave(fields.foto, `profil-${username}`);
-          fotoToSave = resolved.toSave;
-          fotoWarning = resolved.warning;
-        }
-
         // jalur_id butuh perlakuan khusus: COALESCE tidak bisa dipakai untuk
         // MENGOSONGKAN nilai (set NULL), karena COALESCE(null, kolom_lama)
         // akan selalu balik ke nilai lama. Admin & KLW sengaja punya
@@ -386,22 +319,13 @@ module.exports = async (req, res) => {
             span_ids    = COALESCE(${fields.spanIds !== undefined ? JSON.stringify(fields.spanIds) : null}, span_ids),
             tower_awal  = COALESCE(${fields.towerAwal ?? null}, tower_awal),
             tower_akhir = COALESCE(${fields.towerAkhir ?? null}, tower_akhir),
-            wilayah     = COALESCE(${fields.wilayah ?? null}, wilayah),
-            foto        = COALESCE(${fotoToSave}, foto)
+            wilayah     = COALESCE(${fields.wilayah ?? null}, wilayah)
           WHERE username = ${username}
         `;
 
         if (jalurIdProvided) {
           // Set langsung (boleh NULL) -- dipanggil terpisah dari COALESCE di atas.
           await sql`UPDATE profiles SET jalur_id = ${fields.jalurId ?? null} WHERE username = ${username}`;
-        }
-
-        if (fotoWarning) {
-          logActivity({
-            username: actor, action: 'update', entityType: 'akun', entityId: username,
-            detail: changedFieldLabels.length ? `Mengubah ${changedFieldLabels.join(', ')}` : 'Update akun',
-          });
-          return res.status(200).json({ success: true, username, driveWarning: fotoWarning });
         }
       }
 
