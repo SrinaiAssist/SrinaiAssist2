@@ -46,6 +46,16 @@
 //        -> upsert SATU baris ba_auto_slot (slotIndex 1-4). tanggal null
 //        berarti slot itu dikosongkan/nonaktif.
 //
+// GET    /api/settings?action=baAppPetugasList[&username=..]  (auth: header
+//        x-app-key, dipanggil app "Berita Acara" -- lihat api/jadwal.js di
+//        repo itu -- buat popup konfigurasi jadwal kalender: dropdown pilih
+//        petugas [admin] + span milik petugas terpilih. Jadwal hasil
+//        konfigurasinya sendiri DISIMPAN DI APP ITU [tabel ba_schedule_slot
+//        lokal, bukan ba_auto_slot di sini] -- endpoint ini cuma sumber data
+//        petugas+span, read-only, tidak nulis apa pun ke SA2.
+// GET    /api/settings?action=baAppTegakanBySpan&spanId=..  (auth: x-app-key)
+//        -> daftar tegakan 1 span, dipakai isi checklist di popup yang sama.
+//
 // (Digabung di sini, bukan file /api terpisah, supaya tidak menambah slot
 // serverless function baru -- Vercel Hobby dibatasi 12 function/deployment
 // dan project ini sudah pas di batas itu.)
@@ -534,6 +544,92 @@ async function handleBaAppScheduleList(req, res) {
   }
 
   return res.status(200).json({ success: true, users: Object.values(byUser) });
+}
+
+// GET /api/settings?action=baAppPetugasList[&username=..]  (dipanggil app
+// "Berita Acara" -- lihat api/jadwal.js di repo itu -- buat popup konfigurasi
+// jadwal kalender: pilih petugas (khusus admin) + pilih span milik petugas
+// itu. Auth pakai isAppKeyValid (sama seperti baAppScheduleList).
+//
+// Tanpa &username: balikin SEMUA akun aktif (petugas & admin) beserta
+// span_ids-nya, PLUS seluruh baris tabel span (id, jalurId, nomor, label) --
+// app yang menyaring span mana milik siapa di sisi klien, sama persis pola
+// yang dulu dipakai formMeta versi Botlab (lihat kirim-ba.js appfilterSpans).
+// Dengan &username=..: cuma balikin 1 akun itu + span YANG dia punya saja
+// (dipakai petugas biasa yang self-service, tidak perlu ekspos akun lain).
+async function handleBaAppPetugasList(req, res) {
+  if (!isAppKeyValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const { username } = req.query || {};
+
+  const petugasRows = username
+    ? await sql`
+        SELECT a.username, a.role, COALESCE(p.span_ids, '[]'::jsonb) AS "spanIds"
+        FROM accounts a
+        LEFT JOIN profiles p ON p.username = a.username
+        WHERE a.username = ${username} AND a.status = 'Aktif'
+      `
+    : await sql`
+        SELECT a.username, a.role, COALESCE(p.span_ids, '[]'::jsonb) AS "spanIds"
+        FROM accounts a
+        LEFT JOIN profiles p ON p.username = a.username
+        WHERE a.status = 'Aktif'
+        ORDER BY a.username
+      `;
+
+  const petugas = petugasRows.map((r) => ({
+    username: r.username,
+    role: r.role,
+    spanIds: Array.isArray(r.spanIds) ? r.spanIds : [],
+  }));
+
+  // Span yang relevan aja (dipunyai salah satu petugas hasil query di atas)
+  // -- hindari kirim seluruh tabel span kalau cuma butuh punya 1 orang.
+  const allSpanIds = Array.from(new Set(petugas.flatMap((p) => p.spanIds)));
+  const spanRows = allSpanIds.length
+    ? await sql`
+        SELECT id, jalur_id AS "jalurId", nomor
+        FROM span
+        WHERE id = ANY(${allSpanIds})
+        ORDER BY jalur_id, nomor
+      `
+    : [];
+  const spans = spanRows.map((s) => ({
+    id: s.id,
+    jalurId: s.jalurId,
+    nomor: s.nomor,
+    label: `${s.jalurId}-S${String(s.nomor).padStart(3, '0')}`,
+  }));
+
+  return res.status(200).json({ success: true, petugas, spans });
+}
+
+// GET /api/settings?action=baAppTegakanBySpan&spanId=..  (dipanggil app
+// "Berita Acara" buat isi checklist tegakan di popup konfigurasi jadwal,
+// setelah petugas/admin pilih span). Auth pakai isAppKeyValid. Data mentahnya
+// sama seperti GET /api/tegakan?spanId=.. (lihat api/tegakan.js), tapi
+// sengaja dipisah endpoint & auth-nya (x-app-key, bukan cookie sesi SA2)
+// karena dipanggil server-to-server dari app lain, dan cuma butuh 3 kolom
+// (tidak perlu ttdData/pemilikAlamat/dst).
+async function handleBaAppTegakanBySpan(req, res) {
+  if (!isAppKeyValid(req)) {
+    return res.status(401).json({ success: false, message: 'Tidak diizinkan.' });
+  }
+
+  const { spanId } = req.query || {};
+  if (!spanId) {
+    return res.status(400).json({ success: false, message: 'spanId wajib diisi.' });
+  }
+
+  const rows = await sql`
+    SELECT id, id_tegakan AS "idTegakan", nama, pemilik_nama AS "pemilikNama"
+    FROM tegakan
+    WHERE span_id = ${spanId}
+    ORDER BY created_at ASC
+  `;
+  return res.status(200).json({ success: true, tegakan: rows });
 }
 
 // GET /api/settings?action=baAutoAdminList  (dipanggil ba-control-panel,
@@ -1848,6 +1944,22 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
       }
       return await handleBaAppScheduleList(req, res);
+    }
+
+    if (qAction === 'baAppPetugasList') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAppPetugasList(req, res);
+    }
+
+    if (qAction === 'baAppTegakanBySpan') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        return res.status(405).json({ success: false, message: 'Method tidak diizinkan.' });
+      }
+      return await handleBaAppTegakanBySpan(req, res);
     }
 
     if (qAction === 'baAutoGet') {
