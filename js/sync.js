@@ -593,6 +593,12 @@ async function _refreshAllTegakanGrouped() {
 
     if (changedSpanIds.length === 0 && removedSpanIds.length === 0) {
       _syncLog(`Update tidak dilakukan, menggunakan data sebelumnya... ${_fmtBytes(_jsonSize(oldAll))}`);
+      // PENTING: tetap "cap ulang" timestamp cache meski datanya sama persis --
+      // tanpa ini, cachedGetAllTegakan() (yang sekarang TTL 5 menit, lihat
+      // komentar di sana) akan menganggap cache selalu stale dan memanggil
+      // getTegakanMeta() ULANG di SETIAP load halaman selama tidak ada
+      // perubahan sama sekali, bukan cuma sekali tiap 5 menit.
+      _cacheSet(CACHE_KEYS.tegakanAll, oldAll);
       return oldAll;
     }
 
@@ -618,10 +624,22 @@ async function _refreshAllTegakanGrouped() {
  * dipakai statistik dashboard "Tegakan Tercatat" — independen dari BA,
  * jadi menghitung setiap tegakan yang sudah dicatat petugas walau
  * belum (atau sudah) dibuatkan Berita Acara.
+ *
+ * PENTING (fix, Ags 2026): sebelumnya pakai kebijakan cache 30 menit
+ * yang TIDAK PERNAH auto-refresh (cuma manual "Sinkron") -- akibatnya
+ * kalau ada tegakan baru ditambahkan dari akun/device LAIN, badge
+ * "Ada/Belum Ada Tegakan" di daftar span.html & informasi-span.html
+ * tetap salah/basi selama berhari-hari di device ini, padahal cukup
+ * tap "Lihat" (cachedGetTegakanBySpan, cache terpisah per-span) untuk
+ * lihat data yang sebenarnya sudah benar di server. Data tegakan itu
+ * dinamis (bisa berubah dari device lain kapan saja) jadi sekarang
+ * dipakaikan TTL pendek yang sama seperti cache per-span (5 menit,
+ * lihat SPAN_CACHE_TTL_MS) supaya badge auto-refresh sendiri tanpa
+ * perlu Sinkron manual.
  */
 async function cachedGetAllTegakan() {
-  const cached = _cacheGetData(CACHE_KEYS.tegakanAll);
-  if (cached) return cached; // stale tetap dipakai, hanya syncAll() yang refresh
+  const key = CACHE_KEYS.tegakanAll;
+  if (!_spanCacheStale(key)) return _cacheGetData(key);
   return await _refreshAllTegakanGrouped();
 }
 
@@ -937,3 +955,4 @@ window.addEventListener("online", () => {
    namespace _scopedKey() di atas, jadi tidak akan tertukar). clearAllCache()
    masih tersedia untuk dipakai manual (mis. tombol "reset cache" di
    pengaturan.html), tapi tidak lagi otomatis terpicu saat logout. */
+
