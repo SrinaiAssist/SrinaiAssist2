@@ -498,12 +498,13 @@ async function handleBaAppScheduleList(req, res) {
           jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
           s.last_run_date_app AS "lastRunDateApp",
           CASE WHEN sp.id IS NOT NULL
-            THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+            THEN COALESCE(j.code, sp.jalur_id) || '-S' || lpad(sp.nomor::text, 3, '0')
             ELSE NULL
           END AS "spanLabel"
         FROM ba_auto_slot s
         JOIN ba_auto_settings st ON st.username = s.username
         LEFT JOIN span sp ON sp.id = s.span_id
+        LEFT JOIN jalur j ON j.id = sp.jalur_id
         WHERE st.app_enabled = true
           AND s.tanggal IS NOT NULL AND s.span_id IS NOT NULL
           AND jsonb_array_length(s.tegakan_ids) > 0
@@ -517,12 +518,13 @@ async function handleBaAppScheduleList(req, res) {
           jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
           s.last_run_date_app AS "lastRunDateApp",
           CASE WHEN sp.id IS NOT NULL
-            THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+            THEN COALESCE(j.code, sp.jalur_id) || '-S' || lpad(sp.nomor::text, 3, '0')
             ELSE NULL
           END AS "spanLabel"
         FROM ba_auto_slot s
         JOIN ba_auto_settings st ON st.username = s.username
         LEFT JOIN span sp ON sp.id = s.span_id
+        LEFT JOIN jalur j ON j.id = sp.jalur_id
         WHERE st.app_enabled = true
           AND s.tanggal IS NOT NULL AND s.span_id IS NOT NULL
           AND jsonb_array_length(s.tegakan_ids) > 0
@@ -590,17 +592,21 @@ async function handleBaAppPetugasList(req, res) {
   const allSpanIds = Array.from(new Set(petugas.flatMap((p) => p.spanIds)));
   const spanRows = allSpanIds.length
     ? await sql`
-        SELECT id, jalur_id AS "jalurId", nomor
-        FROM span
-        WHERE id = ANY(${allSpanIds})
-        ORDER BY jalur_id, nomor
+        SELECT sp.id, sp.jalur_id AS "jalurId", sp.nomor, j.code AS "jalurCode"
+        FROM span sp
+        LEFT JOIN jalur j ON j.id = sp.jalur_id
+        WHERE sp.id = ANY(${allSpanIds})
+        ORDER BY sp.jalur_id, sp.nomor
       `
     : [];
   const spans = spanRows.map((s) => ({
     id: s.id,
     jalurId: s.jalurId,
     nomor: s.nomor,
-    label: `${s.jalurId}-S${String(s.nomor).padStart(3, '0')}`,
+    // Pakai kode jalur yang human-readable (mis. "JLR1") kalau ada;
+    // fallback ke jalurId mentah (route_<timestamp>) kalau jalur sudah
+    // dihapus / relasi putus, supaya tidak crash.
+    label: `${s.jalurCode || s.jalurId}-S${String(s.nomor).padStart(3, '0')}`,
   }));
 
   return res.status(200).json({ success: true, petugas, spans });
@@ -649,12 +655,13 @@ async function handleBaAutoAdminList(req, res) {
       jsonb_array_length(s.tegakan_ids) AS "tegakanCount",
       s.last_run_date AS "lastRunDate",
       CASE WHEN sp.id IS NOT NULL
-        THEN sp.jalur_id || '-S' || lpad(sp.nomor::text, 3, '0')
+        THEN COALESCE(j.code, sp.jalur_id) || '-S' || lpad(sp.nomor::text, 3, '0')
         ELSE NULL
       END AS "spanLabel"
     FROM ba_auto_settings st
     LEFT JOIN ba_auto_slot s ON s.username = st.username
     LEFT JOIN span sp ON sp.id = s.span_id
+    LEFT JOIN jalur j ON j.id = sp.jalur_id
     ORDER BY st.username, s.slot_index
   `;
 
