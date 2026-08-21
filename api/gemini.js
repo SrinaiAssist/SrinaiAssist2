@@ -8,7 +8,7 @@ const { sql } = require('../lib/db');
                          ATAU kalau Groq gagal/limit di mode chat
    - GEMINI_API_KEY_3, dst (opsional) : cadangan tambahan khusus BA
    - GROQ_API_KEY      : utama untuk mode chat (SrinAI di ai.html +
-                         @SrinAI di chat grup / chat.html)
+                         @SrinAI di grup Telegram lewat Botlab)
 ========================================================= */
 
 export default async function handler(req, res) {
@@ -47,8 +47,8 @@ export default async function handler(req, res) {
     }
 
     /* =========================================================
-       MODE: chat — dipakai oleh ai.html (SrinAI) DAN chat.html
-       (mention @SrinAI di chat grup, lewat callGeminiForGroup()).
+       MODE: chat — dipakai oleh ai.html (SrinAI) DAN mention @SrinAI
+       di grup Telegram lewat Botlab.
 
        Provider: Groq DULUAN (cepat, murah), kalau gagal/limit baru
        fallback ke Gemini key-2 (yang juga dipakai sebagai cadangan

@@ -716,17 +716,6 @@ async function hapusKoordinatTower(towerId) {
 }
 
 /* =========================================================
-   KIRIM KOORDINAT KE GROUP CHAT — pakai /api/chat yang sudah
-   ada (field meta), supaya tidak perlu endpoint baru
-========================================================= */
-async function sendCoordinateToChat(username, meta) {
-    return await apiRequest("/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ username, text: "", meta })
-    });
-}
-
-/* =========================================================
    DATA TEGAKAN — Neon Postgres lewat /api/tegakan
 ========================================================= */
 async function getTegakanBySpan(spanId) {
@@ -850,43 +839,6 @@ async function deleteAppSetting(key) {
    memakai class "theme-fieldlog" di <html>, jadi tidak perlu
    lagi sinkronisasi/redirect tema di sini.
 ========================================================= */
-
-/* =========================================================
-   GROUP CHAT — Neon Postgres lewat /api/chat
-========================================================= */
-async function getChatMessages(limit) {
-    const result = await apiRequest("/api/chat?limit=" + (limit || 100));
-    return result.messages || [];
-}
-
-/** Ambil hanya pesan BARU (id > sinceId) -- dipakai polling ringan
- *  chat.html tiap 5 detik supaya tidak narik ulang seluruh history
- *  (150 pesan) tiap kali polling. Kalau tidak ada pesan baru, server
- *  balas array kosong -- hampir tanpa payload, hemat Fast Origin
- *  Transfer dibanding versi lama yang selalu fetch limit penuh. */
-async function getChatMessagesSince(sinceId) {
-    const result = await apiRequest("/api/chat?sinceId=" + encodeURIComponent(sinceId));
-    return result.messages || [];
-}
-
-async function sendChatMessage(username, text, foto) {
-    return await apiRequest("/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ username, text, foto })
-    });
-}
-
-async function deleteChatMessage(id) {
-    return await apiRequest("/api/chat?id=" + encodeURIComponent(id), {
-        method: "DELETE"
-    });
-}
-
-async function clearAllChatMessages() {
-    return await apiRequest("/api/chat?all=1", {
-        method: "DELETE"
-    });
-}
 
 /* =========================================================
    MUSIK LATAR — file statis di /assets/audio (BUKAN disimpan
@@ -1043,6 +995,19 @@ if (document.readyState === "loading") {
    deployment dan project ini sudah pas di batas itu. */
 const LOCATION_HEARTBEAT_INTERVAL_MS = 60 * 1000; // 1 menit
 
+// 21 Agustus 2026: heartbeat ini dulu jalan di SEMUA halaman (auth.js
+// dipakai di mana-mana), tiap 60 detik, nge-hit DB terus-menerus selama
+// tab dibiarkan terbuka -- bikin Neon compute endpoint tidak pernah
+// sempat autosuspend dan menghabiskan kuota CU-hrs bulanan cuma dalam
+// ~20 hari. Sekarang dibatasi supaya cuma jalan di HALAMAN PETA (yang
+// benar-benar butuh data lokasi real-time), dan otomatis pause saat tab
+// tidak fokus (lihat visibilitychange di bawah).
+function __isPetaPage() {
+    return /(^|\/)peta\.html$/.test(location.pathname);
+}
+
+let __locationHeartbeatTimer = null;
+
 function sendLocationHeartbeat() {
     const username = getCurrentUser();
     if (!username || !navigator.geolocation) return;
@@ -1064,10 +1029,35 @@ function sendLocationHeartbeat() {
     );
 }
 
-function startLocationHeartbeat() {
-    if (!getCurrentUser() || !navigator.geolocation) return;
+function __startLocationHeartbeatTimer() {
+    if (__locationHeartbeatTimer) return; // sudah jalan, jangan dobel
     sendLocationHeartbeat();
-    setInterval(sendLocationHeartbeat, LOCATION_HEARTBEAT_INTERVAL_MS);
+    __locationHeartbeatTimer = setInterval(sendLocationHeartbeat, LOCATION_HEARTBEAT_INTERVAL_MS);
+}
+
+function __stopLocationHeartbeatTimer() {
+    if (!__locationHeartbeatTimer) return;
+    clearInterval(__locationHeartbeatTimer);
+    __locationHeartbeatTimer = null;
+}
+
+function startLocationHeartbeat() {
+    if (!getCurrentUser() || !navigator.geolocation || !__isPetaPage()) return;
+
+    // Mulai kalau tab lagi kelihatan; kalau tidak, tunggu sampai user
+    // balik lihat tab ini (event visibilitychange di bawah yang mulai).
+    if (document.visibilityState === "visible") {
+        __startLocationHeartbeatTimer();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+        if (!__isPetaPage()) return;
+        if (document.visibilityState === "visible") {
+            __startLocationHeartbeatTimer();
+        } else {
+            __stopLocationHeartbeatTimer();
+        }
+    });
 }
 
 if (document.readyState === "loading") {

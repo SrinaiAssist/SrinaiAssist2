@@ -244,18 +244,6 @@ input[type="file"]{width:100%;color:var(--ink-3);font-size:12px;margin-top:8px;}
 
 </div>
 
-<!-- Modal kirim ke user -->
-<div class="modal-overlay" id="kirimModal" onclick="if(event.target===this) closeKirimModal()">
-  <div class="modal-sheet">
-    <div class="modal-title">Kirim Koordinat ke Chat Tim</div>
-    <div class="modal-sub">Koordinat akan dikirim sebagai kartu lokasi ke Group Chat, terlihat oleh seluruh tim.</div>
-    <div class="btn-row">
-      <button class="btn btn-ghost" onclick="closeKirimModal()">Batal</button>
-      <button class="btn btn-primary" onclick="konfirmasiKirimChat()">📤 Kirim Sekarang</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -357,7 +345,6 @@ function renderKoordinat(){
     <div id="leafletMap"></div>
     <div class="btn-row">
       ${canEdit ? `<button class="btn btn-ghost" onclick="mulaiSimpanKoordinat()">🔄 Update</button>` : ""}
-      <button class="btn btn-gold" onclick="openKirimModal()">📤 Kirim ke Chat</button>
     </div>
     ${canEdit ? `<button class="btn btn-hapus-koord" onclick="hapusKoordinatTowerIni()">🗑️ Hapus Koordinat</button>` : ""}
   `;
@@ -458,34 +445,6 @@ async function hapusKoordinatTowerIni(){
   localStorage.removeItem("srinai_cache_tower");
   renderKoordinat();
   showToast("Koordinat tower dihapus.");
-}
-
-/* =========================================================
-   KIRIM KE CHAT TIM
-========================================================= */
-function openKirimModal(){
-  document.getElementById("kirimModal").classList.add("active");
-}
-function closeKirimModal(){
-  document.getElementById("kirimModal").classList.remove("active");
-}
-
-async function konfirmasiKirimChat(){
-  const towerJalur = jalurList.find(j => j.id === towerData.jalurId);
-  const code = towerJalur ? assetCodeTower(towerJalur.code, towerData.nomor) : ("Tower " + towerData.nomor);
-
-  await sendCoordinateToChat(currentUser, {
-    kind: "koordinat",
-    towerId: towerData.id,
-    towerLabel: code,
-    jalur: towerJalur ? (towerJalur.code + " — " + towerJalur.label) : "",
-    latitude: towerData.latitude,
-    longitude: towerData.longitude,
-    akurasiMeter: towerData.akurasiMeter
-  });
-
-  closeKirimModal();
-  showToast("Koordinat terkirim ke Chat Tim 📤");
 }
 
 /* =========================================================

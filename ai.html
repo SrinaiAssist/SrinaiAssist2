@@ -356,9 +356,8 @@ function aiResponse(text){
   playChatReplyChime();
 }
 
-// Nada "jawaban benar" tiap SrinAI membalas di sini. Sama persis dengan
-// chat.html: kalau autoplay bersuara diblokir browser, otomatis diputar
-// begitu user tap layar.
+// Nada "jawaban benar" tiap SrinAI membalas di sini. Kalau autoplay
+// bersuara diblokir browser, otomatis diputar begitu user tap layar.
 function playChatReplyChime(){
   const chime = new Audio("assets/audio/chat-reply.wav");
   chime.volume = 0.6;

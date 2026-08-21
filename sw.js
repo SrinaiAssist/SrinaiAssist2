@@ -43,7 +43,6 @@ const PRECACHE_PAGES = [
   "/catatan-span.html",
   "/catatan-tower.html",
   "/catatan.html",
-  "/chat.html",
   "/command-bot.html",
   "/dashboard.html",
   "/foto-eviden.html",
