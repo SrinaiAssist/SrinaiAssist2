@@ -618,7 +618,24 @@ async function _refreshAllTegakanGrouped() {
     const newFp = {};
     metaList.forEach(m => { newFp[m.spanId] = _tegakanFingerprintFromMeta(m); });
 
-    const changedSpanIds = Object.keys(newFp).filter(spanId => oldFp[spanId] !== newFp[spanId]);
+    const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
+
+    // PENTING (fix akar masalah #5, Ags 2026): sebelumnya "berubah/tidak"
+    // MURNI ditentukan dari fingerprint (oldFp vs newFp), tanpa pernah
+    // mengecek apakah span itu benar2 ADA datanya di cache gabungan
+    // (CACHE_KEYS.tegakanAll). Akibatnya kalau cache gabungan sempat rusak
+    // jadi cuma berisi sebagian span (mis. gara2 invalidateTegakanCache()
+    // jalan saat cache gabungan belum lengkap -- lihat fix #4), fingerprint
+    // span yang "hilang" itu TETAP tercatat cocok (sudah di-set saat itu
+    // juga), jadi span itu dianggap "tidak berubah" SELAMANYA dan tidak
+    // pernah ditarik ulang -- bahkan lewat tombol Sinkron manual sekalipun.
+    // Sekarang: span yang fingerprint-nya cocok TAPI datanya tidak ada di
+    // cache gabungan tetap dipaksa ditarik ulang, supaya cache yang sudah
+    // kadung rusak bisa "sembuh sendiri" begitu syncAll()/Sinkron jalan.
+    const oldAllSpanIds = new Set(oldAll.map(item => item.spanId));
+    const changedSpanIds = Object.keys(newFp).filter(spanId =>
+      oldFp[spanId] !== newFp[spanId] || !oldAllSpanIds.has(spanId)
+    );
     // Span yang dulu ada fingerprint-nya tapi sekarang tidak muncul lagi di
     // meta (semua tegakan-nya baru saja dihapus).
     const removedSpanIds = Object.keys(oldFp).filter(spanId => !(spanId in newFp));
@@ -633,7 +650,6 @@ async function _refreshAllTegakanGrouped() {
     // Daftar metadata gabungan (dipakai statistik dashboard) -- mulai dari
     // cache lama, buang entri span yang berubah/hilang, lalu isi ulang
     // HANYA span yang berubah dengan data terbaru (metadata saja, tanpa TTD).
-    const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
     const untouched = oldAll.filter(item => !changedSpanIds.includes(item.spanId) && !removedSpanIds.includes(item.spanId));
 
     if (changedSpanIds.length === 0 && removedSpanIds.length === 0) {
