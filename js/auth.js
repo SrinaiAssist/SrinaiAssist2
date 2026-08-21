@@ -729,7 +729,24 @@ async function getTegakanBySpan(spanId) {
 async function getTegakanMeta() {
     const result = await apiRequest("/api/tegakan?meta=1");
     if (!result.success) throw new Error(result.message || "Gagal memuat metadata tegakan.");
-    return result.meta || [];
+    if (result.meta) return result.meta;
+    // Fallback: backend yang sedang live belum mengenali ?meta=1 (masih versi
+    // lama / belum ter-redeploy) sehingga cuma balikin { tegakan: [...] }
+    // seperti mode lama, bukan { meta: [...] }. Daripada diam-diam dianggap
+    // kosong (bikin badge "Belum Ada Tegakan" salah untuk semua span),
+    // hitung sendiri ringkasannya dari data lengkap yang memang terkirim.
+    if (result.tegakan) {
+        const grouped = {};
+        result.tegakan.forEach(t => {
+            if (!grouped[t.spanId]) grouped[t.spanId] = { spanId: t.spanId, count: 0, maxUpdatedAt: null };
+            grouped[t.spanId].count++;
+            if (!grouped[t.spanId].maxUpdatedAt || (t.updatedAt || "") > grouped[t.spanId].maxUpdatedAt) {
+                grouped[t.spanId].maxUpdatedAt = t.updatedAt || null;
+            }
+        });
+        return Object.values(grouped);
+    }
+    return [];
 }
 
 /** Metadata tegakan (TANPA foto TTD) untuk SATU span saja -- dipakai sync.js
