@@ -525,13 +525,32 @@ async function invalidateTegakanCache(spanId) {
   // tidak ada lagi kemungkinan salah anggap "berubah" atau "hilang" seperti
   // di fix #1 (yang masalahnya justru ada di reasoning soal span LAIN).
   try {
+    // PENTING (fix #4, Ags 2026): kalau cache gabungan (CACHE_KEYS.tegakanAll)
+    // BELUM PERNAH terisi sama sekali di device/sesi ini -- misal user buka
+    // catatan-span.html LANGSUNG (dari dashboard/link/deep-link) tanpa lebih
+    // dulu mampir ke span.html -- maka _cacheGetData tadinya balikin `[]`,
+    // lalu di-treat seolah "semua span lain memang kosong" dan ke-merge jadi
+    // cache gabungan baru yang CUMA berisi span ini sendiri. Cache parsial
+    // itu lalu dianggap fresh (baru di-set) oleh cachedGetAllTegakan(), jadi
+    // badge "Ada Tegakan" span LAIN hilang massal walau datanya utuh di DB.
+    // Sekarang: bedakan "belum pernah ada cache" (null) vs "sudah ada cache
+    // tapi memang kosong" ([]) -- HANYA merge kalau cache gabungan memang
+    // sudah pernah ada. Kalau belum pernah ada, jangan bikin cache parsial;
+    // biarkan tetap kosong supaya cachedGetAllTegakan() nanti fetch PENUH.
+    const hadCacheBefore = _cacheGet(CACHE_KEYS.tegakanAll) !== null;
     const freshForSpan = await getTegakanMetaBySpan(spanId); // includeTtd=false, 1 span saja
-    const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
-    const merged = oldAll.filter(t => t.spanId !== spanId).concat(freshForSpan);
-    _cacheSet(CACHE_KEYS.tegakanAll, merged);
+
+    if (hadCacheBefore) {
+      const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
+      const merged = oldAll.filter(t => t.spanId !== spanId).concat(freshForSpan);
+      _cacheSet(CACHE_KEYS.tegakanAll, merged);
+    }
 
     // Update fingerprint span ini saja, biar syncAll() berikutnya tidak
     // menganggap span ini "berubah lagi" dan menariknya ulang percuma.
+    // Fingerprint tetap diupdate walau cache gabungan belum ada, supaya
+    // begitu cache gabungan di-fetch penuh nanti, span ini tidak ikut
+    // dianggap "berubah" lagi secara percuma.
     const fp = _cacheGetData(TEGAKAN_FP_KEY) || {};
     if (freshForSpan.length) {
       let maxUpdatedAt = "";
