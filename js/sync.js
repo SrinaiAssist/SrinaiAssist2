@@ -160,6 +160,18 @@ function _cacheClear(key) {
   localStorage.removeItem(_scopedKey(key));
 }
 
+/* Tandai cache sebagai stale TANPA membuang datanya (beda dengan
+   _cacheClear yang menghapus total). Dipakai saat butuh maksa refresh
+   berikutnya tapi data lama masih perlu dipakai sebagai basis "untouched"
+   oleh _refreshAllTegakanGrouped() -- lihat invalidateTegakanCache(). */
+function _cacheMarkStale(key) {
+  const obj = _cacheGet(key);
+  if (!obj) return;
+  try {
+    localStorage.setItem(_scopedKey(key), JSON.stringify({ ts: 0, data: obj.data }));
+  } catch(e) {}
+}
+
 /* ═══════════════════════════════════════════════════════
    FUNGSI CACHED — pengganti fungsi di auth.js
    Strategi: cache-first, refresh di background kalau stale.
@@ -505,16 +517,18 @@ async function _refreshTegakanBySpan(spanId) {
 /** Invalidate cache tegakan span — panggil setelah add/update/delete */
 function invalidateTegakanCache(spanId) {
   _cacheClear(_spanTegakanKey(spanId));
+  // PENTING (fix, Ags 2026): dulu di sini _cacheClear(CACHE_KEYS.tegakanAll)
+  // -- MEMBUANG TOTAL cache gabungan semua span. Efeknya: saat
+  // _refreshAllTegakanGrouped() jalan lagi, variabel `oldAll` (basis buat
+  // mempertahankan span LAIN yang tidak ikut berubah) sudah kosong duluan,
+  // padahal fingerprint span-span lain itu tidak berubah sama sekali (jadi
+  // tidak ditarik ulang dari server) -- hasilnya cuma span yang baru
+  // diedit yang tersisa, semua tegakan span lain "hilang" dari badge.
+  // Sekarang cuma ditandai stale (paksa refresh berikutnya) TANPA membuang
+  // datanya, supaya span lain yang tidak berubah tetap ikut terbawa.
+  _cacheMarkStale(CACHE_KEYS.tegakanAll);
   // Total tegakan dashboard juga harus dianggap stale supaya
   // statTegakanCard tidak menampilkan angka basi.
-  _cacheClear(CACHE_KEYS.tegakanAll);
-  // Hapus juga fingerprint span ini. Tanpa ini, ADA celah kecil: kalau
-  // syncAll() berikutnya kebetulan menghitung fingerprint yang sama
-  // (mis. jam server & jam yang tersimpan kebetulan cocok di detik yang
-  // sama), span ini bisa salah dianggap "tidak berubah" dan cache lama
-  // (yang sudah di-invalidate manual di sini) tidak pernah diisi ulang.
-  // Menghapus entry-nya memaksa _refreshAllTegakanGrouped() menganggap
-  // span ini "berubah" pada sync berikutnya, apa pun fingerprint barunya.
   const fp = _cacheGetData(TEGAKAN_FP_KEY);
   if (fp && Object.prototype.hasOwnProperty.call(fp, spanId)) {
     delete fp[spanId];
