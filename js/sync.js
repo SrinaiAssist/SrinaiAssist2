@@ -628,14 +628,35 @@ async function _refreshAllTegakanGrouped() {
       return oldAll;
     }
 
-    const refreshedParts = await Promise.all(
-      changedSpanIds.map(spanId => getTegakanMetaBySpan(spanId).catch(() => []))
-    );
-    const all = untouched.concat(...refreshedParts);
+    // PENTING (fix akar masalah, Ags 2026): kalau yang berubah BANYAK span
+    // sekaligus (kasus paling umum: cache baru pertama diisi / abis
+    // dibersihkan -- SEMUA span dianggap "berubah" karena belum ada
+    // fingerprint history sama sekali), dulu di sini nembak SATU REQUEST
+    // PARALEL PER SPAN via Promise.all -- bisa puluhan request bersamaan.
+    // Di Vercel Hobby plan ini gampang kena limit/gagal sebagian, dan tiap
+    // request yang gagal DIAM-DIAM dianggap kosong (.catch(() => [])) --
+    // inilah penyebab asli badge "Belum Ada Tegakan" salah massal yang
+    // dilaporkan berulang. Sekarang: kalau span yang berubah lebih dari
+    // ambang batas ini, pakai SATU request tunggal yang ambil semua
+    // (getAllTegakan) alih-alih fan-out puluhan request kecil.
+    const FANOUT_THRESHOLD = 8;
+    let all;
+    if (changedSpanIds.length > FANOUT_THRESHOLD) {
+      _syncLog(`${changedSpanIds.length} span berubah sekaligus, ambil semua dalam 1 request ...`);
+      const freshAll = await getAllTegakan(); // 1 request, semua span, tanpa TTD
+      const changedSet = new Set(changedSpanIds);
+      const freshChanged = freshAll.filter(t => changedSet.has(t.spanId));
+      all = untouched.concat(freshChanged);
+    } else {
+      const refreshedParts = await Promise.all(
+        changedSpanIds.map(spanId => getTegakanMetaBySpan(spanId).catch(() => []))
+      );
+      all = untouched.concat(...refreshedParts);
+    }
 
     _cacheSet(TEGAKAN_FP_KEY, newFp);
     _cacheSet(CACHE_KEYS.tegakanAll, all);
-    const sz = _jsonSize([].concat(...refreshedParts));
+    const sz = _jsonSize(all);
     _syncBytesTotal += sz;
     _syncLog(`Sukses, ${changedSpanIds.length} span diperbarui... ${_fmtBytes(sz)}`);
     return all;
