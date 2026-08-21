@@ -515,24 +515,36 @@ async function _refreshTegakanBySpan(spanId) {
 }
 
 /** Invalidate cache tegakan span — panggil setelah add/update/delete */
-function invalidateTegakanCache(spanId) {
+async function invalidateTegakanCache(spanId) {
   _cacheClear(_spanTegakanKey(spanId));
-  // PENTING (fix, Ags 2026): dulu di sini _cacheClear(CACHE_KEYS.tegakanAll)
-  // -- MEMBUANG TOTAL cache gabungan semua span. Efeknya: saat
-  // _refreshAllTegakanGrouped() jalan lagi, variabel `oldAll` (basis buat
-  // mempertahankan span LAIN yang tidak ikut berubah) sudah kosong duluan,
-  // padahal fingerprint span-span lain itu tidak berubah sama sekali (jadi
-  // tidak ditarik ulang dari server) -- hasilnya cuma span yang baru
-  // diedit yang tersisa, semua tegakan span lain "hilang" dari badge.
-  // Sekarang cuma ditandai stale (paksa refresh berikutnya) TANPA membuang
-  // datanya, supaya span lain yang tidak berubah tetap ikut terbawa.
-  _cacheMarkStale(CACHE_KEYS.tegakanAll);
-  // Total tegakan dashboard juga harus dianggap stale supaya
-  // statTegakanCard tidak menampilkan angka basi.
-  const fp = _cacheGetData(TEGAKAN_FP_KEY);
-  if (fp && Object.prototype.hasOwnProperty.call(fp, spanId)) {
-    delete fp[spanId];
+  // PENTING (fix #3, Ags 2026): fix #2 (tarik ulang SEMUA span tiap ada 1
+  // edit) benar tapi boros -- edit N tegakan di N span beda = N kali tarik
+  // seluruh tabel. Sekarang cukup tarik ulang span YANG BERSANGKUTAN SAJA
+  // (getTegakanMetaBySpan, ringan) lalu tempelkan ke cache gabungan yang
+  // sudah ada -- span lain tidak disentuh/dihitung ulang sama sekali, jadi
+  // tidak ada lagi kemungkinan salah anggap "berubah" atau "hilang" seperti
+  // di fix #1 (yang masalahnya justru ada di reasoning soal span LAIN).
+  try {
+    const freshForSpan = await getTegakanMetaBySpan(spanId); // includeTtd=false, 1 span saja
+    const oldAll = _cacheGetData(CACHE_KEYS.tegakanAll) || [];
+    const merged = oldAll.filter(t => t.spanId !== spanId).concat(freshForSpan);
+    _cacheSet(CACHE_KEYS.tegakanAll, merged);
+
+    // Update fingerprint span ini saja, biar syncAll() berikutnya tidak
+    // menganggap span ini "berubah lagi" dan menariknya ulang percuma.
+    const fp = _cacheGetData(TEGAKAN_FP_KEY) || {};
+    if (freshForSpan.length) {
+      let maxUpdatedAt = "";
+      freshForSpan.forEach(t => { if ((t.updatedAt || "") > maxUpdatedAt) maxUpdatedAt = t.updatedAt || ""; });
+      fp[spanId] = freshForSpan.length + ":" + maxUpdatedAt;
+    } else {
+      delete fp[spanId]; // tegakan terakhir di span ini baru saja dihapus
+    }
     _cacheSet(TEGAKAN_FP_KEY, fp);
+  } catch(e) {
+    // Gagal tarik ulang -- minimal tandai stale, jangan diam-diam pakai
+    // data lama yang mungkin sudah tidak akurat.
+    _cacheMarkStale(CACHE_KEYS.tegakanAll);
   }
 }
 
